@@ -298,6 +298,6 @@ if __name__ == '__main__':
 	for i in range(0,next_j):
 		print i, net_mass[i]
 
- #test#		
+ #test2#		
  ######### repeat to here for each set of net reactions ######
 
