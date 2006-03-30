@@ -17,46 +17,27 @@ import copy   # for deepcopy
 from optparse import OptionParser
 
 # create a cmd line parser...
-parser = OptionParser("usage: %prog [-oOUTDIR] filename.ext iHrStart iHrEnd\niHrStart and iHrEnd should be between 1 and 24")
+parser = OptionParser("usage: %prog filename.ext ")
 parser.add_option("-s", "--show",
 	dest="show",
 	default=False,
 	action="store_true",
 	help="Display graphs on screen")
 
-parser.add_option("-o", "--output",
-	dest="outdir",
-	metavar="OUTDIR",
-	help="Destination directory for output graphs")
 
 # get options and arguments
 (options, args) = parser.parse_args()
 
 # requires 3 arguments
-if len(args) != 3:
+if len(args) != 1:
 	parser.error("Invalid number of arguments")
 # requires a valid ext file
 elif not os.path.exists(args[0]):
 	parser.error("Input file does not exist")
-# requires integer inputs
-elif float(args[1]) != int(args[1]) or float(args[2]) != int(args[2]):
-	parser.error("iHrStart and End must be integers")
-# requires hours between 1 and 24
-elif int(args[1]) > 24 or int(args[1]) < 1 or int(args[2]) > 24 or int(args[2]) < 1:
-	parser.error("iHrStart and End must be between 1 and 24")
-# the end must be equal to or greater than the beginning
-elif int(args[1]) > int(args[2]):
-	parser.error('IHrEnd must be atleast as big as iHrStart')
 
 
-# if an output directory is supplied, ensure that it exists
-if options.outdir and not os.path.exists(options.outdir):
-	#create it if it does not
-	os.makedirs(options.outdir)
 	
 input_filename = args[0]
-iHrStart       = args[1]
-iHrEnd         = args[2]
 
 time_re  = re.compile('Time =[0-9]{6}', re.IGNORECASE)
 irr_re   = re.compile('\{\s*\d+\}\s+\d+', re.IGNORECASE)
@@ -241,7 +222,7 @@ this_jstart = jstart_next_nr_set
 net_rxn_jindex.append(this_jstart)
 
 
-# create a cross reference vector for iSPC to j and fill it with jNULL
+# create a cross reference vector for iSPC to j and fill it with jNONE
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
@@ -273,11 +254,6 @@ jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
-jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
-jndx_net_rxn[iCRO ] = jj; jj += 1; indx_net_rxn.append(iCRO )
-jndx_net_rxn[iISPD] = jj; jj += 1; indx_net_rxn.append(iISPD)
-jndx_net_rxn[iTO2 ] = jj; jj += 1; indx_net_rxn.append(iTO2 )
-jndx_net_rxn[iROR ] = jj; jj += 1; indx_net_rxn.append(iROR )
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -320,9 +296,45 @@ while time >= 0:
 		
 	# compute the losses and gains in this net_rxn set...
 	
+	# { 26} NO2+OH=HNO3
+	# { 36} OH+CO=HO2
+	# { 37} FORM+OH=HO2+CO
+	# { 43} ALD2+OH=C2O3
+	# { 51} OH+CH4=FORM+XO2+HO2
+	# { 52} PAR+OH=0.87*XO2+0.13*XO2N+0.11*HO2+0.11*ALD2+-0.11*PAR+0.76*ROR
+	# 	  { 53} ROR=0.96*XO2+1.1*ALD2+0.94*HO2+-2.1*PAR+0.04*XO2N
+	# 	  { 54} ROR=HO2
+	# 	  { 55} ROR+NO2=NTR    ! OMITTED from this net reaction set
+	# { 57} OH+OLE=FORM+ALD2+-1*PAR+XO2+HO2
+	# { 61} OH+ETH=XO2+1.56*FORM+0.22*ALD2+HO2
+	# { 63} TOL+OH=0.44*HO2+0.08*XO2+0.36*CRES+0.56*TO2
+	# 	  { 64} TO2+NO=0.9*NO2+0.9*HO2+0.9*OPEN+0.1*NTR
+	# 	  { 65} TO2=CRES+HO2
+	# { 66} OH+CRES=0.4*CRO+0.6*XO2+0.6*HO2+0.3*OPEN
+	# 	  { 68} CRO+NO2=NTR
+	# { 70} OPEN+OH=XO2+2*CO+2*HO2+C2O3+FORM
+	# { 72} OH+XYL=0.7*HO2+0.5*XO2+0.2*CRES+0.8*MGLY+1.1*PAR+0.3*TO2
+	# { 73} OH+MGLY=XO2+C2O3
+	# { 76} OH+ISOP=0.912*ISPD+0.629*FORM+0.991*XO2+0.912*HO2+0.088*XO2N
+	# { 84} MEOH+OH=FORM+HO2
+	# { 85} ETOH+OH=HO2+ALD2
+	# { 92} OH+ISPD=1.565*PAR+0.167*FORM+0.713*XO2+0.503*HO2+0.334*CO+0.168*MGLY+
+	# 			  0.273*ALD2+0.498*C2O3
+	
+	# notes:: 
+	#   1) for ir[55], ROR, NTR is from NO2+rad not NO+RO2, omitted here
+	#   2) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2
+	#                       and the NO is omitted as a reactant
+	#                       and the 0.1*NTR is coded as 0.1*XO2N
+	#          ir[65], TO2, included as a HO2 source
+	#   3) for ir[66], CRO, we have omitted the CRO production.
+	#                   the ir[68] production of NTR is from NO2, not NO
+	#                   thus it is omitted in this reaction..
+
+	
 	# reactant losses in OH + org...
 	#   ... the organics losses
-	net_rxn_masses[i2j(kk,iNO2 )] = -ir[24]
+	net_rxn_masses[i2j(kk,iNO2 )] = -ir[26]
 	net_rxn_masses[i2j(kk,iOLE )] = -ir[57]
 	net_rxn_masses[i2j(kk,iPAR )] = -ir[52]
 	net_rxn_masses[i2j(kk,iTOL )] = -ir[63]
@@ -340,7 +352,7 @@ while time >= 0:
 	net_rxn_masses[i2j(kk,iCH4 )] = -ir[51]
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[92]
 	#    ... the OH losses
-	net_rxn_masses[i2j(kk,iOH  )] = -ir[24]-ir[57]-ir[52]-ir[63]-ir[72]-ir[37]\
+	net_rxn_masses[i2j(kk,iOH  )] = -ir[26]-ir[57]-ir[52]-ir[63]-ir[72]-ir[37]\
 									-ir[43]-ir[61]-ir[66]-ir[73]-ir[70]-ir[36]\
 									-ir[76]-ir[84]-ir[85]-ir[51]-ir[92]
 	#    ... the radical products...
@@ -358,22 +370,10 @@ while time >= 0:
 									+0.713*ir[92]+0.96*ir[53]+0.9*ir[64]
 									
 	#     ... radical losses via NO2 or NO->NO2 reactions ...
-	net_rxn_masses[i2j(kk,iHNO3)] =  ir[24]
-	net_rxn_masses[i2j(kk,iXO2N)] =  0.13*ir[52]+0.088*ir[76]+0.04*ir[53]
-	net_rxn_masses[i2j(kk,iNTR )] =  ir[55]+0.1*ir[64]
+	net_rxn_masses[i2j(kk,iHNO3)] =  ir[26]
+	net_rxn_masses[i2j(kk,iXO2N)] =  0.13*ir[52]+0.088*ir[76]+0.04*ir[53]\
+										+0.1*ir[64]
 	
-	#     ... organic products from subsequent reactions ...
-	#         may end up ignoring these....
-	net_rxn_masses[i2j(kk,iCRO )] =  0.4*ir[66]-ir[68]
-	net_rxn_masses[i2j(kk,iISPD)]+=  0.912*ir[76]
-	net_rxn_masses[i2j(kk,iTO2 )] =  0.56*ir[63]+0.30*ir[72]-ir[64]-ir[65]
-	net_rxn_masses[i2j(kk,iROR )] =  0.76*ir[52]-ir[53]-ir[54]-ir[55]
-	
-	# notes:: 
-	#   1) for ir[55], ROR, we have omitted the NO2 loss
-	#   2) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2
-	#                       and the NO is omitted as a reactant
-	#   3) for ir[68], CRO, we have omitted the NO2 loss
 	
 	
 	(time, ir, ip) = get_irr_data(f);  ## read new data and...
@@ -392,6 +392,9 @@ while time >= 0:
 print "-"*20
 print "-"*20
 print "Total of whole period:"
+print
+print "For Net Reaction ", net_rxn_names[kk]
+print
 
 for i in range(0,len(net_rxn_masses)):
 	print '%s  %10.6f' % (SPC_Names[net_rxn_spcname[i]], total_net_rxn_masses[i])
