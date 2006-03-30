@@ -28,7 +28,7 @@ parser.add_option("-s", "--show",
 # get options and arguments
 (options, args) = parser.parse_args()
 
-# requires 3 arguments
+# requires filename as argument
 if len(args) != 1:
 	parser.error("Invalid number of arguments")
 # requires a valid ext file
@@ -50,7 +50,7 @@ f = open(input_filename, 'r')
 doc1 = f.readline()
 line = f.readline()
 
-print "IRR file source was"
+print "IRR file doc line was"
 print doc1
 print
 
