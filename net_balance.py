@@ -11,33 +11,42 @@ import copy   # for deepcopy
 
 ### beginning of MAIN BODY #######
 """
-  From the command line this script takes a file name and two integers for begin and end hour of interest
-  It currently uses a hardcoded CB4 mechanism, nets the reactions and returns them to the screen.
+  From the command line this script takes a file name 
+  It currently uses a hardcoded CB4 mechanism, 
+  nets the reactions and writes a file.
 """
 from optparse import OptionParser
 
 # create a cmd line parser...
-parser = OptionParser("usage: %prog filename.ext ")
+parser = OptionParser("usage: %prog -oPATH infilename.ext outfilename.ext")
+
 parser.add_option("-s", "--show",
 	dest="show",
 	default=False,
 	action="store_true",
 	help="Display graphs on screen")
 
+parser.add_option("-o", "--outdir",
+	dest="outdir",
+	default=False,
+	help="prepend output dir to outfilename")
+
+
 
 # get options and arguments
 (options, args) = parser.parse_args()
 
-# requires filename as argument
-if len(args) != 1:
+# requires filenames as argument
+if len(args) != 2:
 	parser.error("Invalid number of arguments")
+	
+input_filename  = os.path.abspath(args[0])
+output_filename = os.path.abspath(args[1])
+
 # requires a valid ext file
-elif not os.path.exists(args[0]):
+if not os.path.exists(input_filename):
 	parser.error("Input file does not exist")
 
-
-	
-input_filename = args[0]
 
 time_re  = re.compile('Time =[0-9]{6}', re.IGNORECASE)
 irr_re   = re.compile('\{\s*\d+\}\s+\d+', re.IGNORECASE)
@@ -45,10 +54,12 @@ ipr_re   = re.compile('"\w+\s*"\s*', re.IGNORECASE)
 split_re = re.compile('[ ]+')
 
 
-f = open(input_filename, 'r')
+fout = open(output_filename, 'w')
+
+fin = open(input_filename, 'r')
 # first two lines are 'doc' lines giving data source
-doc1 = f.readline()
-line = f.readline()
+doc1 = fin.readline()
+line = fin.readline()
 
 print "IRR file doc line was"
 print doc1
@@ -57,7 +68,7 @@ print
 
 def get_irr_data(f):
 	"""
-	f -- opened file
+	f -- opened irr&ipr file
 	return (time (as integer), ir_rates (as list), ip_rates (as list of lists)
 	if time < 0, end of file
 	"""
@@ -198,6 +209,11 @@ net_rxn_spcname = []
 #   and in the net_rxn_spcname vector to insert the iSPC number
 jstart_next_nr_set = 0
 
+# collect each hour's net_rxn_masses in a list...
+hour_number = []
+hourly_net_rxn_masses = []
+
+
 # create a function to return the j-index associated with species i in net 
 #    reaction set k
 def i2j(k,i):
@@ -206,14 +222,17 @@ def i2j(k,i):
 	return j
 	
 
-######### repeat section below for each set of net reactions ######
+######### duplicate section below for each set of net reactions ######
 
+nr_num = 0
 ### The Net Rxns for ** O3+hv Radical Source **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
 net_rxn_names.append('O3+hv radical source')
+n_O3hvrad = nr_num  # provide an interger with a name for this nr
+nr_num += 1
 
 this_jstart = jstart_next_nr_set
 
@@ -261,6 +280,8 @@ next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
 net_rxn_names.append('HONO+hv radical source')
+n_HONOhvrad = nr_num  # provide an interger with a name for this nr
+nr_num += 1
 
 this_jstart = jstart_next_nr_set
 
@@ -309,6 +330,8 @@ next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
 net_rxn_names.append('Ald+hv radical source')
+n_Aldhvrad = nr_num  # provide an interger with a name for this nr
+nr_num += 1
 
 this_jstart = jstart_next_nr_set
 
@@ -361,6 +384,8 @@ next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
 net_rxn_names.append('Ox+organic radical source')
+n_OxOrgrad = nr_num  # provide an interger with a name for this nr
+nr_num += 1
 
 this_jstart = jstart_next_nr_set
 
@@ -419,6 +444,8 @@ next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
 net_rxn_names.append('NO3+organic radical source')
+n_NO3Orgrad = nr_num  # provide an interger with a name for this nr
+nr_num += 1
 
 this_jstart = jstart_next_nr_set
 
@@ -542,9 +569,8 @@ num_net_rxn_sets  = this_net_rxn_set
 max_j  = jstart_next_nr_set
 
 ## now, calculate the net reaction masses....
-(time, ir, ip) = get_irr_data(f);  ## read new data and...
+(time, ir, ip) = get_irr_data(fin);  ## read new data and...
 while time >= 0:
-	print "-"*20
 	print "Time %d  hours" % time
 	# ... process the ir data for this time...
 	#      ... zero out the net reaction masses
@@ -773,94 +799,141 @@ while time >= 0:
 	
 	# net reactions for  ...
 	
+	# save these hourly results for later output....
+	hour_number.append(time)
+	hourly_net_rxn_masses.append(copy.deepcopy(net_rxn_masses))
+
+	# accumulate this hour's net masses into a daily total..
+	for i in range(0,len(net_rxn_masses)):
+		total_net_rxn_masses[i] += net_rxn_masses[i]
 	
 	# all reactions computed, read in a new set of ir and go back to top
-	(time, ir, ip) = get_irr_data(f);  ## read new data and...
+	(time, ir, ip) = get_irr_data(fin);  ## read new data and...
 	
-
-	# PRINTING for this hour	
-	kk = 0
-	for i in range(0,len(net_rxn_masses)):
-		if i == net_rxn_jindex[kk] :
-			print
-			print
-			print "For Net Reaction ", net_rxn_names[kk]
-			print
-			print "Species     ppb"
-			if kk < len(net_rxn_names)-1:
-				kk += 1
-		print '%s  %10.6f' % (SPC_Names[net_rxn_spcname[i]], net_rxn_masses[i])
-		total_net_rxn_masses[i] += net_rxn_masses[i]
-	print
-	print
-	total_new_OH  = net_rxn_masses[i2j(0,iOH)]
-	print " O3+hv  = new OH   = ", net_rxn_masses[i2j(0,iOH )]
-	total_new_OH += net_rxn_masses[i2j(3,iOH)]
-	print " Ox+org = new OH   = ", net_rxn_masses[i2j(3,iOH )]
-	print "Total new OH       = ", total_new_OH
-	print
-	total_new_HO2  = net_rxn_masses[i2j(2,iHO2)]
-	print " Ald+hv = new HO2  = ", net_rxn_masses[i2j(2,iHO2 )]
-	total_new_HO2 += net_rxn_masses[i2j(3,iOH)]
-	print " Ox+org = new HO2  = ", net_rxn_masses[i2j(3,iHO2 )]
-	total_new_HO2 += net_rxn_masses[i2j(4,iOH)]
-	print " NO3+org= new HO2  = ", net_rxn_masses[i2j(4,iHO2 )]
-	print "Total new HO2      = ", total_new_HO2
-	print
-	total_new_C2O3  = net_rxn_masses[i2j(2,iC2O3)]
-	print " Ald+hv = new C2O3 = ", net_rxn_masses[i2j(2,iC2O3 )]
-	total_new_C2O3 += net_rxn_masses[i2j(3,iC2O3)]
-	print " Ox+org = new C2O3 = ", net_rxn_masses[i2j(3,iC2O3 )]
-	total_new_C2O3 += net_rxn_masses[i2j(4,iC2O3)]
-	print " NO3+org= new C2O3 = ", net_rxn_masses[i2j(4,iC2O3 )]
-	print "Total new C2O3     = ", total_new_C2O3
-	print
-	
-
 
 
 ######### repeat to here for each set of net reactions ######
 
-print "-"*20
-print "-"*20
-print "Total of whole period:"
-print
+
+# Output the hourly and total net reactions to file...
+print >>fout, "IRR file doc line was"
+print >>fout, doc1
+
 kk = 0
+print >>fout, "Species     ppb"
+print >>fout, "Name     ",
+for t in hour_number:
+	print >>fout, "        %02d" % t,
+print >>fout,  " Daily"	
 
 for i in range(0,len(net_rxn_masses)):
 	if i == net_rxn_jindex[kk] :
-		print
-		print
-		print "For Net Reaction ", net_rxn_names[kk]
-		print
-		print "Species     ppb"
+		print >>fout
+		print >>fout
+		print >>fout, net_rxn_names[kk]
+		print >>fout
 		if kk < len(net_rxn_names)-1:
 			kk += 1
-	print '%s  %10.6f' % (SPC_Names[net_rxn_spcname[i]], total_net_rxn_masses[i])
-print
-print
-total_new_OH  = total_net_rxn_masses[i2j(0,iOH)]
-print " O3+hv  = new OH   = ", total_net_rxn_masses[i2j(0,iOH )]
-total_new_OH += total_net_rxn_masses[i2j(3,iOH)]
-print " Ox+org = new OH   = ", total_net_rxn_masses[i2j(3,iOH )]
-print "Total new OH       = ", total_new_OH
-print
-total_new_HO2  = total_net_rxn_masses[i2j(2,iHO2)]
-print " Ald+hv = new HO2  = ", total_net_rxn_masses[i2j(2,iHO2 )]
-total_new_HO2 += total_net_rxn_masses[i2j(3,iOH)]
-print " Ox+org = new HO2  = ", total_net_rxn_masses[i2j(3,iHO2 )]
-total_new_HO2 += total_net_rxn_masses[i2j(4,iOH)]
-print " NO3+org= new HO2  = ", total_net_rxn_masses[i2j(4,iHO2 )]
-print "Total new HO2      = ", total_new_HO2
-print
-total_new_C2O3  = total_net_rxn_masses[i2j(2,iC2O3)]
-print " Ald+hv = new C2O3 = ", total_net_rxn_masses[i2j(2,iC2O3 )]
-total_new_C2O3 += total_net_rxn_masses[i2j(3,iC2O3)]
-print " Ox+org = new C2O3 = ", total_net_rxn_masses[i2j(3,iC2O3 )]
-total_new_C2O3 += total_net_rxn_masses[i2j(4,iC2O3)]
-print " NO3+org= new C2O3 = ", total_net_rxn_masses[i2j(4,iC2O3 )]
-print "Total new C2O3     = ", total_new_C2O3
-print
+	print  >>fout, "%s     " % SPC_Names[net_rxn_spcname[i]],
+	for t in range(0,len(hour_number)):
+		print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i]),
+	print >>fout, "%10.6f" % total_net_rxn_masses[i]
+# finished the whole set of net rxn masses for all hours
+
+# compute and print hourly and daily critical parameters
+num_hrs = len(hour_number)
+print >>fout
+print >>fout
+print >>fout, "Direct New OH"
+# compute total new OH all hours 
+daily_total_n_O3hvrad  = 0.0
+daily_total_n_OxOrgrad = 0.0
+daily_total_new_OH     = 0.0
+hourly_total_new_OH    = [0.0]*num_hrs  
+for t in range(0,num_hrs):
+	daily_total_n_O3hvrad  += hourly_net_rxn_masses[t][i2j(n_O3hvrad,iOH)]
+	daily_total_n_OxOrgrad += hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iOH)]
+	hourly_total_new_OH[t]  = hourly_net_rxn_masses[t][i2j(n_O3hvrad,iOH)]
+	hourly_total_new_OH[t] += hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iOH)]
+	daily_total_new_OH     += hourly_total_new_OH[t]
 	
+print >>fout, " O3+hv   ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_O3hvrad,iOH )]),
+print >>fout, "%10.6f" % daily_total_n_O3hvrad
+
+print >>fout, " Ox+org  ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iOH )]),
+print >>fout, "%10.6f" % daily_total_n_OxOrgrad
+	
+print >>fout, " Total   ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % hourly_total_new_OH[t],
+print >>fout, "%10.6f" % daily_total_new_OH
+print >>fout
+
+print >>fout
+print >>fout, "Direct New HO2"
+# compute total new HO all hours 
+daily_total_n_Aldhvrad  = 0.0
+daily_total_n_OxOrgrad  = 0.0
+daily_total_n_NO3Orgrad = 0.0
+daily_total_new_HO2     = 0.0
+hourly_total_new_HO2    = [0.0]*num_hrs  
+for t in range(0,num_hrs):
+	daily_total_n_Aldhvrad  += hourly_net_rxn_masses[t][i2j(n_Aldhvrad, iHO2 )]
+	daily_total_n_OxOrgrad  += hourly_net_rxn_masses[t][i2j(n_OxOrgrad, iHO2 )]
+	daily_total_n_NO3Orgrad += hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iHO2 )]
+	
+	hourly_total_new_HO2[t]  = hourly_net_rxn_masses[t][i2j(n_O3hvrad,  iHO2 )]
+	hourly_total_new_HO2[t] += hourly_net_rxn_masses[t][i2j(n_OxOrgrad, iHO2 )]
+	hourly_total_new_HO2[t] += hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iHO2 )]
+	
+	daily_total_new_HO2     += hourly_total_new_HO2[t]
+	
+print >>fout, " Ald+hv  ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_Aldhvrad,iHO2 )]),
+print >>fout, "%10.6f" % daily_total_n_Aldhvrad
+
+print >>fout, " Ox+org  ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iHO2 )]),
+print >>fout, "%10.6f" % daily_total_n_OxOrgrad
+	
+print >>fout, " NO3+org ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iHO2 )]),
+print >>fout, "%10.6f" % daily_total_n_NO3Orgrad
+	
+print >>fout, " Total   ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % hourly_total_new_HO2[t],
+print >>fout, "%10.6f" % daily_total_new_HO2
+print >>fout
+
+"""
+total_new_HO2  = net_rxn_masses[i2j(n_Aldhvrad,iHO2)]
+total_new_HO2 += net_rxn_masses[i2j(3,iOH)]
+total_new_HO2 += net_rxn_masses[i2j(4,iOH)]
+print >>fout " Ald+hv = new HO2  = ", net_rxn_masses[i2j(n_Aldhvrad,iHO2 )]
+print >>fout " Ox+org = new HO2  = ", net_rxn_masses[i2j(3,iHO2 )]
+print >>fout " NO3+org= new HO2  = ", net_rxn_masses[i2j(4,iHO2 )]
+print >>fout "Total new HO2      = ", total_new_HO2
+print >>fout
+
+
+
+total_new_C2O3  = net_rxn_masses[i2j(2,iC2O3)]
+total_new_C2O3 += net_rxn_masses[i2j(3,iC2O3)]
+total_new_C2O3 += net_rxn_masses[i2j(4,iC2O3)]
+print >>fout " Ald+hv = new C2O3 = ", net_rxn_masses[i2j(2,iC2O3 )]
+print >>fout " Ox+org = new C2O3 = ", net_rxn_masses[i2j(3,iC2O3 )]
+print >>fout " NO3+org= new C2O3 = ", net_rxn_masses[i2j(4,iC2O3 )]
+print >>fout "Total new C2O3     = ", total_new_C2O3
+print >>fout
+"""
+
 
 print "F I N I S H E D"
