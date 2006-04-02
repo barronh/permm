@@ -533,7 +533,6 @@ jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
 jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
 jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
 jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
 jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH)
 jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
@@ -542,6 +541,7 @@ jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
+jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
 
 # how many elements in vector are needed.
@@ -820,12 +820,13 @@ print >>fout, "IRR file doc line was"
 print >>fout, doc1
 
 kk = 0
-print >>fout, "Species     ppb"
-print >>fout, "Name     ",
+print >>fout, "Hour     ",
 for t in hour_number:
 	print >>fout, "        %02d" % t,
 print >>fout,  " Daily"	
-
+print >>fout
+print >>fout, "Net Reaction Name"
+print >>fout, "Species     ppb"
 for i in range(0,len(net_rxn_masses)):
 	if i == net_rxn_jindex[kk] :
 		print >>fout
@@ -853,6 +854,7 @@ hourly_total_new_OH    = [0.0]*num_hrs
 for t in range(0,num_hrs):
 	daily_total_n_O3hvrad  += hourly_net_rxn_masses[t][i2j(n_O3hvrad,iOH)]
 	daily_total_n_OxOrgrad += hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iOH)]
+	
 	hourly_total_new_OH[t]  = hourly_net_rxn_masses[t][i2j(n_O3hvrad,iOH)]
 	hourly_total_new_OH[t] += hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iOH)]
 	daily_total_new_OH     += hourly_total_new_OH[t]
@@ -867,7 +869,7 @@ for t in range(0,num_hrs):
 	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iOH )]),
 print >>fout, "%10.6f" % daily_total_n_OxOrgrad
 	
-print >>fout, " Total   ", 
+print >>fout, "Total    ", 
 for t in range(0,num_hrs):
 	print >>fout, "%10.6f" % hourly_total_new_OH[t],
 print >>fout, "%10.6f" % daily_total_new_OH
@@ -886,7 +888,7 @@ for t in range(0,num_hrs):
 	daily_total_n_OxOrgrad  += hourly_net_rxn_masses[t][i2j(n_OxOrgrad, iHO2 )]
 	daily_total_n_NO3Orgrad += hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iHO2 )]
 	
-	hourly_total_new_HO2[t]  = hourly_net_rxn_masses[t][i2j(n_O3hvrad,  iHO2 )]
+	hourly_total_new_HO2[t]  = hourly_net_rxn_masses[t][i2j(n_Aldhvrad, iHO2 )]
 	hourly_total_new_HO2[t] += hourly_net_rxn_masses[t][i2j(n_OxOrgrad, iHO2 )]
 	hourly_total_new_HO2[t] += hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iHO2 )]
 	
@@ -907,22 +909,53 @@ for t in range(0,num_hrs):
 	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iHO2 )]),
 print >>fout, "%10.6f" % daily_total_n_NO3Orgrad
 	
-print >>fout, " Total   ", 
+print >>fout, "Total    ", 
 for t in range(0,num_hrs):
 	print >>fout, "%10.6f" % hourly_total_new_HO2[t],
 print >>fout, "%10.6f" % daily_total_new_HO2
 print >>fout
 
-"""
-total_new_HO2  = net_rxn_masses[i2j(n_Aldhvrad,iHO2)]
-total_new_HO2 += net_rxn_masses[i2j(3,iOH)]
-total_new_HO2 += net_rxn_masses[i2j(4,iOH)]
-print >>fout " Ald+hv = new HO2  = ", net_rxn_masses[i2j(n_Aldhvrad,iHO2 )]
-print >>fout " Ox+org = new HO2  = ", net_rxn_masses[i2j(3,iHO2 )]
-print >>fout " NO3+org= new HO2  = ", net_rxn_masses[i2j(4,iHO2 )]
-print >>fout "Total new HO2      = ", total_new_HO2
+print >>fout
+print >>fout, "Direct New C2O3"
+# compute total new HO all hours 
+daily_total_n_Aldhvrad  = 0.0
+daily_total_n_OxOrgrad  = 0.0
+daily_total_n_NO3Orgrad = 0.0
+daily_total_new_C2O3    = 0.0
+hourly_total_new_C2O3   = [0.0]*num_hrs  
+for t in range(0,num_hrs):
+	daily_total_n_Aldhvrad  += hourly_net_rxn_masses[t][i2j(n_Aldhvrad, iC2O3 )]
+	daily_total_n_OxOrgrad  += hourly_net_rxn_masses[t][i2j(n_OxOrgrad, iC2O3 )]
+	daily_total_n_NO3Orgrad += hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iC2O3 )]
+	
+	hourly_total_new_C2O3[t]  = hourly_net_rxn_masses[t][i2j(n_Aldhvrad, iC2O3 )]
+	hourly_total_new_C2O3[t] += hourly_net_rxn_masses[t][i2j(n_OxOrgrad, iC2O3 )]
+	hourly_total_new_C2O3[t] += hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iC2O3 )]
+	
+	daily_total_new_C2O3     += hourly_total_new_C2O3[t]
+	
+print >>fout, " Ald+hv  ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_Aldhvrad,iC2O3 )]),
+print >>fout, "%10.6f" % daily_total_n_Aldhvrad
+
+print >>fout, " Ox+org  ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_OxOrgrad,iC2O3 )]),
+print >>fout, "%10.6f" % daily_total_n_OxOrgrad
+	
+print >>fout, " NO3+org ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % (hourly_net_rxn_masses[t][i2j(n_NO3Orgrad,iC2O3 )]),
+print >>fout, "%10.6f" % daily_total_n_NO3Orgrad
+	
+print >>fout, "Total    ", 
+for t in range(0,num_hrs):
+	print >>fout, "%10.6f" % hourly_total_new_C2O3[t],
+print >>fout, "%10.6f" % daily_total_new_C2O3
 print >>fout
 
+"""
 
 
 total_new_C2O3  = net_rxn_masses[i2j(2,iC2O3)]
