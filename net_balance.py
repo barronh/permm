@@ -534,6 +534,7 @@ jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
 jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
 jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
 jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
+jndx_net_rxn[iISPD] = jj; jj += 1; indx_net_rxn.append(iISPD)
 jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH)
 jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
 jndx_net_rxn[iCH4 ] = jj; jj += 1; indx_net_rxn.append(iCH4 )
@@ -831,7 +832,7 @@ for i in range(0,len(net_rxn_masses)):
 	if i == net_rxn_jindex[kk] :
 		print >>fout
 		print >>fout
-		print >>fout, net_rxn_names[kk]
+		print >>fout, '\"%s\"' % net_rxn_names[kk]
 		print >>fout
 		if kk < len(net_rxn_names)-1:
 			kk += 1
@@ -845,7 +846,7 @@ for i in range(0,len(net_rxn_masses)):
 num_hrs = len(hour_number)
 print >>fout
 print >>fout
-print >>fout, "Direct New OH"
+print >>fout, '\"Direct New OH\"'
 # compute total new OH all hours 
 daily_total_n_O3hvrad  = 0.0
 daily_total_n_OxOrgrad = 0.0
@@ -876,7 +877,7 @@ print >>fout, "%10.6f" % daily_total_new_OH
 print >>fout
 
 print >>fout
-print >>fout, "Direct New HO2"
+print >>fout, '\"Direct New HO2\"'
 # compute total new HO all hours 
 daily_total_n_Aldhvrad  = 0.0
 daily_total_n_OxOrgrad  = 0.0
@@ -954,19 +955,6 @@ for t in range(0,num_hrs):
 	print >>fout, "%10.6f" % hourly_total_new_C2O3[t],
 print >>fout, "%10.6f" % daily_total_new_C2O3
 print >>fout
-
-"""
-
-
-total_new_C2O3  = net_rxn_masses[i2j(2,iC2O3)]
-total_new_C2O3 += net_rxn_masses[i2j(3,iC2O3)]
-total_new_C2O3 += net_rxn_masses[i2j(4,iC2O3)]
-print >>fout " Ald+hv = new C2O3 = ", net_rxn_masses[i2j(2,iC2O3 )]
-print >>fout " Ox+org = new C2O3 = ", net_rxn_masses[i2j(3,iC2O3 )]
-print >>fout " NO3+org= new C2O3 = ", net_rxn_masses[i2j(4,iC2O3 )]
-print >>fout "Total new C2O3     = ", total_new_C2O3
-print >>fout
-"""
 
 
 print "F I N I S H E D"
