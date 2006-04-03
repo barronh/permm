@@ -121,6 +121,8 @@ SPC_Names = [
   'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ', 'NO3 ',\
   'C2O3', 'XO2 ', 'XO2N', 'NTR ', 'CRO ', 'ISPD', 'TO2 ', 'ROR ', 'SO2 ' ]
 
+Max_Process_SPC = 23
+
 # integer indexing for CB4 species
 iNO   =  0
 iNO2  =  1
@@ -161,6 +163,34 @@ iROR  = 35
 iSO2  = 36
 
 max_i_spc = iSO2 + 1
+
+# integer indexing for processes
+iInitial    =  0
+iChemistry  =  1
+iEmiss_Area =  2
+iEmiss_Pnt  =  3
+iEmiss_PiG  =  4
+iAdv_W      =  5
+iAdv_E      =  6
+iAdv_S      =  7
+iAdv_N      =  8
+iAdv_B      =  9
+iAdv_T      = 10 
+iDil_V      = 11 
+iDif_W      = 12 
+iDif_E      = 13 
+iDif_S      = 14 
+iDif_N      = 15 
+iDif_B      = 16
+iDif_T      = 17 
+iDep_D      = 18 
+iDep_W      = 19 
+iChem_Aero  = 20 
+iDilut      = 21 
+iTrain      = 22 
+iFinal      = 23
+
+max_i_process = iFinal + 1
 
 # Start with info about the net_rxns sets...
 #   allocate vector of names of the net_rxns
@@ -522,22 +552,22 @@ indx_net_rxn = []
 jj = this_jstart
 
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
+jndx_net_rxn[iCH4 ] = jj; jj += 1; indx_net_rxn.append(iCH4 )
 jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iISPD] = jj; jj += 1; indx_net_rxn.append(iISPD)
+jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
 jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH)
 jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-jndx_net_rxn[iCH4 ] = jj; jj += 1; indx_net_rxn.append(iCH4 )
+jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
+jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
+jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
+jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
+jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
+jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
+jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
+jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
+jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
+jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
+jndx_net_rxn[iISPD] = jj; jj += 1; indx_net_rxn.append(iISPD)
 jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
