@@ -31,8 +31,6 @@ parser.add_option("-o", "--outdir",
 	default=False,
 	help="prepend output dir to outfilename")
 
-
-
 # get options and arguments
 (options, args) = parser.parse_args()
 
@@ -47,16 +45,11 @@ output_filename = os.path.abspath(args[1])
 if not os.path.exists(input_filename):
 	parser.error("Input file does not exist")
 
-
-time_re  = re.compile('Time =[0-9]{6}', re.IGNORECASE)
-irr_re   = re.compile('\{\s*\d+\}\s+\d+', re.IGNORECASE)
-ipr_re   = re.compile('"\w+\s*"\s*', re.IGNORECASE)
-split_re = re.compile('[ ]+')
-
-
+# open the files...
 fout = open(output_filename, 'w')
 
 fin = open(input_filename, 'r')
+
 # first two lines are 'doc' lines giving data source
 doc1 = fin.readline()
 line = fin.readline()
@@ -65,7 +58,14 @@ print "IRR file doc line was"
 print doc1
 print
 
+# create regular expressions to read the input file..
+time_re  = re.compile('Time =[0-9]{6}', re.IGNORECASE)
+irr_re   = re.compile('\{\s*\d+\}\s+\d+', re.IGNORECASE)
+ipr_re   = re.compile('"\w+\s*"\s*', re.IGNORECASE)
+split_re = re.compile('[ ]+')
 
+
+# function to get an hour's worth of data..
 def get_irr_data(f):
 	"""
 	f -- opened irr&ipr file
@@ -118,10 +118,16 @@ def get_irr_data(f):
 SPC_Names = [
   'NO  ', 'NO2 ', 'O3  ', 'OLE ', 'PAN ', 'N2O5', 'PAR ', 'TOL ', 'XYL ',\
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
-  'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ', 'NO3 ',\
-  'C2O3', 'XO2 ', 'XO2N', 'NTR ', 'CRO ', 'ISPD', 'TO2 ', 'ROR ', 'SO2 ' ]
+  'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ',\
+  'NO3 ', 'C2O3', 'XO2 ', 'XO2N', 'NTR ', 'CRO ', 'ISPD', 'TO2 ', 'ROR ',\
+  'SO2 ', 'H2O ', '-OOX' ]
 
-Max_Process_SPC = 23
+# Use H2O as a product in some reactions to track a term pathway
+# Use tracking species -OOX to collect the XO2+XO2 type reaction
+#    products;  this is not a real species in CB4.
+
+# only the first 24 species are included in the physical processes...
+Max_Process_SPC = 24
 
 # integer indexing for CB4 species
 iNO   =  0
@@ -161,8 +167,10 @@ iISPD = 33
 iTO2  = 34
 iROR  = 35
 iSO2  = 36
+iH2O  = 37
+iOOX  = 38
 
-max_i_spc = iSO2 + 1
+max_i_spc = iOOX + 1
 
 # integer indexing for processes
 iInitial    =  0
@@ -192,14 +200,18 @@ iFinal      = 23
 
 max_i_process = iFinal + 1
 
+
+
+# Set up data representation for the net reactions
+
 # Start with info about the net_rxns sets...
 #   allocate vector of names of the net_rxns
 net_rxn_names = []
 #   this is indexed by next_net_rxn_set
 
 # allocate a look up table between global species ID num (called iSPC)
-#    and net_rxn ID num (called jSPC) [where SPC is any species name in 
-#    the above global list].
+#    and net_rxn_masses and net_rxn_spcname vector element 
+#   [where SPC is any species name in the above global list].
 net_rxn_species = []
 #   this is indexed by next_net_rxn_set
 #   each row of net_rxn_species will be a vector of len(max_i_spc)
@@ -252,9 +264,50 @@ def i2j(k,i):
 	return j
 	
 
-######### duplicate section below for each set of net reactions ######
+# Next add info about the net_processes sets...
+#   allocate vector of names of the net_processes
+net_processes_sets_names = []
+#   this is indexed by next_net_proc_set
 
+# allocate net processes masses array
+net_rxn_masses = []
+
+#   accumulate the net_rxn_masses over all time.
+total_net_processes_masses = []
+
+##### working here.....
+
+# the number for the next net_rxn set to be added...
+next_net_proc_set = 0
+num_net_proc_sets = 0
+
+
+# @@@@@@@@ N E T   R E A C T I O N S  @@@@@@@@@
+#
+#  1) ** O3+hv   Radical Source  **
+#  2) ** HONO+hv Radical Source  **
+#  3) ** Ald+hv  Radical Source  **
+#  4) ** Ox+Org  Radical Source  **
+#  5) ** NO3+Org Radical Source  **
+#  6) ** OH  + (organic+NO2)     **
+#  7) ** C2O3     + NO Oxidation **
+#  8) ** XO2/XO2N + NO Oxidation **
+#  9) ** PAN Production          **
+# 10) ** HO2 to OH via Radical   **
+# 11) ** HO2      + NO Oxidation **
+
+
+## ==========================================================
+# define the species storage for each set of net reactions
+
+# init a counter for number of net reaction sets so far...
+#    used to assign a name that refers to a given net_reaction.
 nr_num = 0
+
+
+## begin net_reaction storage allocation
+
+#-------------------------------------------------------
 ### The Net Rxns for ** O3+hv Radical Source **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
@@ -273,9 +326,6 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
-
 # fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
 
@@ -289,11 +339,10 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
-# add and init new elements to the net_rxn_masses vector for species in the 
-#   OH+organic net rxn
+# add and init new elements to the net_rxn_masses vector for species
 for z in [0]*num_spc_in_net_rxn:
 	net_rxn_masses.append(z)
 	total_net_rxn_masses.append(z)
@@ -303,7 +352,7 @@ for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
 
-
+#-------------------------------------------------------
 ### The Net Rxns for ** HONO+hv Radical Source **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
@@ -322,9 +371,6 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
-
 # fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
 
@@ -339,11 +385,10 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
-# add and init new elements to the net_rxn_masses vector for species in the 
-#   OH+organic net rxn
+# add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
 	net_rxn_masses.append(z)
 	total_net_rxn_masses.append(z)
@@ -353,7 +398,7 @@ for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
 
-
+#-------------------------------------------------------
 ### The Net Rxns for ** Ald+hv Radical Source **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
@@ -372,8 +417,6 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
 
 # fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
@@ -393,11 +436,10 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
-# add and init new elements to the net_rxn_masses vector for species in the 
-#   OH+organic net rxn
+# add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
 	net_rxn_masses.append(z)
 	total_net_rxn_masses.append(z)
@@ -407,7 +449,7 @@ for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
 
-
+#-------------------------------------------------------
 ### The Net Rxns for ** Ox+Org Radical Source **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
@@ -426,10 +468,7 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
-
-# fill in the jindex at the iSPC locations for the 'OH+organic' net rxn
+# fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
 
 jndx_net_rxn[iO   ] = jj; jj += 1; indx_net_rxn.append(iO   )
@@ -453,7 +492,7 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
 # add and init new elements to the net_rxn_masses vector for species in the 
@@ -467,7 +506,7 @@ for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
 
-
+#-------------------------------------------------------
 ### The Net Rxns for ** NO3+Org Radical Source **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
@@ -487,10 +526,8 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
 
-# fill in the jindex at the iSPC locations for the 'NO3+organic' net rxn
+# fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
 
 jndx_net_rxn[iNO3 ] = jj; jj += 1; indx_net_rxn.append(iNO3 )
@@ -513,11 +550,10 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
-# add and init new elements to the net_rxn_masses vector for species in the 
-#   OH+organic net rxn
+# add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
 	net_rxn_masses.append(z)
 	total_net_rxn_masses.append(z)
@@ -527,13 +563,13 @@ for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
 
-
-### The Net Rxns for ** OH + organic **
+#-------------------------------------------------------
+### The Net Rxns for ** OH + (organic+NO2) **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
-net_rxn_names.append('OH+organic')
+net_rxn_names.append('OH+(organic+NO2)')
 
 this_jstart = jstart_next_nr_set
 
@@ -545,22 +581,24 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
 
-# fill in the jindex at the iSPC locations for the 'OH+organic' net rxn
+# fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
 
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iCH4 ] = jj; jj += 1; indx_net_rxn.append(iCH4 )
+# use H2O to catch mag of OH + HO2 = H2O + O2 reaction..
+jndx_net_rxn[iH2O ] = jj; jj += 1; indx_net_rxn.append(iH2O )
+jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
+jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
 jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
+jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
 jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH)
 jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
 jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
 jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
 jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
+jndx_net_rxn[iCH4 ] = jj; jj += 1; indx_net_rxn.append(iCH4 )
+jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
 jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
 jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
 jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
@@ -581,7 +619,7 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
 # add and init new elements to the net_rxn_masses vector for species in the 
@@ -595,13 +633,58 @@ for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 	
 
-# The Net Rxns for ** Organic Radical NO Oxidation **
+#-------------------------------------------------------
+# The Net Rxns for ** C2O3 + NO Oxidation **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
 
+#    ... save the name and starting location of this net_rxn
+net_rxn_names.append('C2O3 + NO Oxidation')
+
+this_jstart = jstart_next_nr_set
+
+# save the starting location of species for this net_reaction
+net_rxn_jindex.append(this_jstart)
+
+
+# create a cross reference vector for iSPC to j and fill it with jNONE
+jndx_net_rxn = [jNONE]*max_i_spc
+indx_net_rxn = []
+
+# fill in the jindex at the iSPC locations for the net rxn
+jj = this_jstart
+jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
+jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
+jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
+jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
+jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
+
+# how many elements in vector are needed.
+num_spc_in_net_rxn = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_nr_set  = jj
+
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+
+# add and init new elements to the net_rxn_masses vector for species 
+for z in [0]*num_spc_in_net_rxn:
+	net_rxn_masses.append(z)
+	total_net_rxn_masses.append(z)
+	
+# and add the names of the species to the net_rxn_spcname vector
+for n in indx_net_rxn:
+	net_rxn_spcname.append(n)
+
+
+#-------------------------------------------------------
+# The Net Rxns for ** XO2/XO2N + NO Oxidation **
+this_net_rxn_set = next_net_rxn_set  
+next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
-net_rxn_names.append('Organic Radical NO Oxidation')
+net_rxn_names.append('XO2/XO2N Radical NO Oxidation')
 
 
 this_jstart = jstart_next_nr_set
@@ -614,20 +697,15 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'Organic Radical NO Oxidation' reactions
-
-# fill in the jindex at the iSPC locations for the
-# 'Organic Radical NO Oxidation' net rxn
-
+# fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
+jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
+jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
+jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
+jndx_net_rxn[iOOX ] = jj; jj += 1; indx_net_rxn.append(iOOX )
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -635,11 +713,10 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
-# add and init new elements to the net_rxn_masses vector for species in the 
-#   OH+organic net rxn
+# add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
 	net_rxn_masses.append(z)
 	total_net_rxn_masses.append(z)
@@ -648,12 +725,14 @@ for z in [0]*num_spc_in_net_rxn:
 for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
-### The Net Rxns for ** Radical PAN/NO Oxidation **
+
+#-------------------------------------------------------
+### The Net Rxns for ** PAN Production **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
-net_rxn_names.append('Radical PAN/NO Oxidation')
+net_rxn_names.append('PAN Production')
 
 this_jstart = jstart_next_nr_set
 
@@ -665,20 +744,11 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
-
-# fill in the jindex at the iSPC locations for the 'OH+organic' net rxn
+# fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
+jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
 jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
-jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
-jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
-jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -686,7 +756,7 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
 # add and init new elements to the net_rxn_masses vector for species in the 
@@ -698,13 +768,14 @@ for z in [0]*num_spc_in_net_rxn:
 # and add the names of the species to the net_rxn_spcname vector
 for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
-	
-	### The Net Rxns for ** HO2/NO Oxidation **
+
+#-------------------------------------------------------
+### The Net Rxns for ** HO2 to OH via radical **
 this_net_rxn_set = next_net_rxn_set  
 next_net_rxn_set += 1
 
 #    ... save the name and starting location of this net_rxn
-net_rxn_names.append('HO2/NO Oxidation')
+net_rxn_names.append('HO2 to OH via Radical')
 
 this_jstart = jstart_next_nr_set
 
@@ -716,18 +787,14 @@ net_rxn_jindex.append(this_jstart)
 jndx_net_rxn = [jNONE]*max_i_spc
 indx_net_rxn = []
 
-#  fill in only the species numbers for species in 
-#    the net_rxn for the 'OH+organic' reactions
 
-# fill in the jindex at the iSPC locations for the 'OH+organic' net rxn
+# fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
 jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
+jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
+jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
+jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -735,7 +802,7 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for 'OH+organic' net_rxn to the net_rxn_species array
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
 # add and init new elements to the net_rxn_masses vector for species in the 
@@ -748,31 +815,93 @@ for z in [0]*num_spc_in_net_rxn:
 for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
+
+#-------------------------------------------------------
+### The Net Rxns for ** HO2+NO Oxidation **
+this_net_rxn_set = next_net_rxn_set  
+next_net_rxn_set += 1
+
+#    ... save the name and starting location of this net_rxn
+net_rxn_names.append('HO2 + NO Oxidation')
+
+this_jstart = jstart_next_nr_set
+
+# save the starting location of species for this net_reaction
+net_rxn_jindex.append(this_jstart)
+
+
+# create a cross reference vector for iSPC to j and fill it with jNONE
+jndx_net_rxn = [jNONE]*max_i_spc
+indx_net_rxn = []
+
+
+# fill in the jindex at the iSPC locations for the net rxn
+jj = this_jstart
+jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
+jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
+jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
+jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
+jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
+
+# how many elements in vector are needed.
+num_spc_in_net_rxn = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_nr_set  = jj
+
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+
+# add and init new elements to the net_rxn_masses vector for species in the 
+#   OH+organic net rxn
+for z in [0]*num_spc_in_net_rxn:
+	net_rxn_masses.append(z)
+	total_net_rxn_masses.append(z)
 	
-## finished setting up all net reaction storage	
+# and add the names of the species to the net_rxn_spcname vector
+for n in indx_net_rxn:
+	net_rxn_spcname.append(n)
+
+
+
+
+
+## >>>>>> finished setting up all net reaction storage <<<<<<
 num_net_rxn_sets  = this_net_rxn_set
 max_j  = jstart_next_nr_set
 
-## now, calculate the net reaction masses....
-(time, ir, ip) = get_irr_data(fin);  ## read new data and...
+
+## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+##  P A R T   T W O  : C A L C U L A T E  T H E  N E T  M A S S E S
+
+## ==========================================================
+## read first hours' data... 
+(time, ir, ip) = get_irr_data(fin);  
 while time >= 0:
 	print "Time %d  hours" % time
 	# ... process the ir data for this time...
-	#      ... zero out the net reaction masses
+	#      ... zero out the net reaction masses vector
 	for i in range(0,len(net_rxn_masses)):
 		net_rxn_masses[i] = 0.0
-		
-	# start with the first net reaction set..
-	kk = 0  
-
+	
+	# initialize the counter for net reaction sets so
+	# that it can be incremented in each reaction...
+	kk = -1
+	
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** O3+hv Radical Source **
+	kk += 1  
+	
 	# new OH from O3+hv
 	# { 11} O1D+H2O=2*OH
-
+	
 	net_rxn_masses[i2j(kk,iO3  )] = -ir[11]
 	net_rxn_masses[i2j(kk,iOH  )] = 2.0*ir[11]
-
 	
-	# compute the losses and gains for the next net_rxn set...
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** HONO+hv Radical Source **
 	kk += 1  
 	
 	# new OH from HONO+hv
@@ -781,7 +910,7 @@ while time >= 0:
 	# { 23} HONO=NO+OH
 	# { 24} OH+HONO=NO2
 	# { 25} HONO+HONO=NO+NO2
-
+	
 	# reactant losses in HONO +hv...
 	#   ... the NO, NO2 losses
 	net_rxn_masses[i2j(kk,iNO  )] = -ir[21]-ir[22]-ir[59]-ir[78]-ir[94]\
@@ -791,9 +920,10 @@ while time >= 0:
 	#   ... the HONO products
 	net_rxn_masses[i2j(kk,iHONO)] =  2.0*ir[21]+ir[22]-ir[23]-ir[24]-2*ir[25]
 	net_rxn_masses[i2j(kk,iOH  )] =  ir[23]-ir[22]-ir[24]
-
-
-	# compute the losses and gains for the next net_rxn set...
+	
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** Ald+hv Radical Source **
 	kk += 1  
 	
 	# new OH from ALD+hv
@@ -802,7 +932,7 @@ while time >= 0:
 	# { 69} OPEN=C2O3+HO2+CO
 	# { 74} MGLY=C2O3+HO2+CO
 	# { 95} ISPD=0.333*CO+0.067*ALD2+0.9*FORM+0.832*PAR+1.033*HO2+0.7*XO2+0.967*C2O3
-
+	
 	# reactant losses in ALD +hv...
 	#   ... the alds
 	net_rxn_masses[i2j(kk,iFORM)] = -ir[38]
@@ -810,14 +940,15 @@ while time >= 0:
 	net_rxn_masses[i2j(kk,iOPEN)] = -ir[69]
 	net_rxn_masses[i2j(kk,iMGLY)] = -ir[74]
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[95]
-		
+	
 	#   ... the HONO products
 	net_rxn_masses[i2j(kk,iHO2 )] =  2*ir[38]+2*ir[45]+ir[69]+ir[74]+1.033*ir[95]
 	net_rxn_masses[i2j(kk,iC2O3)] =  ir[69]+ir[74]+0.967*ir[95]
 	net_rxn_masses[i2j(kk,iXO2 )] =  ir[45]+0.7*ir[95]
-
-
-	# compute the losses and gains for the next net_rxn set...
+	
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** Ox+Org Radical Source **
 	kk += 1  
 	
 	# new OH, XO2, XO2N, and HO2 sources from O+org
@@ -834,7 +965,7 @@ while time >= 0:
 	# { 71} OPEN+O3=0.03*ALD2+0.62*C2O3+0.7*FORM+0.03*XO2+0.69*CO+0.08*OH+0.76*HO2+0.2*MGLY
 	# { 77} O3+ISOP=0.65*ISPD+0.6*FORM+0.2*XO2+0.066*HO2+0.266*OH+0.2*C2O3+0.15*ALD2+0.35*PAR+0.066*CO
 	# { 93} O3+ISPD=0.114*C2O3+0.15*FORM+0.85*MGLY+0.154*HO2+0.268*OH+0.064*XO2+0.02*ALD2+0.36*PAR+0.225*CO
-
+	
 	# reactant losses in Ox + org...
 	#   ... the O and O3 losses
 	net_rxn_masses[i2j(kk,iO   )] = -ir[40]-ir[42]-ir[56]-ir[60]-ir[75]
@@ -862,10 +993,10 @@ while time >= 0:
 										+0.22*ir[58]+0.03*ir[71]+0.2*ir[77]\
 										+0.064*ir[93]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.02*ir[56]
-
-
 	
-	# compute the losses and gains for the next net_rxn set...
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** NO3+Org Radical Source **
 	kk += 1  
 	
 	# new OH, XO2, HO2 NTR, and HNO3 sources from NO3+org
@@ -874,7 +1005,7 @@ while time >= 0:
 	# { 59} NO3+OLE=0.91*XO2+FORM+0.09*XO2N+ALD2+NO2+-1*PAR
 	# { 78} NO3+ISOP=0.2*ISPD+0.8*NTR+XO2+0.8*HO2+0.2*NO2+0.8*ALD2+2.4*PAR
 	# { 94} NO3+ISPD=0.357*ALD2+0.282*FORM+1.282*PAR+0.925*HO2+0.643*CO+0.85*NTR+0.075*C2O3+0.075*XO2+0.15*HNO3
-
+	
 	# reactant losses in NO3 + org...
 	#   ... the NO3 losses
 	net_rxn_masses[i2j(kk,iNO3 )] = -ir[41]-ir[44]-ir[59]-ir[78]-ir[94]
@@ -894,76 +1025,100 @@ while time >= 0:
 	net_rxn_masses[i2j(kk,iHNO3)] =  ir[41]+ir[44]+ir[94]
 	net_rxn_masses[i2j(kk,iNO2 )] =  ir[59]+0.2*ir[78]
 	net_rxn_masses[i2j(kk,iNTR )] =  0.80*ir[78]+0.85*ir[94]
-
-
-	# compute the losses and gains for the next net_rxn set...
+	
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** OH + (organic+NO2) **
 	kk += 1  
-	# net reactions for OH + (organic and NO2) ...
-
-	# { 26} NO2+OH=HNO3
-	# { 36} OH+CO=HO2
-	# { 37} FORM+OH=HO2+CO
-	# { 43} ALD2+OH=C2O3
-	# { 51} OH+CH4=FORM+XO2+HO2
-	# { 52} PAR+OH=0.87*XO2+0.13*XO2N+0.11*HO2+0.11*ALD2+-0.11*PAR+0.76*ROR
-	# 	  { 53} ROR=0.96*XO2+1.1*ALD2+0.94*HO2+-2.1*PAR+0.04*XO2N
-	# 	  { 54} ROR=HO2
-	# 	  { 55} ROR+NO2=NTR    ! OMITTED from this net reaction set
-	# { 57} OH+OLE=FORM+ALD2+-1*PAR+XO2+HO2
-	# { 61} OH+ETH=XO2+1.56*FORM+0.22*ALD2+HO2
-	# { 63} TOL+OH=0.44*HO2+0.08*XO2+0.36*CRES+0.56*TO2
-	# 	  { 64} TO2+NO=0.9*NO2+0.9*HO2+0.9*OPEN+0.1*NTR
-	# 	  { 65} TO2=CRES+HO2
-	# { 66} OH+CRES=0.4*CRO+0.6*XO2+0.6*HO2+0.3*OPEN
-	# 	  { 68} CRO+NO2=NTR
-	# { 70} OPEN+OH=XO2+2*CO+2*HO2+C2O3+FORM
-	# { 72} OH+XYL=0.7*HO2+0.5*XO2+0.2*CRES+0.8*MGLY+1.1*PAR+0.3*TO2
-	# { 73} OH+MGLY=XO2+C2O3
-	# { 76} OH+ISOP=0.912*ISPD+0.629*FORM+0.991*XO2+0.912*HO2+0.088*XO2N
-	# { 84} MEOH+OH=FORM+HO2
-	# { 85} ETOH+OH=HO2+ALD2
-	# { 92} OH+ISPD=1.565*PAR+0.167*FORM+0.713*XO2+0.503*HO2+0.334*CO+0.168*MGLY+
-	# 			  0.273*ALD2+0.498*C2O3
+	
+	# { 26} OH + NO2  = HNO3
+	
+	# { 90} OH + HO2  = H2O + O2
+	
+	# { 12} OH + O3   = HO2
+	# { 35} OH + H2O2 = HO2
+	# { 36} OH + CO   = HO2
+	# { 37} OH + FORM = HO2  + CO
+	# { 84} OH + MEOH = HO2  + FORM
+	# { 85} OH + ETOH = HO2  + ALD2
+	
+	# { 43} OH + ALD2 = C2O3
+	# { 73} OH + MGLY = C2O3 + XO2 <-lossHO2> **
+	# { 70} OH + OPEN = C2O3 + XO2 (+HO2) +2*CO +HO2 +FORM  
+	#
+	# { 51} OH + CH4  = FORM + XO2 (+HO2)
+	# { 52} OH + PAR  = 0.87*XO2 + 0.13*XO2N + (0.11*HO2 + 0.76*ROR) +0.11*ALD2+-0.11*PAR
+	#      { 53} ROR  = 0.96*XO2 + 0.04*XO2N + (0.94*HO2) + 1.1*ALD2 + -2.1*PAR 
+	#                                     <-0.02*lossHO2> lost, eg no prompt production
+	#      { 54} ROR  = HO2  <direct HO2, not prompt>
+	#      { 55} ROR + NO2 = NTR    ! OMITTED from this net reaction set
+	#
+	# { 61} OH + ETH  = XO2+1.56*FORM+0.22*ALD2 (+HO2)
+	# { 57} OH + OLE  = FORM+ALD2+-1*PAR+XO2 (+HO2)
+	#
+	# { 63} OH + TOL  = 0.08*XO2 (+0.08*HO2)+ 0.36*HO2+0.36*CRES+0.56*TO2
+	#      { 64} TO2 + NO = 0.9*NO2+(0.9*HO2)+0.9*OPEN+0.1*NTR
+	#      { 65} TO2  = CRES + HO2
+	# { 66} OH + CRES = 0.4*CRO + 0.6*XO2 + (0.6*HO2) + 0.3*OPEN
+	#      { 68} CRO + NO2 = NTR
+	# { 72} OH + XYL  = 0.5*XO2 + (0.5*HO2) +0.2*HO2 + 0.2*CRES +0.8*MGLY+1.1*PAR+0.3*TO2
+	#
+	# { 76} OH + ISOP = 0.912*ISPD+0.629*FORM+0.991*XO2+(0.912*HO2)+0.088*XO2N
+	#                                                   <0.079*lossHO2>
+	# { 92} OH + ISPD = 1.565*PAR+0.167*FORM + 0.713*XO2 + (0.503*HO2) + 
+	#                                                      <0.210*lossHO2>
+	#                     0.334*CO+0.168*MGLY+0.273*ALD2+0.498*C2O3
 	
 	# notes:: 
-	#   1) for ir[55], ROR, NTR is from NO2+rad not NO+RO2, omitted here
-	#   2) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2
-	#                       and the NO is omitted as a reactant
+	#   1) prompt HO2 that matches XO2 production is id'ed as (HO2) and
+	#                    is NOT counted as HO2 production here, but in
+	#                    the XO2+NO net reaction set.
+	#   2) XO2 production WITHOUT prompt HO2 is treated as if prompt HO2
+	#                    was produced, but a HO2 loss is added into the XO2+NO
+	#                    reaction set.  <lostHO2>
+	#   3) for ir[55], ROR, NTR is from NO2+rad not NO+RO2, omitted here
+	#                    but tracked in '?????' net reaction set.
+	#   4) for ir[66], CRO, NTR is from NO2+rad not NO+RO2, omitted the CRO production.
+	#                   but ir[68] production is tracked in '?????' net reaction set.
+	#
+	#   5) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2 with (0.9*HO2)
+	#                       and the NO is omitted as a a loss here
 	#                       and the 0.1*NTR is coded as 0.1*XO2N
 	#          ir[65], TO2, included as a HO2 source
-	#   3) for ir[66], CRO, we have omitted the CRO production.
-	#                   the ir[68] production of NTR is from NO2, not NO
-	#                   thus it is omitted in this reaction..
-
+	
 	
 	#   ... the organics losses
 	net_rxn_masses[i2j(kk,iNO2 )] = -ir[26]
-	net_rxn_masses[i2j(kk,iOLE )] = -ir[57]
-	net_rxn_masses[i2j(kk,iPAR )] = -ir[52]
-	net_rxn_masses[i2j(kk,iTOL )] = -ir[63]
-	net_rxn_masses[i2j(kk,iXYL )] = -ir[72]
-	net_rxn_masses[i2j(kk,iFORM)] = -ir[37]
-	net_rxn_masses[i2j(kk,iALD2)] = -ir[43]
-	net_rxn_masses[i2j(kk,iETH )] = -ir[61]
-	net_rxn_masses[i2j(kk,iCRES)] = -ir[66]
-	net_rxn_masses[i2j(kk,iMGLY)] = -ir[73]
-	net_rxn_masses[i2j(kk,iOPEN)] = -ir[70]
+	net_rxn_masses[i2j(kk,iH2O )] = -ir[90]
+	net_rxn_masses[i2j(kk,iO3  )] = -ir[12]
+	net_rxn_masses[i2j(kk,iH2O2)] = -ir[35]
 	net_rxn_masses[i2j(kk,iCO  )] = -ir[36]
-	net_rxn_masses[i2j(kk,iISOP)] = -ir[76]
+	net_rxn_masses[i2j(kk,iFORM)] = -ir[37]
 	net_rxn_masses[i2j(kk,iMEOH)] = -ir[84]
 	net_rxn_masses[i2j(kk,iETOH)] = -ir[85]
+	net_rxn_masses[i2j(kk,iALD2)] = -ir[43]
+	net_rxn_masses[i2j(kk,iMGLY)] = -ir[73]
 	net_rxn_masses[i2j(kk,iCH4 )] = -ir[51]
+	net_rxn_masses[i2j(kk,iPAR )] = -ir[52]
+	net_rxn_masses[i2j(kk,iETH )] = -ir[61]
+	net_rxn_masses[i2j(kk,iOLE )] = -ir[57]
+	net_rxn_masses[i2j(kk,iTOL )] = -ir[63]
+	net_rxn_masses[i2j(kk,iXYL )] = -ir[72]
+	net_rxn_masses[i2j(kk,iCRES)] = -ir[66]
+	net_rxn_masses[i2j(kk,iOPEN)] = -ir[70]
+	net_rxn_masses[i2j(kk,iISOP)] = -ir[76]
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[92]
 	#    ... the OH losses
-	net_rxn_masses[i2j(kk,iOH  )] = -ir[26]-ir[57]-ir[52]-ir[63]-ir[72]-ir[37]\
-									-ir[43]-ir[61]-ir[66]-ir[73]-ir[70]-ir[36]\
-									-ir[76]-ir[84]-ir[85]-ir[51]-ir[92]
+	net_rxn_masses[i2j(kk,iOH  )] = -ir[26]-ir[90]-ir[12]-ir[35]-ir[36]\
+	                                -ir[37]-ir[84]-ir[85]-ir[43]-ir[73]\
+	                                -ir[70]-ir[51]-ir[52]-ir[61]-ir[57]\
+	                                -ir[63]-ir[66]-ir[72]-ir[76]-ir[92]
+	                                
 	#    ... the radical products...
-	net_rxn_masses[i2j(kk,iHO2 )] =  ir[36]+ir[37]+ir[51]+0.11*ir[52]\
-									+ir[57]+ir[61]+0.44*ir[63]+0.6*ir[66]\
-									+2*ir[70]+0.7*ir[72]+0.912*ir[76]+ir[84]\
-									+ir[85]+0.503*ir[92]+0.94*ir[53]+ir[54]\
-									+0.9*ir[64]+ir[65]
+	net_rxn_masses[i2j(kk,iHO2 )] = +ir[12]+ir[35]+ir[36]+ir[37]\
+	                                +ir[84]+ir[85]+ir[70]\
+	                                +ir[54]+0.36*ir[63]\
+	                                +0.2*ir[72]+ir[65]
 	
 	net_rxn_masses[i2j(kk,iC2O3)] =  ir[43]+ir[70]+ir[73]+0.498*ir[92]
 	
@@ -977,99 +1132,136 @@ while time >= 0:
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.13*ir[52]+0.088*ir[76]+0.04*ir[53]\
 										+0.1*ir[64]
 	
-	# compute the losses and gains for the next net_rxn set...
+	
+	#-------------------------------------------------------
+	# The Net Rxns for ** C2O3 + NO Oxidation **
 	kk += 1  
+		
+	# {46} C2O3 + NO = FORM + NO2 + HO2 + XO2
+	#
+	# {49} C2O3 + C2O3 = 2FORM + 2XO2 + 2HO2
+	# {50} C2O3 + HO2 = 0.79FORM + 0.79XO2 + 0.79HO2 +0.79OH
+	#
+	# notes:
+	#    1) show the ir[50} OH production as a RO2 + HO2 --> OH 
+	#       process in the 'HO2 to OH via radical' reaction set below.
 	
-	# net reactions for organic radical/NO oxidation
+	net_rxn_masses[i2j(kk,iC2O3)] = -ir[46] -2*ir[49] -ir[50]
+	net_rxn_masses[i2j(kk,iNO  )] = -ir[46]
+	net_rxn_masses[i2j(kk,iNO2 )] = +ir[46]
+	net_rxn_masses[i2j(kk,iFORM)] = +ir[46] +2*ir[49] +0.79*ir[50]
+	net_rxn_masses[i2j(kk,iXO2 )] = +ir[46] +2*ir[49] +0.79*ir[50]
 	
-		# compute the losses and gains in this net_rxn set...
+	# all HO2 is 'prompt' and matches the XO2 production...
+	#  Do HO2 production in the 'XO2 + NO Oxidation' net reactions
+	#  Do HO2 loss to make OH in the 'HO2 to OH via radical' net reactions
 	
-	# {79} XO2 + NO = NO2
-	# {80} XO2 + XO2 
-	# {81} XO2N + NO = NTR
-	# {86} XO2 + HO2
-	# {87} XO2N + HO2
-	# {88} XO2N + XO2N
-	# {89} XO2 +XO2N
-
+	
+	#-------------------------------------------------------
+	# The Net Rxns for ** XO2/XO2N + NO Oxidation **
+	kk += 1  
+		
+	# {79} XO2  + NO   = NO2  (+ HO2)
+	# {79*} (HO2)+ ??   = loss  
+	
+	# {81} XO2N + NO   =  NTR
+	#
+	# {80} XO2  + XO2  = -OOX
+	# {86} XO2  + HO2  = -OOX
+	# {87} XO2N + HO2  = -OOX
+	# {88} XO2N + XO2N = -OOX
+	# {89} XO2  + XO2N = -OOX
+	
 	# notes:: 
-	#   1) for ir[79], HO2 is considered as a product
+	#   1) for ir[79], HO2 is imputed as a product
+	#        for ir[79*], (HO2) is lost used in
+	#        those cases where XO2 made but no prompt HO2 is produced
+	#          e.g. ir[], ir[], and ir[]
+	#   2) -OOX is an added 'peroxide-like' species to track XO2 termination
 	
-	#   ... the organics losses
+	net_rxn_masses[i2j(kk,iXO2 )] = -ir[79] -2*ir[80] -ir[86] -ir[89]
+	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -ir[87] -2*ir[88] -ir[89]
 	net_rxn_masses[i2j(kk,iNO  )] = -ir[79]
 	net_rxn_masses[i2j(kk,iNO2 )] = +ir[79]
 	net_rxn_masses[i2j(kk,iHO2 )] = +ir[79] -ir[86] - ir[87]
-	net_rxn_masses[i2j(kk,iXO2 )] = -ir[79] -2*ir[80] -ir[86] -ir[89]
-	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -ir[87] -2*ir[88] -ir[89]
 	net_rxn_masses[i2j(kk,iNTR )] = +ir[81]
-
+	net_rxn_masses[i2j(kk,iOOX )] = +ir[80] +ir[86] +ir[87] +ir[88] +ir[89]
 	
-		# compute the losses and gains for the next net_rxn set...
-	kk += 1  
+	# now account for some XO2 production without prompt HO2;
+	#      i.e., some of XO2 + NO reaction should NOT produce HO2
+	#            so take it away here; note update operator +=.
+	# see notes at 'OH + (organics+NO2)' net reactions.
+	net_rxn_masses[i2j(kk,iHO2 )]+= (-ir[73]-0.02*ir[53]-0.079*ir[76]-0.210*ir[92])
 	
-	# net reactions for radical PAN/NO oxidation
 	
-	# {46} C2O3 + NO = FORM + NO2 + HO2 + XO2
+	#-------------------------------------------------------
+	### The Net Rxns for ** PAN Production **
+	kk += 1
+	
+	
 	# {47} C2O3 + NO2 = PAN
 	# {48} PAN = C2O3 + NO2
-	# {49} C2O3 + C2O3 = 2FORM + 2XO2 + 2HO2
+	
+	net_rxn_masses[i2j(kk,iC2O3)] = -ir[47] +ir[48]
+	net_rxn_masses[i2j(kk,iNO2 )] = -ir[47] +ir[48]
+	net_rxn_masses[i2j(kk,iPAN )] = +ir[47] -ir[48]
+	
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** HO2 to OH via radical **
+	kk += 1  
+	
+	# {13} O3  + HO2 = OH
+	
+	# {32} HO2 + HO2 = H2O2
+	# {33} HO2 + HO2 + H2O = H2O2
+	# {34} H2O2      = 2OH
+	
+	
 	# {50} C2O3 + HO2 = 0.79FORM + 0.79XO2 + 0.79HO2 +0.79OH
 	
-	net_rxn_masses[i2j(kk,iNO  )] = -ir[46]
-	net_rxn_masses[i2j(kk,iNO2 )] = -ir[46] -ir[47] +ir[48]
-	net_rxn_masses[i2j(kk,iPAN )] = +ir[47] -ir[48]
-	net_rxn_masses[i2j(kk,iFORM)] = +ir[46] +2*ir[49] +0.79*ir[50]
-	net_rxn_masses[i2j(kk,iOH  )] = +0.79*ir[50]
-	net_rxn_masses[i2j(kk,iHO2 )] = +ir[46] +2*ir[49] +0.79*ir[50] -ir[50]
-	net_rxn_masses[i2j(kk,iC2O3)] = -ir[46] -ir[47] +ir[48] -2*ir[49] -ir[50]
-	net_rxn_masses[i2j(kk,iXO2 )] = +ir[46] +2*ir[49] +0.79*ir[50]
 	
-		# compute the losses and gains for the next net_rxn set...
+	net_rxn_masses[i2j(kk,iO3  )] = -ir[13]
+	net_rxn_masses[i2j(kk,iHO2 )] = -ir[13] \
+	                                   -2*ir[32] -2*ir[33] 
+	net_rxn_masses[i2j(kk,iOH  )] = +ir[13] +2*ir[34] +0.79*ir[50]
+	net_rxn_masses[i2j(kk,iH2O2)] = +ir[32] +ir[33] -ir[34]
+	net_rxn_masses[i2j(kk,iC2O3)] = -ir[50]
+	
+	
+	#-------------------------------------------------------
+	### The Net Rxns for ** HO2+NO Oxidation **
 	kk += 1  
 	
-	 # net reactions for HO2/NO oxidation
-    
-    # {12} O3 + OH = HO2
-    # {13} O3 + HO2 = OH
-    # {28} HO2 + NO = OH + NO2
-    # {29} HO2 + NO2 = PNA
-    # {30} PNA = HO2 + NO2
-    # {31} OH + PNA = NO2
-    # {32} HO2 + HO2 = H2O2
-    # {33} HO2 + HO2 + H2O = H2O2
-    # {34} H2O2 = 2OH
-    # {35} OH + H2O2 = HO2
-    # {90} OH + HO2
-    
+	# {28} HO2 + NO = OH + NO2
+	
+	# {29} HO2 + NO2 = PNA
+	# {30} PNA = HO2 + NO2
+	# {31} OH + PNA = NO2
+	
+	
+	net_rxn_masses[i2j(kk,iHO2 )] = -ir[28] -ir[29] +ir[30]
 	net_rxn_masses[i2j(kk,iNO  )] = -ir[28]
 	net_rxn_masses[i2j(kk,iNO2 )] = +ir[28] -ir[29] +ir[30] +ir[31]
-	net_rxn_masses[i2j(kk,iO3  )] = -ir[12] -ir[13]
 	net_rxn_masses[i2j(kk,iPNA )] = +ir[29] -ir[30] -ir[31]
-	net_rxn_masses[i2j(kk,iH2O2)] = +ir[32] +ir[33] -ir[34] -ir[35]
-	net_rxn_masses[i2j(kk,iOH  )] = -ir[12] +ir[13] +ir[28] -ir[31] +2*ir[34]\
-	                                -ir[35] -ir[90]
-	net_rxn_masses[i2j(kk,iHO2)] = +ir[12] -ir[13] -ir[28] -ir[29] +ir[30]\
-	                                -2*ir[32] -2*ir[33] +ir[35] -ir[90]
-
-	# compute the losses and gains for the next net_rxn set...
-	kk += 1  
- 	
-   
-	# more net reactions assignments here....
+	net_rxn_masses[i2j(kk,iOH  )] = -ir[31]
 	
-	# net reactions for  ...
+	
+	# <<<add more net reactions assignments here....>>>
+	
 	
 	# save these hourly results for later output....
 	hour_number.append(time)
 	hourly_net_rxn_masses.append(copy.deepcopy(net_rxn_masses))
-
+	
 	# accumulate this hour's net masses into a daily total..
 	for i in range(0,len(net_rxn_masses)):
 		total_net_rxn_masses[i] += net_rxn_masses[i]
 	
 	# all reactions computed, read in a new set of ir and go back to top
-	(time, ir, ip) = get_irr_data(fin);  ## read new data and...
+	(time, ir, ip) = get_irr_data(fin);
 	
+	### end of the hour loop 
 
 
 ######### repeat to here for each set of net reactions ######
