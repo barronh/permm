@@ -41,22 +41,6 @@ parser.add_option("-o", "--outdir",
 	default=False,
 	help="prepend output dir to outfilename")
 
-# plot starts at 010000 ...
-parser.add_option("-b", "--beghour",
-	dest="beg_hour", 
-	type="int",  
-	default=8,
-	help="beginning hour for irr/ipr data", 
-	metavar="HH as int")
-
-# plot ends   at 00:00:00 on day given
-parser.add_option("-e", "--endhour",
-	dest="end_hour", 
-	type="int",  
-	default=18,
-	help="ending    hour for irr/ipr data", 
-	metavar="HH as int")
-
 # extent of output
 parser.add_option("-q", "--quiet",
 	action="store_false", 
@@ -86,12 +70,11 @@ if options.verbose:
 	print "Script ",  SCRIPT_ID_STRING
 	print "This is        version ",  __version__
 	print ""
-	print "Reading from       %s" % input_filename
+	print "Reading from:"
+	print "%s" % input_filename
 	print ""
-	print "For starting hour ", options.beg_hour
-	print "until ending hour ", options.end_hour
-	print ""
-	print "Writing to         %s" % output_filename
+	print "Writing to  :"
+	print "%s" % output_filename
 	print ""
 
 # ----- options now processed
@@ -159,8 +142,9 @@ SPC_Names = [
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
   'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ',\
   'NO3 ', 'C2O3', 'XO2 ', 'XO2N', 'NTR ', 'CRO ', 'ISPD', 'TO2 ', 'ROR ',\
-  'SO2 ', 'H2O ', '-OOX', 'VOC' ]
+  'SO2 ', 'xHO2', 'H2O ', '-OOX', 'VOC' ]
 
+# Use pHO2 to track 'prompt HO2' and separate it from direct HO2.
 # Use H2O as a product in some reactions to track a term pathway
 # Use tracking species -OOX to collect the XO2+XO2 type reaction
 #    products;  this is not a real species in CB4.
@@ -206,9 +190,10 @@ iISPD = 33
 iTO2  = 34
 iROR  = 35
 iSO2  = 36
-iH2O  = 37
-iOOX  = 38
-iVOC  = 39
+ixHO2 = 37
+iH2O  = 38
+iOOX  = 39
+iVOC  = 40
 
 max_i_spc = iVOC + 1
 
@@ -271,7 +256,6 @@ net_rxn_jindex = []
 # the number for the next net_rxn set to be added...
 next_net_rxn_set = 0
 num_net_rxn_sets = 0
-
 
 
 # allocate net rxn masses vector
@@ -470,6 +454,7 @@ jndx_net_rxn[iISPD] = jj; jj += 1; indx_net_rxn.append(iISPD)
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
+jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -525,6 +510,7 @@ jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
+jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
 
 # how many elements in vector are needed.
@@ -580,6 +566,7 @@ jndx_net_rxn[iISPD] = jj; jj += 1; indx_net_rxn.append(iISPD)
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
+jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
 jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
@@ -653,8 +640,9 @@ jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
+jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
+jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iVOC ] = jj; jj += 1; indx_net_rxn.append(iVOC )
 
 # how many elements in vector are needed.
@@ -704,6 +692,7 @@ jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
 jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
+jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 jndx_net_rxn[iOOX ] = jj; jj += 1; indx_net_rxn.append(iOOX )
 
 # how many elements in vector are needed.
@@ -752,9 +741,9 @@ jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
 jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
 jndx_net_rxn[iOOX ] = jj; jj += 1; indx_net_rxn.append(iOOX )
+jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -844,10 +833,14 @@ indx_net_rxn = []
 # fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
 jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
+jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
+jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
+jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
+jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
 jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
+jndx_net_rxn[iOOX ] = jj; jj += 1; indx_net_rxn.append(iOOX )
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -952,7 +945,7 @@ if options.verbose:
 (time, ir, ip) = get_irr_data(fin);  
 
 
-while (0 < time <= options.end_hour) :
+while ( time > 0 ) :
 	if options.verbose:
 		print "Time %d  hours" % time
 	if len(ir) != 97:
@@ -1011,10 +1004,13 @@ while (0 < time <= options.end_hour) :
 	
 	# new OH from ALD+hv
 	# { 38} FORM=2*HO2+CO
-	# { 45} ALD2=FORM+2*HO2+CO+XO2
+	# { 45} ALD2=FORM+HO2+CO + xHO2 + XO2
 	# { 69} OPEN=C2O3+HO2+CO
 	# { 74} MGLY=C2O3+HO2+CO
 	# { 95} ISPD=0.333*CO+0.067*ALD2+0.9*FORM+0.832*PAR+1.033*HO2+0.7*XO2+0.967*C2O3
+	
+	# NB: in {95} the 1.033 HO2 and  0.7 XO2 are treated as 
+	#                 0.333 HO2 and (0.7 xHO2 + 0.7 XO2)
 	
 	# reactant losses in ALD +hv...
 	#   ... the alds
@@ -1024,10 +1020,11 @@ while (0 < time <= options.end_hour) :
 	net_rxn_masses[i2j(kk,iMGLY)] = -ir[74]
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[95]
 	
-	#   ... the HONO products
-	net_rxn_masses[i2j(kk,iHO2 )] =  2*ir[38]+2*ir[45]+ir[69]+ir[74]+1.033*ir[95]
+	#   ... the radical products
+	net_rxn_masses[i2j(kk,iHO2 )] =  2*ir[38]+ir[45]+ir[69]+ir[74]+0.333*ir[95]
 	net_rxn_masses[i2j(kk,iC2O3)] =  ir[69]+ir[74]+0.967*ir[95]
 	net_rxn_masses[i2j(kk,iXO2 )] =  ir[45]+0.7*ir[95]
+	net_rxn_masses[i2j(kk,ixHO2)] =  ir[45]+0.7*ir[95]
 	
 	
 	#-------------------------------------------------------
@@ -1038,16 +1035,25 @@ while (0 < time <= options.end_hour) :
 	# { 40} FORM+O=OH+HO2+CO
 	# { 42} ALD2+O=C2O3+OH
 	# { 56} O+OLE=0.63*ALD2+0.38*HO2+0.28*XO2+0.3*CO+0.2*FORM+0.02*XO2N+0.22*PAR+0.2*OH
+	#                      [0.10*HO2+0.28*xHO2+0.28*XO2]
 	# { 60} O+ETH=FORM+1.7*HO2+CO+0.7*XO2+0.3*OH
+	#                 [1.0*HO2   +0.7*xHO2+0.7*XO2]
 	# { 75} O+ISOP=0.75*ISPD+0.5*FORM+0.25*XO2+0.25*HO2+0.25*C2O3+0.25*PAR
-	# 
+	#                 [0.25*xHO2+0.25*XO2]
 	# 
 	# new OH, XO2, XO2N, and HO2 sources from O3+org
-	# { 58} O3+OLE=0.5*ALD2+0.74*FORM+0.22*XO2+0.1*OH+0.33*CO+0.44*HO2+-1*PAR
+	# { 58} O3+OLE=0.5*ALD2+0.74*FORM+0.44*HO2+0.22*XO2+0.1*OH+0.33*CO+-1*PAR
+	#                   [0.22*HO2 + 0.22*xHO2 + 0.22*XO2]
 	# { 62} O3+ETH=FORM+0.42*CO+0.12*HO2
-	# { 71} OPEN+O3=0.03*ALD2+0.62*C2O3+0.7*FORM+0.03*XO2+0.69*CO+0.08*OH+0.76*HO2+0.2*MGLY
-	# { 77} O3+ISOP=0.65*ISPD+0.6*FORM+0.2*XO2+0.066*HO2+0.266*OH+0.2*C2O3+0.15*ALD2+0.35*PAR+0.066*CO
-	# { 93} O3+ISPD=0.114*C2O3+0.15*FORM+0.85*MGLY+0.154*HO2+0.268*OH+0.064*XO2+0.02*ALD2+0.36*PAR+0.225*CO
+	# { 71} OPEN+O3=0.03*ALD2+0.62*C2O3+0.7*FORM+0.76*HO2+0.03*XO2+0.69*CO+0.08*OH+0.2*MGLY
+	#                   [0.73*HO2 + 0.03*xHO2 + 0.03*XO2]
+	#                   
+	# { 77} O3+ISOP=0.65*ISPD+0.6*FORM+0.066*HO2+0.2*XO2+
+	#               0.266*OH+0.2*C2O3+0.15*ALD2+0.35*PAR+0.066*CO
+	#                   [0.00*HO2 + 0.066*xHO2 + 0.2*XO2]
+	# { 93} O3+ISPD=0.114*C2O3+0.15*FORM+0.154*HO2+0.064*XO2+
+	#               0.85*MGLY+0.268*OH+0.02*ALD2+0.36*PAR+0.225*CO
+	#                   [0.090*HO2 + 0.064*xHO2 + 0.064*XO2]
 	
 	# reactant losses in Ox + org...
 	#   ... the O and O3 losses
@@ -1067,14 +1073,17 @@ while (0 < time <= options.end_hour) :
 	net_rxn_masses[i2j(kk,iOH  )] =  ir[40]+ir[42]+0.20*ir[56]+0.30*ir[60]\
 										+0.1*ir[58]+0.08*ir[71]+0.266*ir[77]\
 										+0.268*ir[93]
-	net_rxn_masses[i2j(kk,iHO2 )] =  ir[40]+0.38*ir[56]+1.7*ir[60]+0.25*ir[75]\
-										+0.44*ir[58]+0.12*ir[62]+0.76*ir[71]\
-										+0.066*ir[77]+0.154*ir[93]
+	net_rxn_masses[i2j(kk,iHO2 )] =  ir[40]+0.10*ir[56]+1.0*ir[60]\
+										+0.22*ir[58]+0.12*ir[62]+0.73*ir[71]\
+										+0.090*ir[93]
 	net_rxn_masses[i2j(kk,iC2O3)] =  ir[42]+0.25*ir[75]+0.62*ir[71]+0.2*ir[77]\
 										+0.114*ir[93]
 	net_rxn_masses[i2j(kk,iXO2 )] =  0.28*ir[56]+0.7*ir[60]+0.25*ir[75]\
-										+0.22*ir[58]+0.03*ir[71]+0.2*ir[77]\
+										+0.22*ir[58]+0.03*ir[71]+0.066*ir[77]\
 										+0.064*ir[93]
+	net_rxn_masses[i2j(kk,ixHO2)] =  0.28*ir[56]+0.7*ir[60]+0.25*ir[75]\
+										+0.22*ir[58]+0.03*ir[71]+0.066*ir[77]\
+										+0.066*ir[93]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.02*ir[56]
 	
 	
@@ -1086,8 +1095,12 @@ while (0 < time <= options.end_hour) :
 	# { 41} FORM+NO3=HNO3+HO2+CO
 	# { 44} ALD2+NO3=C2O3+HNO3
 	# { 59} NO3+OLE=0.91*XO2+FORM+0.09*XO2N+ALD2+NO2+-1*PAR
+	#               [ 0.0*xHO2 + 0.91*XO2]
 	# { 78} NO3+ISOP=0.2*ISPD+0.8*NTR+XO2+0.8*HO2+0.2*NO2+0.8*ALD2+2.4*PAR
-	# { 94} NO3+ISPD=0.357*ALD2+0.282*FORM+1.282*PAR+0.925*HO2+0.643*CO+0.85*NTR+0.075*C2O3+0.075*XO2+0.15*HNO3
+	#                [ 0.0 *HO2 + 0.8*xHO2 + 1.0*XO2]
+	# { 94} NO3+ISPD=0.357*ALD2+0.282*FORM+0.925*HO2+0.075*XO2+
+	#                1.282*PAR+0.643*CO+0.85*NTR+0.075*C2O3+0.15*HNO3
+	#                [ 0.725*HO2 + 0.075*xHO2 + 0.075*XO2]
 	
 	# reactant losses in NO3 + org...
 	#   ... the NO3 losses
@@ -1101,9 +1114,10 @@ while (0 < time <= options.end_hour) :
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[94]
 	
 	#   ... the new radical products
-	net_rxn_masses[i2j(kk,iHO2 )] =  ir[41]+0.08*ir[78]+0.925*ir[94]
+	net_rxn_masses[i2j(kk,iHO2 )] =  ir[41]+0.725*ir[94]
 	net_rxn_masses[i2j(kk,iC2O3)] =  ir[44]+0.75*ir[75]
 	net_rxn_masses[i2j(kk,iXO2 )] =  0.91*ir[59]+ir[78]+0.075*ir[94]
+	net_rxn_masses[i2j(kk,ixHO2)] =  0.08*ir[78]+0.075*ir[94]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.09*ir[59]
 	net_rxn_masses[i2j(kk,iHNO3)] =  ir[41]+ir[44]+ir[94]
 	net_rxn_masses[i2j(kk,iNO2 )] =  ir[59]+0.2*ir[78]
@@ -1126,48 +1140,42 @@ while (0 < time <= options.end_hour) :
 	# { 85} OH + ETOH = HO2  + ALD2
 	
 	# { 43} OH + ALD2 = C2O3
-	# { 73} OH + MGLY = C2O3 + XO2 <-lossHO2> **
-	# { 70} OH + OPEN = C2O3 + XO2 (+HO2) +2*CO +HO2 +FORM  
+	# { 73} OH + MGLY = C2O3 + XO2 
+	# { 70} OH + OPEN = C2O3 + XO2 +xHO2 +2*CO +HO2 +FORM  
 	#
-	# { 51} OH + CH4  = FORM + XO2 (+HO2)
-	# { 52} OH + PAR  = 0.87*XO2 + 0.13*XO2N + (0.11*HO2 + 0.76*ROR) +0.11*ALD2+-0.11*PAR
-	#      { 53} ROR  = 0.96*XO2 + 0.04*XO2N + (0.94*HO2) + 1.1*ALD2 + -2.1*PAR 
-	#                                     <-0.02*lossHO2> lost, eg no prompt production
+	# { 51} OH + CH4  = FORM + XO2 +xHO2
+	# { 52} OH + PAR  = 0.87*XO2 + 0.13*XO2N + (0.11*xHO2 + 0.76*ROR) +0.11*ALD2+-0.11*PAR
+	#      { 53} ROR  = 0.96*XO2 + 0.04*XO2N +  0.94*xHO2 + 1.1*ALD2 + -2.1*PAR 
+	#                                    
 	#      { 54} ROR  = HO2  <direct HO2, not prompt>
 	#      { 55} ROR + NO2 = NTR    ! OMITTED from this net reaction set
 	#
-	# { 61} OH + ETH  = XO2+1.56*FORM+0.22*ALD2 (+HO2)
-	# { 57} OH + OLE  = FORM+ALD2+-1*PAR+XO2 (+HO2)
+	# { 61} OH + ETH  = XO2+1.56*FORM+0.22*ALD2 +xHO2
+	# { 57} OH + OLE  = FORM+ALD2+-1*PAR+XO2 +xHO2
 	#
-	# { 63} OH + TOL  = 0.08*XO2 (+0.08*HO2)+ 0.36*HO2+0.36*CRES+0.56*TO2
-	#      { 64} TO2 + NO = 0.9*NO2+(0.9*HO2)+0.9*OPEN+0.1*NTR
+	# { 63} OH + TOL  = 0.08*XO2+0.08*xHO2+ 0.36*HO2+0.36*CRES+0.56*TO2
+	#      { 64} TO2 + NO = 0.9*NO2+0.9*xHO2+0.9*OPEN+0.1*NTR
+	#                    [ code 0.9*NO2 as 0.9*XO2 + 0.9*xHO2 ]
+	#                    [ code 0.1*NTR as 0.1*XNO2           ]
 	#      { 65} TO2  = CRES + HO2
-	# { 66} OH + CRES = 0.4*CRO + 0.6*XO2 + (0.6*HO2) + 0.3*OPEN
+	# { 66} OH + CRES = 0.4*CRO + 0.6*XO2 + 0.6*xHO2 + 0.3*OPEN
 	#      { 68} CRO + NO2 = NTR
-	# { 72} OH + XYL  = 0.5*XO2 + (0.5*HO2) +0.2*HO2 + 0.2*CRES +0.8*MGLY+1.1*PAR+0.3*TO2
+	# { 72} OH + XYL  = 0.5*XO2 + 0.5*xHO2 +0.2*HO2 + 0.2*CRES +0.8*MGLY+1.1*PAR+0.3*TO2
 	#
-	# { 76} OH + ISOP = 0.912*ISPD+0.629*FORM+0.991*XO2+(0.912*HO2)+0.088*XO2N
-	#                                                   <0.079*lossHO2>
-	# { 92} OH + ISPD = 1.565*PAR+0.167*FORM + 0.713*XO2 + (0.503*HO2) + 
-	#                                                      <0.210*lossHO2>
+	# { 76} OH + ISOP = 0.912*ISPD+0.629*FORM+0.991*XO2+0.912*xHO2+0.088*XO2N
+	#                                                   
+	# { 92} OH + ISPD = 1.565*PAR+0.167*FORM + 0.713*XO2 + 0.503*xHO2 + 
 	#                     0.334*CO+0.168*MGLY+0.273*ALD2+0.498*C2O3
 	
 	# notes:: 
-	#   1) prompt HO2 that matches XO2 production is id'ed as (HO2) and
-	#                    is NOT counted as HO2 production here, but in
-	#                    the XO2+NO net reaction set.
-	#   2) XO2 production WITHOUT prompt HO2 is treated as if prompt HO2
-	#                    was produced, but a HO2 loss is added into the XO2+NO
-	#                    reaction set.  <lostHO2>
 	#   3) for ir[55], ROR, NTR is from NO2+rad not NO+RO2, omitted here
 	#                    but tracked in '?????' net reaction set.
 	#   4) for ir[66], CRO, NTR is from NO2+rad not NO+RO2, omitted the CRO production.
 	#                   but ir[68] production is tracked in '?????' net reaction set.
 	#
-	#   5) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2 with (0.9*HO2)
+	#   5) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2 with 0.9*xHO2
 	#                       and the NO is omitted as a a loss here
 	#                       and the 0.1*NTR is coded as 0.1*XO2N
-	#          ir[65], TO2, included as a HO2 production source
 	
 	
 	#   ... the organics losses
@@ -1210,6 +1218,12 @@ while (0 < time <= options.end_hour) :
 									+ir[70]+0.5*ir[72]+ir[73]+0.991*ir[76]\
 									+0.713*ir[92]+0.96*ir[53]+0.9*ir[64]
 									
+	net_rxn_masses[i2j(kk,ixHO2)] =  ir[70]+ir[51]+0.11*ir[52]+0.94*ir[53]\
+	                                +ir[61]+ir[57]\
+									+0.08*ir[63]+0.9*ir[64]+0.6*ir[66]\
+									+0.5*ir[72]+0.912*ir[76]\
+									+0.503*ir[92]
+									
 	#     ... radical losses via NO2 or NO->NO2 reactions ...
 	net_rxn_masses[i2j(kk,iHNO3)] =  ir[26]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.13*ir[52]+0.088*ir[76]+0.04*ir[53]\
@@ -1226,10 +1240,10 @@ while (0 < time <= options.end_hour) :
 	# The Net Rxns for ** C2O3 + NO Oxidation **
 	kk += 1  
 		
-	# {46} C2O3 + NO = FORM + NO2 + HO2 + XO2
+	# {46} C2O3 + NO = FORM + NO2 + xHO2 + XO2
 	#
-	# {49} C2O3 + C2O3 = 2FORM + 2XO2 + 2HO2
-	# {50} C2O3 + HO2 = 0.79FORM + 0.79XO2 + 0.79HO2 +0.79OH
+	# {49} C2O3 + C2O3 = 2FORM + 2XO2 + 2xHO2
+	# {50} C2O3 + HO2 = 0.79FORM + 0.79XO2 + 0.79xHO2 +0.79OH
 	#
 	# notes:
 	#    1) show the ir[50} OH production as a RO2 + HO2 --> OH 
@@ -1240,48 +1254,48 @@ while (0 < time <= options.end_hour) :
 	net_rxn_masses[i2j(kk,iNO2 )] = +ir[46]
 	net_rxn_masses[i2j(kk,iFORM)] = +ir[46] +2*ir[49] +0.79*ir[50]
 	net_rxn_masses[i2j(kk,iXO2 )] = +ir[46] +2*ir[49] +0.79*ir[50]
+	net_rxn_masses[i2j(kk,ixHO2)] = +ir[46] +2*ir[49] +0.79*ir[50]
 	net_rxn_masses[i2j(kk,iOOX )] = +0.21*ir[50]
-	
-	# all HO2 is 'prompt' and matches the XO2 production...
-	#  Do HO2 production in the 'XO2 + NO Oxidation' net reactions
-	#  Do HO2 loss to make OH in the 'HO2 to OH via radical' net reactions
-	
+		
 	
 	#-------------------------------------------------------
 	# The Net Rxns for ** XO2/XO2N + NO Oxidation **
 	kk += 1  
 		
-	# {79} XO2  + NO   = NO2  (+ HO2)
-	# {79*} (HO2)+ ??   = loss  
+	# {79} XO2  + NO   = NO2
 	
 	# {81} XO2N + NO   =  NTR
 	#
 	# {80} XO2  + XO2  = 2*-OOX
-	# {86} XO2  + HO2  =   -OOX
-	# {87} XO2N + HO2  =   -OOX
 	# {88} XO2N + XO2N = 2*-OOX
 	# {89} XO2  + XO2N = 2*-OOX
 	
 	# notes:: 
-	#   1) for ir[79], HO2 is imputed as a product
-	#        for ir[79*], (HO2) is lost; used in
-	#        those cases where XO2 made but no prompt HO2 is produced
-	#          e.g. ir[73], ir[53], ir [92] and ir[76]
-	#   2) -OOX is an added 'peroxide-like' species to track XO2 termination
+	#   1) -OOX is an added 'peroxide-like' species to track XO2 termination
 	
-	net_rxn_masses[i2j(kk,iXO2 )] = -ir[79] -2*ir[80] -ir[86] -ir[89]
-	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -ir[87] -2*ir[88] -ir[89]
+	net_rxn_masses[i2j(kk,iXO2 )] = -ir[79] -2*ir[80] -ir[89]
+	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -2*ir[88] -ir[89]
 	net_rxn_masses[i2j(kk,iNO  )] = -ir[79] -ir[81]
 	net_rxn_masses[i2j(kk,iNO2 )] = +ir[79]
-	net_rxn_masses[i2j(kk,iHO2 )] = +ir[79] -ir[86] - ir[87]
-	net_rxn_masses[i2j(kk,iNTR )] = +ir[81]
-	net_rxn_masses[i2j(kk,iOOX )] = +2*ir[80] +ir[86] +ir[87] +2*ir[88] +2*ir[89]
 	
-	# now account for some XO2 production without prompt HO2;
-	#      i.e., some of XO2 + NO reaction should NOT produce HO2
-	#            so take it away here; note update operator +=.
-	# see notes at 'OH + (organics+NO2)' net reactions.
-	net_rxn_masses[i2j(kk,iHO2 )]+= (-ir[73]-0.02*ir[53]-0.079*ir[76]-0.210*ir[92])
+	net_rxn_masses[i2j(kk,ixHO2)] = ir[45]+0.7*ir[95]\
+	                                +0.28*ir[56]+0.7*ir[60]+0.25*ir[75]\
+	                                +0.22*ir[58]+0.03*ir[71]+0.066*ir[77]\
+	                                +0.066*ir[93]\
+	                                +0.08*ir[78]+0.075*ir[94]\
+	                                +ir[70]+ir[51]+0.11*ir[52]+0.94*ir[53]\
+	                                +ir[61]+ir[57]\
+	                                +0.08*ir[63]+0.9*ir[64]+0.6*ir[66]\
+	                                +0.5*ir[72]+0.912*ir[76]\
+	                                +0.503*ir[92]\
+	                                +ir[46] +2*ir[49] +0.79*ir[50]\
+	                                +0.79*ir[50]
+	
+	net_rxn_masses[i2j(kk,iNTR )] = +ir[81]
+	net_rxn_masses[i2j(kk,iOOX )] = +2*ir[80] +2*ir[88] +2*ir[89]
+	
+
+	
 	
 	
 	#-------------------------------------------------------
@@ -1302,7 +1316,10 @@ while (0 < time <= options.end_hour) :
 	kk += 1  
 	
 	# {13} O3   + HO2 = OH
-	# {50} C2O3 + HO2 = +0.79OH + 0.79FORM + 0.79XO2 + 0.79HO2
+	# {50} C2O3 + HO2 = 0.79 OH + 0.79 FORM + 0.79 XO2 + 0.79 xHO2
+
+	# {86} XO2  + HO2  =   -OOX  
+	# {87} XO2N + HO2  =   -OOX  
 	
 	# {32} HO2 + HO2 = H2O2
 	# {33} HO2 + HO2 + H2O = H2O2
@@ -1310,12 +1327,16 @@ while (0 < time <= options.end_hour) :
 	
 	
 	net_rxn_masses[i2j(kk,iO3  )] = -ir[13]
-	net_rxn_masses[i2j(kk,iHO2 )] = -ir[13] \
-	                                   -2*ir[32] -2*ir[33]\
-	                                   +0.79*ir[50]
+	net_rxn_masses[i2j(kk,iC2O3)] = -ir[50]
+	net_rxn_masses[i2j(kk,iXO2 )] = -ir[86]+0.79*ir[50]
+	net_rxn_masses[i2j(kk,ixHO2)] = +0.79*ir[50]
+	net_rxn_masses[i2j(kk,iXO2N)] = -ir[87]
+	net_rxn_masses[i2j(kk,iHO2 )] = -ir[13] -ir[50] -ir[86] -ir[87]\
+	                                   -2.0*ir[32] -2.0*ir[33]
+	                                   
 	net_rxn_masses[i2j(kk,iOH  )] = +ir[13] +0.79*ir[50]
 	net_rxn_masses[i2j(kk,iH2O2)] = +ir[32] +ir[33] 
-	net_rxn_masses[i2j(kk,iC2O3)] = -ir[50]
+	net_rxn_masses[i2j(kk,iOOX )] = +ir[86] +ir[87]
 	
 	
 	#-------------------------------------------------------
@@ -1755,7 +1776,7 @@ daily_no2_prod_xo2 = daily_no2_prod/daily_tot_xo2p
 jj += 1
 
 section_labels.append("  HO2 prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iHO2 ), a_row)
+copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, ixHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 daily_ho2_prod = sum(a_row)
 
@@ -1821,7 +1842,7 @@ section_labels.append(" Ald+hv  HO2")
 copyhours(hourly_net_rxn_masses, i2j(n_Aldhvrad, iHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # initialize total ho2 accumulator...
-tot_ho2p = [e for e in a_row]
+hourly_tot_ho2p = [e for e in a_row]
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_Aldhvrad, iHO2 )])
 
@@ -1830,53 +1851,90 @@ jj += 1
 section_labels.append(" Ox+org  HO2") 
 copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_ho2p)
+# add in this HO2..
+accumulate_row(a_row,hourly_tot_ho2p)
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iHO2 )])
 
 jj += 1
 
 section_labels.append("Total  HO2 New") 
-hourly_diagram_values.append([e for e in tot_ho2p])
+hourly_diagram_values.append([e for e in hourly_tot_ho2p])
 
-daily_diagram_values.append(sum(tot_ho2p))
+# nb: this is NOT the daily tot for ALL HO2, only new HO2
+daily_diagram_values.append(sum(hourly_tot_ho2p))
 
 jj += 1
 
 section_labels.append("OH+Org HO2 Prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_ho2p)
+# add in this HO2..
+accumulate_row(a_row,hourly_tot_ho2p)
 
-daily_diagram_values.append(sum(tot_ho2p))
+daily_diagram_values.append(sum(a_row))
 
 jj += 1
 
 section_labels.append("XO2+NO HO2 Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iHO2 ), a_row)
+copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, ixHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_ho2p)
+# add in this HO2..
+accumulate_row(a_row,hourly_tot_ho2p)
 
 daily_diagram_values.append(sum(a_row))
 
 jj += 1
 
 section_labels.append("Total  HO2 Prod") 
-hourly_diagram_values.append([e for e in tot_ho2p])
-# remember the total HO2 produced by saving tot_ho2p
-daily_tot_ho2p = sum(tot_ho2p)
-daily_diagram_values.append(daily_tot_ho2p)
+hourly_diagram_values.append([e for e in hourly_tot_ho2p])
+# daily total HO2 produced 
+daily_tot_ho2p = sum(hourly_tot_ho2p)
 
+daily_diagram_values.append(daily_tot_ho2p)
 
 jj += 1
 
+# now start the losses of HO2...
 section_labels.append("HO2+(O3,rads) Loss") 
 copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iHO2 ), a_row)
 # these are negative values, chg sign
-tot_ho2l = [-e for e in a_row]
-hourly_diagram_values.append([e for e in tot_ho2l])
+b_row = [-e for e in a_row]
+hourly_diagram_values.append([e for e in b_row])
+#   and start a new accumulator for HO2 loss
+hourly_tot_ho2l = [e for e in b_row]
 
-daily_diagram_values.append(sum(tot_ho2l))
+daily_diagram_values.append(sum(b_row))
+
+jj += 1
+
+section_labels.append("  O3   Loss") 
+copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iO3  ), a_row)
+# these are negative values, chg sign
+b_row = [-e for e in a_row]
+hourly_diagram_values.append([e for e in b_row])
+
+daily_diagram_values.append(sum(b_row))
+
+jj += 1
+
+section_labels.append("  XO2  Loss") 
+copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iXO2  ), a_row)
+# these are negative values, chg sign
+b_row = [-e for e in a_row]
+hourly_diagram_values.append([e for e in b_row])
+
+daily_diagram_values.append(sum(b_row))
+
+jj += 1
+
+section_labels.append("  C2O3 Loss") 
+copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iC2O3  ), a_row)
+# these are negative values, chg sign
+b_row = [-e for e in a_row]
+hourly_diagram_values.append([e for e in b_row])
+
+daily_diagram_values.append(sum(b_row))
 
 jj += 1
 
@@ -1888,12 +1946,33 @@ daily_diagram_values.append(sum(a_row))
 
 jj += 1
 
+section_labels.append("  -OOX Prod") 
+copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iOOX ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
 section_labels.append("  OH   Prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iOH ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-# save the OH produced via HO2+rads
-tot_ohp = [e for e in a_row]
+# start a new accumulator for OH produced 
+hourly_tot_ohp = [e for e in a_row]
+
 daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("HO2+OH Loss")
+copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iH2O ), a_row)
+# these are negative values, chg sign
+b_row = [-e for e in a_row]
+hourly_diagram_values.append([e for e in b_row])
+# add this HO2 loss to total HO2 loss so far..
+accumulate_row(b_row,hourly_tot_ho2l)
+
+daily_diagram_values.append(sum(b_row))
 
 jj += 1
 
@@ -1902,7 +1981,8 @@ copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iHO2 ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
-accumulate_row(b_row,tot_ho2l)
+# add this HO2 loss to total HO2 loss so far..
+accumulate_row(b_row,hourly_tot_ho2l)
 
 daily_diagram_values.append(sum(b_row))
 
@@ -1911,12 +1991,13 @@ jj += 1
 section_labels.append("  NO2 prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iNO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
+# save the only NO2 produced in this section...
 daily_no2_prod = sum(a_row)
 
 daily_diagram_values.append(daily_no2_prod)
 
-# remember the NO2 produced by HO2
-no2_prod_ho2 = [ n/c for (n,c) in zip(a_row,tot_ho2p)]
+# calculate the NO2 produced per HO2 produced
+hourly_no2_prod_ho2 = [ n/c for (n,c) in zip(a_row,hourly_tot_ho2p)]
 daily_no2_prod_ho2 = daily_no2_prod/daily_tot_ho2p
 
 jj += 1
@@ -1924,37 +2005,40 @@ jj += 1
 section_labels.append("  OH prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iOH ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_ohp)
+# add the OH produced via HO2+NO
+accumulate_row(a_row,hourly_tot_ohp)
 
 daily_diagram_values.append(sum(a_row))
 
-# remember the OH produced by HO2
-oh_prod_ho2 = [ o/c for (o,c) in zip(a_row,tot_ohp)]
-daily_oh_prod = sum(tot_ohp)
+# calculate the OH produced per HO2 prod
+hourly_oh_prod_ho2 = [ o/c for (o,c) in zip(hourly_tot_ohp,hourly_tot_ho2p)]
+daily_oh_prod = sum(hourly_tot_ohp)
 daily_oh_prod_ho2 = daily_oh_prod/daily_tot_ho2p 
 
 jj += 1
 
 section_labels.append("Total HO2 Loss") 
-hourly_diagram_values.append([e for e in tot_ho2l])
-daily_diagram_values.append(sum(tot_ho2l))
+hourly_diagram_values.append([e for e in hourly_tot_ho2l])
+daily_diagram_values.append(sum(hourly_tot_ho2l))
 
 jj += 1
 
 section_labels.append("Total OH Prod") 
-hourly_diagram_values.append([e for e in tot_ohp])
-daily_diagram_values.append(sum(tot_ohp))
+hourly_diagram_values.append([e for e in hourly_tot_ohp])
+# calculate the daily total OH produced
+daily_tot_ohp = sum(hourly_tot_ohp)
+daily_diagram_values.append(daily_tot_ohp)
 
 jj += 1
 
 section_labels.append("NO2 Prod / HO2 Prod") 
-hourly_diagram_values.append([e for e in no2_prod_ho2])
+hourly_diagram_values.append([e for e in hourly_no2_prod_ho2])
 daily_diagram_values.append(daily_no2_prod_ho2)
 
 jj += 1
 
 section_labels.append("OH  Prod / HO2 Prod") 
-hourly_diagram_values.append([e for e in oh_prod_ho2])
+hourly_diagram_values.append([e for e in hourly_oh_prod_ho2])
 daily_diagram_values.append(daily_oh_prod_ho2)
 
 jj += 1
