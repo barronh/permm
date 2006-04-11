@@ -1453,7 +1453,8 @@ def accumulate_row(row = [], acc = []):
 #
 #   1) "C2O3     new, prod, loss" 
 #   2) "XO2/XO2N new, prod, loss"
-#   3) "New HO2"
+#   3) "HO2      new, prod, loss"
+#   4) "OH       new, prod, loss"
 
 
 
@@ -1478,7 +1479,7 @@ jj = this_jstart
 section_labels.append(" Ald+hv  C2O3") 
 copyhours(hourly_net_rxn_masses, i2j(n_Aldhvrad, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-tot_c2o3p = [e for e in a_row]
+hourly_tot_c2o3p = [e for e in a_row]
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_Aldhvrad, iC2O3 )])
 
@@ -1487,7 +1488,7 @@ jj += 1
 section_labels.append(" Ox+org  C2O3") 
 copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_c2o3p)
+accumulate_row(a_row,hourly_tot_c2o3p)
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iC2O3 )])
 
@@ -1496,32 +1497,35 @@ jj += 1
 section_labels.append(" NO3+org C2O3") 
 copyhours(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_c2o3p)
+accumulate_row(a_row,hourly_tot_c2o3p)
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_NO3Orgrad, iC2O3 )])
 
 jj += 1
 
 section_labels.append("Total  C2O3 New") 
-hourly_diagram_values.append([e for e in tot_c2o3p])
+#save hourly and daily new C3O3 for later use with OH
+hourly_newc2o3 = [e for e in hourly_tot_c2o3p]
+daily_newc2o3  = sum(hourly_newc2o3)
+hourly_diagram_values.append([e for e in hourly_newc2o3])
 
-daily_diagram_values.append(sum(tot_c2o3p))
+daily_diagram_values.append(daily_newc2o3)
 
 jj += 1
 
 section_labels.append("OH+Org C2O3 Prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_c2o3p)
+accumulate_row(a_row,hourly_tot_c2o3p)
 
-daily_diagram_values.append(sum(tot_c2o3p))
+daily_diagram_values.append(sum(hourly_tot_c2o3p))
 
 jj += 1
 
 section_labels.append("Total  C2O3 Prod") 
-hourly_diagram_values.append([e for e in tot_c2o3p])
-# remember the total C2O3 produced by saving daily tot_c2o3p
-daily_tot_c2o3p = sum(tot_c2o3p)
+hourly_diagram_values.append([e for e in hourly_tot_c2o3p])
+# remember the total C2O3 produced by sum of hourly_tot_c2o3p
+daily_tot_c2o3p = sum(hourly_tot_c2o3p)
 daily_diagram_values.append(daily_tot_c2o3p)
 
 
@@ -1554,7 +1558,7 @@ daily_no2_prod = sum(a_row)
 daily_diagram_values.append(daily_no2_prod)
 
 # remember the NO2 produced by C2O3
-no2_prod_c2o3 = [ n/c for (n,c) in zip(a_row,tot_c2o3p)]
+hourly_no2_prod_c2o3 = [ n/c for (n,c) in zip(a_row,hourly_tot_c2o3p)]
 daily_no2_prod_c2o3 = daily_no2_prod/daily_tot_c2o3p
 
 jj += 1
@@ -1566,7 +1570,7 @@ hourly_diagram_values.append([e for e in a_row])
 daily_diagram_values.append(sum(a_row))
 
 # remember the XO2 produced by C2O3
-xo2_prod_c2o3 = [ x/c for (x,c) in zip(a_row,tot_c2o3p)]
+hourly_xo2_prod_c2o3 = [ x/c for (x,c) in zip(a_row,hourly_tot_c2o3p)]
 daily_xo2_prod_c2o3 = sum(a_row)/daily_tot_c2o3p
 
 jj += 1
@@ -1586,13 +1590,13 @@ daily_diagram_values.append(sum(tot_c2o3l))
 jj += 1
 
 section_labels.append("NO2 Prod / C2O3 Prod") 
-hourly_diagram_values.append([e for e in no2_prod_c2o3])
+hourly_diagram_values.append([e for e in hourly_no2_prod_c2o3])
 daily_diagram_values.append(daily_no2_prod_c2o3)
 
 jj += 1
 
 section_labels.append("XO2 Prod / C2O3 Prod") 
-hourly_diagram_values.append([e for e in xo2_prod_c2o3])
+hourly_diagram_values.append([e for e in hourly_xo2_prod_c2o3])
 daily_diagram_values.append(daily_xo2_prod_c2o3)
 
 jj += 1
@@ -1622,8 +1626,9 @@ jj = this_jstart
 
 section_labels.append(" Ald+hv  XO2") 
 copyhours(hourly_net_rxn_masses, i2j(n_Aldhvrad, iXO2 ), a_row)
+# start acculating the sources of XO2
+hourly_tot_xo2p = [e for e in a_row]
 hourly_diagram_values.append([e for e in a_row])
-tot_xo2p = [e for e in a_row]
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_Aldhvrad, iXO2 )])
 
@@ -1631,8 +1636,8 @@ jj += 1
 
 section_labels.append(" Ox+org  XO2") 
 copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iXO2 ), a_row)
+accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_xo2p)
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iXO2 )])
 
@@ -1640,24 +1645,27 @@ jj += 1
 
 section_labels.append(" NO3+org XO2") 
 copyhours(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iXO2 ), a_row)
+accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_xo2p)
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_NO3Orgrad, iXO2 )])
 
 jj += 1
 
 section_labels.append("Total  XO2  New") 
-hourly_diagram_values.append([e for e in tot_xo2p])
+# save the new XO2
+hourly_newxo2 = [e for e in hourly_tot_xo2p]
+daily_newxo2  = sum(hourly_newxo2)
+hourly_diagram_values.append([e for e in hourly_newxo2])
 
-daily_diagram_values.append(sum(tot_xo2p))
+daily_diagram_values.append(daily_newxo2)
 
 jj += 1
 
 section_labels.append("C2O3   XO2  Prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iXO2 ), a_row)
+accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_xo2p)
 
 daily_diagram_values.append(sum(a_row))
 
@@ -1665,25 +1673,27 @@ jj += 1
 
 section_labels.append("OH+Org XO2  Prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iXO2 ), a_row)
+accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_xo2p)
 
 daily_diagram_values.append(sum(a_row))
 
 jj += 1
 
 section_labels.append("Total  XO2  Prod") 
-hourly_diagram_values.append([e for e in tot_xo2p])
-# remember the total XO2 produced by saving tot_xo2p
-daily_tot_xo2p = sum(tot_xo2p)
+# remember the total XO2 produced by saving hourly_tot_xo2p
+daily_tot_xo2p = sum(hourly_tot_xo2p)
+hourly_diagram_values.append([e for e in hourly_tot_xo2p])
+
 daily_diagram_values.append(daily_tot_xo2p)
 
 jj += 1
 
 section_labels.append(" Ox+org  XO2N") 
 copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iXO2N ), a_row)
+# accumulate the XO2N 
+hourly_tot_xo2n = [e for e in a_row]
 hourly_diagram_values.append([e for e in a_row])
-tot_xo2n = [e for e in a_row]
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iXO2N )])
 
@@ -1691,39 +1701,39 @@ jj += 1
 
 section_labels.append(" NO3+org XO2N") 
 copyhours(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iXO2N ), a_row)
+accumulate_row(a_row,hourly_tot_xo2n)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_xo2n)
 
 daily_diagram_values.append(daily_net_rxn_masses[i2j(n_NO3Orgrad, iXO2N )])
 
 jj += 1
 
 section_labels.append("Total  XO2N New") 
-hourly_diagram_values.append([e for e in tot_xo2n])
+hourly_diagram_values.append([e for e in hourly_tot_xo2n])
 
-daily_diagram_values.append(sum(tot_xo2n))
+daily_diagram_values.append(sum(hourly_tot_xo2n))
 
 jj += 1
 
 section_labels.append("OH+Org XO2N Prod") 
 copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iXO2N ), a_row)
+accumulate_row(a_row,hourly_tot_xo2n)
 hourly_diagram_values.append([e for e in a_row])
-accumulate_row(a_row,tot_xo2n)
 
 daily_diagram_values.append(sum(a_row))
 
 jj += 1
 
 section_labels.append("Total  XO2N Prod") 
-hourly_diagram_values.append([e for e in tot_xo2n])
-daily_diagram_values.append(sum(tot_xo2n))
+hourly_diagram_values.append([e for e in hourly_tot_xo2n])
+daily_diagram_values.append(sum(hourly_tot_xo2n))
 
 jj += 1
 
 section_labels.append("Total  XO2* Prod")
-accumulate_row(tot_xo2p,tot_xo2n)
-hourly_diagram_values.append([e for e in tot_xo2n])
-daily_diagram_values.append(sum(tot_xo2n))
+accumulate_row(hourly_tot_xo2p,hourly_tot_xo2n)
+hourly_diagram_values.append([e for e in hourly_tot_xo2n])
+daily_diagram_values.append(sum(hourly_tot_xo2n))
 
 jj += 1
 
@@ -1771,7 +1781,7 @@ daily_no2_prod = sum(a_row)
 daily_diagram_values.append(daily_no2_prod)
 
 # remember NO2 produced per XO2 produced
-no2_prod_xo2 = [ n/x for (n,x) in zip(a_row,tot_xo2p)]
+no2_prod_xo2 = [ n/x for (n,x) in zip(a_row,hourly_tot_xo2p)]
 daily_no2_prod_xo2 = daily_no2_prod/daily_tot_xo2p
 jj += 1
 
@@ -1783,7 +1793,7 @@ daily_ho2_prod = sum(a_row)
 daily_diagram_values.append(daily_ho2_prod)
 
 # remember HO2 produced per XO2 produced
-ho2_prod_xo2 = [ h/x for (h,x) in zip(a_row,tot_xo2p)]
+hourly_ho2_prod_xo2 = [ h/x for (h,x) in zip(a_row,hourly_tot_xo2p)]
 daily_ho2_prod_xo2 = daily_ho2_prod/daily_tot_xo2p
 
 jj += 1
@@ -1811,7 +1821,7 @@ daily_diagram_values.append(daily_no2_prod_xo2)
 jj += 1
 
 section_labels.append("HO2 Prod / XO2 Prod") 
-hourly_diagram_values.append([e for e in ho2_prod_xo2])
+hourly_diagram_values.append([e for e in hourly_ho2_prod_xo2])
 daily_diagram_values.append(daily_ho2_prod_xo2)
 
 jj += 1
@@ -1859,10 +1869,12 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iHO2 )])
 jj += 1
 
 section_labels.append("Total  HO2 New") 
-hourly_diagram_values.append([e for e in hourly_tot_ho2p])
+# save total new HO2
+hourly_newho2 = [e for e in hourly_tot_ho2p]
+daily_newho2  = sum(hourly_newho2)
+hourly_diagram_values.append([e for e in hourly_newho2])
 
-# nb: this is NOT the daily tot for ALL HO2, only new HO2
-daily_diagram_values.append(sum(hourly_tot_ho2p))
+daily_diagram_values.append(daily_newho2)
 
 jj += 1
 
@@ -2043,6 +2055,214 @@ daily_diagram_values.append(daily_oh_prod_ho2)
 
 jj += 1
 
+
+# how many elements in vector are needed.
+num_rows_in_section = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_diagram_row  = jj
+
+
+#-------------------------------------------------------
+### The Diagram Section for ** OH prod and loss **
+this_diag_section = next_diag_section  
+next_diag_section += 1
+
+#    ... save the name and starting location of this net_rxn
+diagram_sect_names.append("OH New, Prod, and Loss")
+sec_id_num += 1
+
+# compute radical thruputs for OH from XO2
+hourly_oh_prod_xo2 = [ oh * ho2 for (oh,ho2) \
+                       in zip(hourly_oh_prod_ho2,hourly_ho2_prod_xo2) ]
+daily_oh_prod_xo2  = daily_oh_prod_ho2 * daily_ho2_prod_xo2
+
+# compute radical thruputs for OH from C2O3 via XO2 
+hourly_oh_prod_c2o3 = [ ohxo2 * c for (ohxo2,c) \
+                       in zip(hourly_oh_prod_xo2,hourly_xo2_prod_c2o3) ]
+daily_oh_prod_c2o3  = daily_oh_prod_xo2 * daily_xo2_prod_c2o3
+
+this_jstart = jstart_next_diagram_row
+diagram_sect_start.append(this_jstart)
+
+jj = this_jstart
+
+# accumulate the secondary new OH 
+section_labels.append(" new C2O3     OH")
+a_row = [ p*t for (p,t) in zip(hourly_newc2o3,hourly_oh_prod_c2o3)]
+hourly_diagram_values.append([e for e in a_row])
+# initialize total OH accumulator...
+hourly_tot_newoh = [e for e in a_row]
+
+daily_diagram_values.append(daily_newc2o3*daily_oh_prod_c2o3)
+
+jj += 1
+
+section_labels.append(" new XO2      OH")
+a_row = [ p*t for (p,t) in zip(hourly_newxo2,hourly_oh_prod_xo2)]
+hourly_diagram_values.append([e for e in a_row])
+# add in this OH..
+accumulate_row(a_row,hourly_tot_newoh)
+
+daily_diagram_values.append(daily_newxo2*daily_oh_prod_xo2)
+
+jj += 1
+
+section_labels.append(" new HO2      OH")
+a_row = [ p*t for (p,t) in zip(hourly_newho2,hourly_oh_prod_ho2)]
+hourly_diagram_values.append([e for e in a_row])
+# add in this OH..
+accumulate_row(a_row,hourly_tot_newoh)
+
+daily_diagram_values.append(daily_newho2*daily_oh_prod_ho2)
+
+jj += 1
+
+section_labels.append("Total sec new OH") 
+# save the total secondary new OH
+hourly_tot_sec_newoh = [e for e in hourly_tot_newoh]
+daily_tot_sec_newoh  = sum(hourly_tot_sec_newoh)
+hourly_diagram_values.append([e for e in hourly_tot_sec_newoh])
+
+daily_diagram_values.append(daily_tot_sec_newoh)
+
+jj += 1
+
+section_labels.append(" O3/H2O2+hv   OH") 
+copyhours(hourly_net_rxn_masses, i2j(n_O3hvrad, iOH  ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+# add in this OH..
+accumulate_row(a_row,hourly_tot_newoh)
+
+daily_diagram_values.append(daily_net_rxn_masses[i2j(n_O3hvrad, iOH )])
+
+jj += 1
+
+section_labels.append(" Ox+org       OH") 
+copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iOH ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+# add in this OH..
+accumulate_row(a_row,hourly_tot_newoh)
+
+daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iOH )])
+
+jj += 1
+
+section_labels.append("Total new OH")
+
+daily_tot_newoh = sum(hourly_tot_newoh)
+hourly_diagram_values.append([e for e in hourly_tot_newoh])
+
+daily_diagram_values.append(daily_tot_newoh)
+
+jj += 1
+
+section_labels.append("recreated OH")
+# first fetch the total OH that reacted in the OHOrgOxid net reaction
+copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iOH ), a_row)
+hourly_tot_oh_reacted = [-e for e in a_row]
+daily_tot_oh_reacted  = sum(hourly_tot_oh_reacted)
+
+# then compute the recreated OH by difference...
+hourly_recreated_oh = [ t-n for (t,n) \
+                         in zip(hourly_tot_oh_reacted, hourly_tot_newoh)] 
+
+hourly_diagram_values.append([e for e in hourly_recreated_oh])
+
+daily_diagram_values.append(sum(hourly_recreated_oh))
+
+jj += 1
+
+section_labels.append("Total OH reacted") 
+copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iOH ), a_row)
+hourly_tot_oh_reacted = [-e for e in a_row]
+daily_tot_oh_reacted  = sum(hourly_tot_oh_reacted)
+hourly_diagram_values.append([e for e in hourly_tot_oh_reacted])
+
+daily_diagram_values.append(daily_tot_oh_reacted)
+
+jj += 1
+
+section_labels.append("OH chain length")
+# first fetch the total OH that reacted in the OHOrgOxid net reaction
+hourly_oh_chain = [ Q / q for (Q,q) \
+                      in zip(hourly_tot_oh_reacted, hourly_tot_newoh)] 
+daily_oh_chain  = daily_tot_oh_reacted / daily_tot_newoh
+
+hourly_diagram_values.append([e for e in hourly_oh_chain])
+
+daily_diagram_values.append(daily_oh_chain)
+
+jj += 1
+
+section_labels.append("OH Pr")
+hourly_oh_pr = [ 1- (q/Q) for (Q,q) \
+                      in zip(hourly_tot_oh_reacted, hourly_tot_newoh)] 
+daily_oh_chain  = daily_tot_oh_reacted / daily_tot_newoh
+
+hourly_diagram_values.append([e for e in hourly_oh_pr])
+
+daily_diagram_values.append(1-(1/daily_oh_chain))
+
+jj += 1
+
+section_labels.append("Total VOC reacted") 
+copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iVOC ), a_row)
+hourly_tot_voc_reacted = [-e for e in a_row]
+daily_tot_voc_reacted  = sum(hourly_tot_voc_reacted)
+hourly_diagram_values.append([e for e in hourly_tot_voc_reacted])
+
+daily_diagram_values.append(daily_tot_voc_reacted)
+
+jj += 1
+
+section_labels.append("  NO2 by C2O3") 
+copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iNO2 ), a_row)
+hourly_tot_no2_oxid = [e for e in a_row]
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("  NO2 by XO2") 
+copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO2 ), a_row)
+accumulate_row(a_row,hourly_tot_no2_oxid)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("  NO2 by HO2") 
+copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iNO2 ), a_row)
+accumulate_row(a_row,hourly_tot_no2_oxid)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("Total NO2 Oxidized") 
+
+hourly_diagram_values.append([e for e in hourly_tot_no2_oxid])
+
+daily_tot_no2_oxid = sum(hourly_tot_no2_oxid)
+
+daily_diagram_values.append(daily_tot_no2_oxid)
+
+jj += 1
+
+section_labels.append("NO2 per VOC") 
+hourly_no2_voc = [ n/v for (n,v) \
+                 in zip(hourly_tot_no2_oxid,hourly_tot_voc_reacted)]
+hourly_diagram_values.append([e for e in hourly_no2_voc])
+
+daily_no2_voc = daily_tot_no2_oxid / daily_tot_voc_reacted
+
+daily_diagram_values.append(daily_no2_voc)
+
+jj += 1
 
 # how many elements in vector are needed.
 num_rows_in_section = jj - this_jstart
