@@ -47,6 +47,14 @@ parser.add_option("-q", "--quiet",
 	dest="verbose", 
 	default=True,
 	help="don't print status messages to stdout")
+
+# output format
+parser.add_option("-x", "--xml",
+	action="store_const", 
+	dest="output_format",
+	const="xml",
+	default='fixed_width',
+	help="Format output as xml")
 	
 # get options and arguments
 (options, args) = parser.parse_args()
@@ -2270,65 +2278,125 @@ num_rows_in_section = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_diagram_row  = jj
 
+if options.output_format=="xml":
+	from jaxml import XML_document
+	fout.close()
+	
+	#Create the generator object
+	xdoc = XML_document()
+	xdoc.netreactions(version="0.1")
+	
+	
+	xdoc.summaries(irrfile=doc1.replace('"','').replace('\n',''))
+	xdoc._push()
+	
+	kk = 0
+	for i in range(0,len(hourly_diagram_values)):
+		if i == diagram_sect_start[kk] :
+			xdoc._pop()
+			xdoc._pop()
+			
+			xdoc._push()
+			
+			xdoc.summary()
+			xdoc._push()
+			xdoc.title(diagram_sect_names[kk])
+	
+			if kk < len(diagram_sect_start)-1:
+				kk += 1
+		xdoc._pop()
+		xdoc._push()
+		xdoc.source(name=section_labels[i])		
+		xdoc.values("\t".join(map(str,hourly_diagram_values[i][0:num_hrs-2])), start_hour=hour_number[0], hours=num_hrs, uom="ppb")
+		xdoc.total(hourly_diagram_values[i][num_hrs-1], uom='ppb')
 
-
-# Output the hourly and total net reactions to file...
-print >>fout, "IRR file doc line was"
-print >>fout, doc1
-
-kk = 0
-print >>fout, "%-21s" % "Hour",
-for t in hour_number:
-	print >>fout, "      %02d" % t,
-print >>fout,  "    Daily"	
-print >>fout
-print >>fout, "Summary Section Name"
-print >>fout, "Item             ppb"
-for i in range(0,len(hourly_diagram_values)):
-	if i == diagram_sect_start[kk] :
-		print >>fout
-		print >>fout
-		print >>fout, "%-20s" % diagram_sect_names[kk]
-		print >>fout
-		if kk < len(diagram_sect_start)-1:
-			kk += 1
-	print  >>fout, "%-20s " % section_labels[i],
-	for t in range(0,num_hrs):
-		print >>fout, "%8.4f" % (hourly_diagram_values[i][t]),
-	print >>fout, "%8.4f" % daily_diagram_values[i]
-
-
-
-print >>fout
-print >>fout
-print >>fout
-
-
-# Output the hourly and total net reactions to file...
-print >>fout, "IRR file doc line was"
-print >>fout, doc1
-
-kk = 0
-print >>fout, "%-21s" % "Hour",
-for t in hour_number:
-	print >>fout, "      %02d" % t,
-print >>fout,  "     Daily"	
-print >>fout
-print >>fout, "Net Reaction Name"
-print >>fout, "Species     ppb"
-for i in range(0,len(net_rxn_masses)):
-	if i == net_rxn_jindex[kk] :
-		print >>fout
-		print >>fout
-		print >>fout, "%-20s" % net_rxn_names[kk]
-		print >>fout
-		if kk < len(net_rxn_names)-1:
-			kk += 1
-	print  >>fout, "%-20s " % SPC_Names[net_rxn_spcname[i]],
-	for t in range(0,len(hour_number)):
-		print >>fout, "%8.4f" % (hourly_net_rxn_masses[t][i]),
-	print >>fout, "%8.4f" % daily_net_rxn_masses[i]
-# finished the whole set of net rxn masses for all hours
+	xdoc._pop()
+	
+	xdoc.reactions(version="0.1", irrfile=doc1.replace('"','').replace('\n',''))
+	xdoc._push()
+	
+	kk = 0
+	for i in range(0,len(net_rxn_masses)):
+		if i == net_rxn_jindex[kk] :
+			xdoc._pop()
+			xdoc._pop()
+			xdoc._push()
+			xdoc.netreaction()
+			xdoc._push()
+			xdoc.title(net_rxn_names[kk])
+	
+			if kk < len(net_rxn_names)-1:
+				kk += 1
+		xdoc._pop()
+		xdoc._push()
+		xdoc.reaction(name=SPC_Names[net_rxn_spcname[i]])		
+		dia_temp = []
+		for t in range(0,len(hour_number)):
+			dia_temp.append(hourly_net_rxn_masses[t][i])
+		
+		xdoc.values("\t".join(map(str,dia_temp)), start_hour=hour_number[0], hours=num_hrs, uom="ppb")
+		xdoc.total(daily_net_rxn_masses[i], uom='ppb')
+	
+	#write out values to file
+	xdoc._output(output_filename)
+else:
+	# Output the hourly and total net reactions to file...
+	print >>fout, "IRR file doc line was"
+	print >>fout, doc1
+	
+	kk = 0
+	print >>fout, "%-21s" % "Hour",
+	for t in hour_number:
+		print >>fout, "      %02d" % t,
+	print >>fout,  "    Daily"	
+	print >>fout
+	print >>fout, "Summary Section Name"
+	print >>fout, "Item             ppb"
+	for i in range(0,len(hourly_diagram_values)):
+		if i == diagram_sect_start[kk] :
+			print >>fout
+			print >>fout
+			print >>fout, "%-20s" % diagram_sect_names[kk]
+			print >>fout
+			if kk < len(diagram_sect_start)-1:
+				kk += 1
+		print  >>fout, "%-20s " % section_labels[i],
+		for t in range(0,num_hrs):
+			print >>fout, "%8.4f" % (hourly_diagram_values[i][t]),
+		print >>fout, "%8.4f" % daily_diagram_values[i]
+	
+	
+	
+	print >>fout
+	print >>fout
+	print >>fout
+	
+	
+	# Output the hourly and total net reactions to file...
+	print >>fout, "IRR file doc line was"
+	print >>fout, doc1
+	
+	kk = 0
+	print >>fout, "%-21s" % "Hour",
+	for t in hour_number:
+		print >>fout, "      %02d" % t,
+	print >>fout,  "     Daily"	
+	print >>fout
+	print >>fout, "Net Reaction Name"
+	print >>fout, "Species     ppb"
+	for i in range(0,len(net_rxn_masses)):
+		if i == net_rxn_jindex[kk] :
+			print >>fout
+			print >>fout
+			print >>fout, "%-20s" % net_rxn_names[kk]
+			print >>fout
+			if kk < len(net_rxn_names)-1:
+				kk += 1
+		print  >>fout, "%-20s " % SPC_Names[net_rxn_spcname[i]],
+		for t in range(0,len(hour_number)):
+			print >>fout, "%8.4f" % (hourly_net_rxn_masses[t][i]),
+		print >>fout, "%8.4f" % daily_net_rxn_masses[i]
+	# finished the whole set of net rxn masses for all hours
 
 fout.close()
 
