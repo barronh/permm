@@ -2306,8 +2306,8 @@ if options.output_format=="xml":
 			if kk < len(diagram_sect_start)-1:
 				kk += 1
 		xdoc.source(name=section_labels[i])		
-		xdoc.values("\t".join(map(str,hourly_diagram_values[i][0:num_hrs-2])), start_hour=hour_number[0], hours=num_hrs, uom="ppb")
-		xdoc.total(hourly_diagram_values[i][num_hrs-1], uom='ppb')
+		xdoc.values("\t".join(map(str,hourly_diagram_values[i][0:num_hrs])), start_hour=hour_number[0], hours=num_hrs, uom="ppb")
+		xdoc.total(daily_diagram_values[i], uom='ppb')
 		xdoc._pop()
 		xdoc._push()
 		
