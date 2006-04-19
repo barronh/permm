@@ -1,11 +1,11 @@
 #!/usr/bin/env python2.3
 """Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
 Version 0.9 HEJ April 9, 2006, 
-This file is at
+This file is
 	$HeadURL$
-	last changed on  $LastChangedDate$
-	last revision number $LastChangedRevision$
-	by $LastChangedBy$
+	$LastChangedDate: 2006-04-19 14:19:58 -0400 (Wed, 19 Apr 2006) $
+	$LastChangedRevision: 106 $
+	$LastChangedBy: jeffries $
 
 
 net_balance.py [options] EXTFILE OUTFILE
