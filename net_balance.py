@@ -1,6 +1,12 @@
 #!/usr/bin/env python2.3
 """Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
 Version 0.9 HEJ April 9, 2006, 
+This file is at
+	$HeadURL$
+	last changed on  $LastChangedDate$
+	last revision number $LastChangedRevision$
+	by $LastChangedBy$
+
 
 net_balance.py [options] EXTFILE OUTFILE
 
@@ -302,16 +308,19 @@ net_processes_sets_names = []
 #   this is indexed by next_net_proc_set
 
 # allocate net processes masses array
-net_rxn_masses = []
+net_process_masses = []
 
-#   accumulate the net_rxn_masses over all time.
+#   accumulate the net_process_masses over all time.
 total_net_processes_masses = []
+
+# the number for the next net_process set to be added...
+next_net_proc_set = 0
+num_net_proc_sets = 0
 
 ##### working here.....
 
-# the number for the next net_rxn set to be added...
-next_net_proc_set = 0
-num_net_proc_sets = 0
+
+
 
 
 # @@@@@@@@ N E T   R E A C T I O N S  @@@@@@@@@
@@ -1010,7 +1019,6 @@ while ( time > 0 ) :
 	### The Net Rxns for ** Ald+hv Radical Source **
 	kk += 1  
 	
-	# new OH from ALD+hv
 	# { 38} FORM=2*HO2+CO
 	# { 45} ALD2=FORM+HO2+CO + xHO2 + XO2
 	# { 69} OPEN=C2O3+HO2+CO
@@ -1165,6 +1173,7 @@ while ( time > 0 ) :
 	#      { 64} TO2 + NO = 0.9*NO2+0.9*xHO2+0.9*OPEN+0.1*NTR
 	#                    [ code 0.9*NO2 as 0.9*XO2 + 0.9*xHO2 ]
 	#                    [ code 0.1*NTR as 0.1*XNO2           ]
+	#                    [ add NO loss and NO2 gain in XO2/XO2N net reactions]
 	#      { 65} TO2  = CRES + HO2
 	# { 66} OH + CRES = 0.4*CRO + 0.6*XO2 + 0.6*xHO2 + 0.3*OPEN
 	#      { 68} CRO + NO2 = NTR
@@ -1182,8 +1191,9 @@ while ( time > 0 ) :
 	#                   but ir[68] production is tracked in '?????' net reaction set.
 	#
 	#   5) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2 with 0.9*xHO2
-	#                       and the NO is omitted as a a loss here
 	#                       and the 0.1*NTR is coded as 0.1*XO2N
+	#                       The NO is omitted as a a loss here but coded as
+	#                       loss in the XO2 + NO net reaction below.
 	
 	
 	#   ... the organics losses
@@ -1280,11 +1290,12 @@ while ( time > 0 ) :
 	
 	# notes:: 
 	#   1) -OOX is an added 'peroxide-like' species to track XO2 termination
+	#   2)  ir[64] see note 5 under ** OH + (organic+NO2) **
 	
 	net_rxn_masses[i2j(kk,iXO2 )] = -ir[79] -2*ir[80] -ir[89]
-	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -2*ir[88] -ir[89]
-	net_rxn_masses[i2j(kk,iNO  )] = -ir[79] -ir[81]
-	net_rxn_masses[i2j(kk,iNO2 )] = +ir[79]
+	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -2*ir[88] -ir[89] 0.1*ir[64]
+	net_rxn_masses[i2j(kk,iNO  )] = -ir[79]   -ir[81] -ir[64]
+	net_rxn_masses[i2j(kk,iNO2 )] = +ir[79] +0.9*ir[64]
 	
 	net_rxn_masses[i2j(kk,ixHO2)] = ir[45]+0.7*ir[95]\
 	                                +0.28*ir[56]+0.7*ir[60]+0.25*ir[75]\
