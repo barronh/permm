@@ -2292,12 +2292,16 @@ jstart_next_diagram_row  = jj
 if options.output_format=="xml":
 	from jaxml import XML_document
 	fout.close()
+	delim="\t"
 	
 	#Create the generator object
 	xdoc = XML_document()
 	xdoc.netreactions(version="0.1")
 	xdoc._push()
 	
+	xdoc.delimiter(delim)
+	xdoc.starthour(hour_number[0])
+	xdoc.endhour(hour_number[-1])
 	xdoc.summaries(irrfile=doc1.replace('"','').replace('\n',''))
 	xdoc._push()
 	
@@ -2316,8 +2320,9 @@ if options.output_format=="xml":
 	
 			if kk < len(diagram_sect_start)-1:
 				kk += 1
-		xdoc.source(name=section_labels[i])		
-		xdoc.values("\t".join(map(str,hourly_diagram_values[i][0:num_hrs])), start_hour=hour_number[0], hours=num_hrs, uom="ppb")
+		xdoc.source()	
+		xdoc.name(section_labels[i])
+		xdoc.values(delim.join(map(str,hourly_diagram_values[i][0:num_hrs])), uom="ppb")
 		xdoc.total(daily_diagram_values[i], uom='ppb')
 		xdoc._pop()
 		xdoc._push()
@@ -2327,7 +2332,7 @@ if options.output_format=="xml":
 	xdoc._pop()
 	xdoc._pop()
 	
-	xdoc.reactions(version="0.1", irrfile=doc1.replace('"','').replace('\n',''))
+	xdoc.reactions(irrfile=doc1.replace('"','').replace('\n',''))
 	xdoc._push()
 	
 	kk = 0
@@ -2344,12 +2349,13 @@ if options.output_format=="xml":
 				kk += 1
 		xdoc._pop()
 		xdoc._push()
-		xdoc.species(name=SPC_Names[net_rxn_spcname[i]])		
+		xdoc.species()
+		xdoc.name(SPC_Names[net_rxn_spcname[i]])
 		dia_temp = []
 		for t in range(0,len(hour_number)):
 			dia_temp.append(hourly_net_rxn_masses[t][i])
 		
-		xdoc.values("\t".join(map(str,dia_temp)), start_hour=hour_number[0], hours=num_hrs, uom="ppb")
+		xdoc.values(delim.join(map(str,dia_temp)), uom="ppb")
 		xdoc.total(daily_net_rxn_masses[i], uom='ppb')
 	
 	#write out values to file
