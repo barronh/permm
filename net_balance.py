@@ -1,12 +1,7 @@
 #!/usr/bin/env python2.3
-"""Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
-Version 0.9 HEJ April 9, 2006, 
-This file is
-	$HeadURL$
-	$LastChangedDate: 2006-04-19 14:19:58 -0400 (Wed, 19 Apr 2006) $
-	$LastChangedRevision: 106 $
-	$LastChangedBy: jeffries $
-
+__doc__ = \
+"""
+Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
 
 net_balance.py [options] EXTFILE OUTFILE
 
@@ -16,19 +11,30 @@ use -h or --help for details on options
 
 """
 
+"""
+This file official source is
+$HeadURL$
+"""
+ChangeDate = "$LastChangedDate: 2006-04-19 14:19:58 -0400 (Wed, 19 Apr 2006) $"
+RevisionNum= "$LastChangedRevision: 106 $"
+ChangedBy  = "$LastChangedBy: jeffries $"
+
+
+
 import os.path
 import sys
+import string  # for strip
 
 import re
-import copy   # for deepcopy
+import copy    # for deepcopy
 	
 from optparse import OptionParser
 	
 
+SCRIPT_ID_STRING = "Net_Reaction_CB4.py " + ChangeDate[18:-2]
 
-SCRIPT_ID_STRING = "Net_Reaction_CB4.py, 2006-04-09 (c) 2006-04-09 (m)"
+__version__ = "R" + RevisionNum[21:-2] + "by" + ChangedBy[15:-2]
 
-__version__ = "R69"
 
 
 # create a cmd line parser...
@@ -101,55 +107,6 @@ ipr_re   = re.compile('"\w+\s*"\s*\d+\s*', re.IGNORECASE)
 split_re = re.compile('[ ]+')
 
 
-# function to get an hour's worth of data..
-def get_irr_data(f):
-	"""
-	f -- opened irr&ipr file
-	return (time (as integer), ir_rates (as list), ip_rates (as list of lists)
-	if time < 0, end of file
-	"""
-	# initialize ir and ip storage...
-	ir_time  = -1
-	ir_rates = [0,]
-	ip_rates = []
-	#for i in range(0,23):  # make space for process rates for CB4's 24 species
-		#ip_rates.append([])
-	
-	line = f.readline()
-	if line[0] == '|':
-		return (ir_time, ir_rates, ip_rates)
-		
-	# next line is first Time =
-	if time_re.match(line) != None:   # if this is a 'Time =" line...
-		time = line.split('=')[1][0:2] # pick 'HH' out of 'HH0000'
-		ir_time = int(time)           # store hh
-	else :
-		print "ERROR:: did not find a time."
-		sys.exit(1)
-	
-	# read in the !"Rxn No"    "Int Rate" header
-	line = f.readline()
-	
-	# read the irr values
-	while line[0] != ';' :
-		line = f.readline()
-		if irr_re.match(line) != None:    # if this is a { n} n.nnnn line ...
-			ir_value = float(split_re.split(line.replace('{','').replace('}','').strip())[1])
-			ir_rates.append(ir_value)
-	
-
-	line = f.readline()
-	while line[0] != ';' :
-		line = f.readline()
-		if ipr_re.match(line) != None:
-			tmp=[]
-			for ip_value in split_re.split(line.replace('"','').replace('"','').strip())[1:]:
-				tmp.append(float(ip_value))
-			ip_rates.append(tmp)
-	
-	return (ir_time, ir_rates, ip_rates)
-
-
 
 
 
@@ -160,15 +117,16 @@ SPC_Names = [
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
   'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ',\
   'NO3 ', 'C2O3', 'XO2 ', 'XO2N', 'NTR ', 'CRO ', 'ISPD', 'TO2 ', 'ROR ',\
-  'SO2 ', 'xHO2', 'H2O ', '-OOX', 'VOC', 'O3_old' ]
+  'SO2 ', 'xHO2', 'H2O ', '-OOX', 'VOC ', 'O3_o', 'NO_o', 'NO2o', 'NOzo' ]
 
-# Use pHO2 to track 'prompt HO2' and separate it from direct HO2.
+# Use xHO2 to track 'prompt HO2' and separate it from direct HO2.
 # Use H2O as a product in some reactions to track a term pathway
 # Use tracking species -OOX to collect the XO2+XO2 type reaction
 #    products;  this is not a real species in CB4.
+# Use VOC as a summing of individual HC species that reacted.
+# Use O3_o, NO_o, NO2_o, NOzo to track the consumption of O3 
+#    by early and late titration of NO to NO2 in NO cycle net reaction.
 
-# only the first 24 species are included in the physical processes...
-Max_Process_SPC = 24
 
 # integer indexing for CB4 species
 iNO   =  0
@@ -212,11 +170,20 @@ ixHO2 = 37
 iH2O  = 38
 iOOX  = 39
 iVOC  = 40
-iO3_old = 41
+iO3_o = 41
+iNO_o = 42
+iNO2o = 43
+iNOzo = 44
 
-max_i_spc = iO3_old + 1
+max_i_spc = iNOzo + 1
 
-# integer indexing for processes
+# only the first 24 species are included in the physical processes...
+max_process_spc = 24
+
+# the number of irr lines in the input file
+max_i_rxn = 97
+
+# integer indexing for input file processes
 iInitial    =  0
 iChemistry  =  1
 iEmiss_Area =  2
@@ -240,11 +207,21 @@ iDep_W      = 19
 iChem_Aero  = 20 
 iDilut      = 21 
 iTrain      = 22 
-iFinal      = 23 
-iUn_Con     = 24
-iAv_Cel_Vol = 25
+iFinal      = 23
 
-max_i_process = iAv_Cel_Vol + 1
+max_i_processes = iFinal + 1
+
+# integer indexing for lumped species processes
+jInitial    =  0
+jChemistry  =  1
+jEmission   =  2
+jHor_Trans  =  3
+jVer_Trans  =  4
+jEntrain    =  5
+jDepo       =  6
+jFinal      =  7
+
+max_j_processes = jFinal + 1
 
 
 
@@ -310,21 +287,24 @@ def i2j(k,i):
 	
 
 # Next add info about the net_processes sets...
-#   allocate vector of names of the net_processes
-net_processes_sets_names = []
-#   this is indexed by next_net_proc_set
 
-# allocate net processes masses array
-net_process_masses = []
+# allocate species processes masses array
+# this is a list of lists of lists
+#   outer list is by species, e.g.  [ [spc1],  [spc2],  [spc3], ...]
+#   a species list is list of list by time, e.g. [ [ [proc], [proc], [proc]..]
+#   a proc list is list of masses by process, e.g., [ [ [I,C,T,D,F], [I,C,T,D,F] ] ]
+#  
+species_process_masses = []
+#a_species_vector = 
+for s in range(max_process_spc): 
+	species_process_masses.append([])   # set up list for process species
 
-#   accumulate the net_process_masses over all time.
-total_net_processes_masses = []
+#   accumulate the species_process_masses over all time.
+total_species_processes_masses = []
+for s in range(max_process_spc): 
+	total_species_processes_masses.append([]) # set up list for process species
 
-# the number for the next net_process set to be added...
-next_net_proc_set = 0
-num_net_proc_sets = 0
 
-##### working here.....
 
 
 
@@ -343,6 +323,8 @@ num_net_proc_sets = 0
 #  9) ** PAN Production          **   IdNum = n_PANProd
 # 10) ** HO2 to OH via Radical   **   IdNum = n_HO2toOHrad
 # 11) ** HO2      + NO Oxidation **   IdNum = n_HO2NOOxid
+# 12) ** NO2 + hv O3 production  **   IdNum = n_NO2hvO3prod
+# 13) ** NO2 Termination         **   IdNum = n_NO2term
 
 
 ## ==========================================================
@@ -924,6 +906,109 @@ jstart_next_nr_set  = jj
 # DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
 net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
 
+# add and init new elements to the net_rxn_masses vector the net rxn
+for z in [0]*num_spc_in_net_rxn:
+	net_rxn_masses.append(z)
+	daily_net_rxn_masses.append(z)
+	
+# and add the names of the species to the net_rxn_spcname vector
+for n in indx_net_rxn:
+	net_rxn_spcname.append(n)
+
+
+#-------------------------------------------------------
+### The Net Rxns for ** NO2 +hv O3 Production **
+this_net_rxn_set = next_net_rxn_set  
+next_net_rxn_set += 1
+
+#    ... save the name and starting location of this net_rxn
+net_rxn_names.append('NO2+hv O3 Production')
+n_NO2hvO3prod = nr_num  # provide an interger with a name for this nr
+nr_num += 1
+
+this_jstart = jstart_next_nr_set
+
+# save the starting location of species for this net_reaction
+net_rxn_jindex.append(this_jstart)
+
+
+# create a cross reference vector for iSPC to j and fill it with jNONE
+jndx_net_rxn = [jNONE]*max_i_spc
+indx_net_rxn = []
+
+
+# fill in the jindex at the iSPC locations for the net rxn
+jj = this_jstart
+jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
+jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
+jndx_net_rxn[iO   ] = jj; jj += 1; indx_net_rxn.append(iO   )
+jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
+jndx_net_rxn[iH2O ] = jj; jj += 1; indx_net_rxn.append(iH2O )
+jndx_net_rxn[iNO3 ] = jj; jj += 1; indx_net_rxn.append(iNO3 )
+jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
+jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
+
+jndx_net_rxn[iO3_o ] = jj; jj += 1; indx_net_rxn.append(iO3_o)
+jndx_net_rxn[iNO_o ] = jj; jj += 1; indx_net_rxn.append(iNO_o)
+jndx_net_rxn[iNO2o ] = jj; jj += 1; indx_net_rxn.append(iNO2o)
+jndx_net_rxn[iNOzo ] = jj; jj += 1; indx_net_rxn.append(iNOzo)
+
+# how many elements in vector are needed.
+num_spc_in_net_rxn = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_nr_set  = jj
+
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+
+# add and init new elements to the net_rxn_masses vector for net rxn
+for z in [0]*num_spc_in_net_rxn:
+	net_rxn_masses.append(z)
+	daily_net_rxn_masses.append(z)
+	
+# and add the names of the species to the net_rxn_spcname vector
+for n in indx_net_rxn:
+	net_rxn_spcname.append(n)
+
+
+#-------------------------------------------------------
+### The Net Rxns for ** NO2 Termination **
+this_net_rxn_set = next_net_rxn_set  
+next_net_rxn_set += 1
+
+#    ... save the name and starting location of this net_rxn
+net_rxn_names.append('NO2 Termination')
+n_NO2term = nr_num  # provide an interger with a name for this nr
+nr_num += 1
+
+this_jstart = jstart_next_nr_set
+
+# save the starting location of species for this net_reaction
+net_rxn_jindex.append(this_jstart)
+
+
+# create a cross reference vector for iSPC to j and fill it with jNONE
+jndx_net_rxn = [jNONE]*max_i_spc
+indx_net_rxn = []
+
+
+# fill in the jindex at the iSPC locations for the net rxn
+jj = this_jstart
+jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
+jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN )
+jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
+
+
+# how many elements in vector are needed.
+num_spc_in_net_rxn = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_nr_set  = jj
+
+# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+
 # add and init new elements to the net_rxn_masses vector for species in the 
 #   OH+organic net rxn
 for z in [0]*num_spc_in_net_rxn:
@@ -934,2053 +1019,6 @@ for z in [0]*num_spc_in_net_rxn:
 for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
-#-------------------------------------------------------
-### The Net Rxns for ** NO cycle **
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('NO CYCLE')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3_old] = jj; jj += 1; indx_net_rxn.append(iO3_old)
-jndx_net_rxn[iNO3 ] = jj; jj += 1; indx_net_rxn.append(iNO3 )
-jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
-jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
-jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
-jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
-jndx_net_rxn[iTO2 ] = jj; jj += 1; indx_net_rxn.append(iTO2 )
-jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
-jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-
-
-#-------------------------------------------------------
-
-#-------------------------------------------------------
-### The Net Rxns for ** NO2 cycle **
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('NO2 CYCLE')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3) #### didn't include water...
-jndx_net_rxn[iNO3 ] = jj; jj += 1; indx_net_rxn.append(iNO3 )
-jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
-jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
-jndx_net_rxn[iTO2 ] = jj; jj += 1; indx_net_rxn.append(iTO2 )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN )
-jndx_net_rxn[iCRO ] = jj; jj += 1; indx_net_rxn.append(iCRO )
-jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
-jndx_net_rxn[iROR ] = jj; jj += 1; indx_net_rxn.append(iROR )
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iISPD] = jj; jj += 1; indx_net_rxn.append(iISPD)
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-
-
-#-------------------------------------------------------
-################ PROCESSES ##############################
-
-#IN. CONCENTRATIONS:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('INITIAL CONCENTRATIONS')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-
-
-#CHEMISTRY:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('CHEMISTRY')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-
-# AREA EMISSIONS:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('AREA EMISSIONS')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# POINT EMISSIONS:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('POINT EMISSIONS')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# TOTAL EMISSIONS:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('TOTAL EMISSIONS')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# PIG CHANGE:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('PiG CHANGE')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	
-	
-	# WEST B. ADVECTION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('WEST B. ADVECTION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# EAST B. ADVECTION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('EAST B. ADVECTION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# SOUTH B. ADVECTION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('SOUTH B. ADVECTION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# NORTH B. ADVECTION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('NORTH B. ADVECTION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# BOTTOM B. ADVETION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('BOTTOM B. ADVECTION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# TOP B. ADVECTION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('TOP B. ADVECTION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# DIL. IN THE VERT.:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('DILUTION IN THE VERTICAL')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# WEST B. DIFFUSION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('WEST B. DIFFUSION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# EAST B. DIFFUSION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('EAST B. DIFFUSION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# SOUTH B. DIFFUSION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('SOUTH B. DIFFUSION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# NORTH B. DIFFUSION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('NORTH B. DIFFUSION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# BOTTOM B. DIFFUSION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('BOTTOM B. DIFFUSION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# TOP B. DIFFUSION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('TOP B. DIFFUSION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# DRY DEPOSITION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('DRY DEPOSITION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# WET DEPOSITION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('WET DEPOSITION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# AEROSOL CHEMISTRY:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('AEROSOL CHEMISTRY')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# DILUTION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('DILUTION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# EN(DE)TRAINMENT:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('EN(DE)TRAINMENT')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# HORIZONTAL TRANS:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('HORIZONTAL TRANS')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# VERTICAL TRANS:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('VERTICAL TRANS')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# FINAL CONCENTRATION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('FINAL CONCENTRATION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
-	# UNITS CONVERSION:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('UNITS CONVERSION')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	# AVERAGE CELL VOLUME:
-
-this_net_rxn_set = next_net_rxn_set  
-next_net_rxn_set += 1
-
-#    ... save the name and starting location of this net_rxn
-net_rxn_names.append('AVERAGE CELL VOLUME')
-n_O3hvrad = nr_num  # provide an interger with a name for this nr
-nr_num += 1
-
-this_jstart = jstart_next_nr_set
-
-# save the starting location of species for this net_reaction
-net_rxn_jindex.append(this_jstart)
-
-# create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc + [jNONE]*max_i_process
-indx_net_rxn = []
-
-# fill in the jindex at the iSPC locations for the net rxn
-jj = this_jstart
-
-jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
-jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
-jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN ) 
-jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
-jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
-jndx_net_rxn[iXYL ] = jj; jj += 1; indx_net_rxn.append(iXYL )
-jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
-jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
-jndx_net_rxn[iCRES] = jj; jj += 1; indx_net_rxn.append(iCRES)
-jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
-jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
-jndx_net_rxn[iPNA ] = jj; jj += 1; indx_net_rxn.append(iPNA )
-jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
-jndx_net_rxn[iHONO] = jj; jj += 1; indx_net_rxn.append(iHONO)
-jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
-jndx_net_rxn[iISOP] = jj; jj += 1; indx_net_rxn.append(iISOP)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH) 
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
-
-
-
-# how many elements in vector are needed.
-num_spc_in_net_rxn = jj - this_jstart
-
-# save the starting value of the vector index offset for the next cycle...
-jstart_next_nr_set  = jj
-
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
-
-# add and init new elements to the net_rxn_masses vector for species
-for z in [0]*num_spc_in_net_rxn:
-	net_rxn_masses.append(z)
-	daily_net_rxn_masses.append(z)
-	
-# and add the names of the species to the net_rxn_spcname vector
-for n in indx_net_rxn:
-	net_rxn_spcname.append(n)
-	
-	
 
 
 
@@ -2990,8 +1028,70 @@ num_net_rxn_sets  = this_net_rxn_set
 max_j  = jstart_next_nr_set
 
 
+
+
 ## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ##  P A R T   T W O  : C A L C U L A T E  T H E  N E T  M A S S E S
+
+
+## ==========================================================
+# function to get an hour's worth of data..
+def get_irr_data(f):
+	"""
+	f -- opened irr&ipr file
+	return (time (as integer), ir_rates (as list), ip_rates (as list of lists)
+	if time < 0, end of file
+	"""
+	# initialize ir and ip storage...
+	ir_time  = -1
+	ir_rates = [0,]
+	ip_rates = []
+	for i in range(max_process_spc):  # make space for process rates for CB4's 24 species
+		ip_rates.append([])
+	
+	line = f.readline()
+	if line[0] == '|':
+		return (ir_time, ir_rates, ip_rates)
+		
+	# next line is first Time =
+	if time_re.match(line) != None:   # if this is a 'Time =" line...
+		time = line.split('=')[1][0:2] # pick 'HH' out of 'HH0000'
+		ir_time = int(time)           # store hh
+	else :
+		print "ERROR:: did not find a time."
+		sys.exit(1)
+	
+	# read in the !"Rxn No"    "Int Rate" header
+	line = f.readline()
+	
+	# read the irr values
+	while line[0] != ';' :
+		line = f.readline()
+		if irr_re.match(line) != None:    # if this is a { n} n.nnnn line ...
+			ir_value = float(split_re.split(line.replace('{','').replace('}','').strip())[1])
+			ir_rates.append(ir_value)
+	
+	# for now skip reading the process rates..
+	# read in the ! Species      Initial conc. ... header
+	# 
+	# ip_rates = [ [ip_values], [ip_values], [ip_values], ... ]
+	#   order of sub-lists 'ip_values' is order of iProcess id Number
+	#   for this hour.
+	line = f.readline()
+	while line[0] != ';' :
+		line = f.readline()
+		if ipr_re.match(line) != None:
+			ip_values = [ float(v) for v in \
+			     split_re.split(line.replace('"','').replace('"','').strip())[1:] ]
+			ip_rates.append(ip_values)
+	
+	return (ir_time, ir_rates, ip_rates)
+
+
+
+## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+##  P A R T   T W O  : C A L C U L A T E  T H E  N E T  M A S S E S
+##                     R E O R D E R  &  S U M  N E T  P R O D E S S E S
 
 ## ==========================================================
 if options.verbose:
@@ -3003,12 +1103,15 @@ fout = open(output_filename, 'w')
 fin = open(input_filename, 'r')
 
 # first two lines are 'doc' lines giving data source
-doc1 = fin.readline()
+irrfile_docline = fin.readline()
+# fix the quoted error in doc line from file...
+string.strip(irrfile_docline, '"\n')
+# skip the second doc line...
 line = fin.readline()
 
 if options.verbose:
 	print "IRR file doc line was"
-	print doc1
+	print irrfile_docline
 	print
 
 
@@ -3016,14 +1119,23 @@ if options.verbose:
 (time, ir, ip) = get_irr_data(fin);  
 
 
+## ==========================================================
+## big loop repeated for each time in file...
+##
 while ( time > 0 ) :
 	if options.verbose:
 		print "Time %d  hours" % time
-	if len(ir) != 97:
+	if len(ir) != max_i_rxn:
 		print "ERROR: no ir data!"
 		sys.exit(1)
 		
+#	if len(ip) != max_process_spc:
+#		print "ERROR: no ip data!"
+#		sys.exit(1)
+		
+	#-------------------------------------------------------
 	# ... process the ir data for this time...
+	#-------------------------------------------------------
 	#      ... zero out the net reaction masses vector
 	for i in range(0,len(net_rxn_masses)):
 		net_rxn_masses[i] = 0.0
@@ -3031,7 +1143,6 @@ while ( time > 0 ) :
 	# initialize the counter for net reaction sets so
 	# that it can be incremented in each reaction...
 	kk = -1
-	
 	
 	#-------------------------------------------------------
 	### The Net Rxns for ** O3+hv Radical Source **
@@ -3242,7 +1353,7 @@ while ( time > 0 ) :
 	#   3) for ir[55], ROR, NTR is from NO2+rad not NO+RO2, omitted here
 	#                    but tracked in '?????' net reaction set.
 	#   4) for ir[66], CRO, NTR is from NO2+rad not NO+RO2, omitted the CRO production.
-	#                   but ir[68] production is tracked in '?????' net reaction set.
+	#                   but ir[68] production is tracked in 'NO2 Term' net reaction set.
 	#
 	#   5) for ir[64], TO2, the 0.9*NO2 is coded as 0.9*XO2 with 0.9*xHO2
 	#                       and the 0.1*NTR is coded as 0.1*XO2N
@@ -3369,8 +1480,6 @@ while ( time > 0 ) :
 	
 
 	
-	
-	
 	#-------------------------------------------------------
 	### The Net Rxns for ** PAN Production **
 	kk += 1
@@ -3429,901 +1538,98 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iOH  )] = +ir[28]
 	net_rxn_masses[i2j(kk,iPNA )] = +ir[29] -ir[30] -ir[31]
 	
-	## NO Cycle
 	
+	#-------------------------------------------------------
+	### The Net Rxns for ** NO2+hv O3 Production **
 	kk += 1  
 	
+	# {  1} NO2     = NO+O
+	# {  2} O       = O3
+	# {  3} O3+NO   = NO2
+	# {  4} O+NO2   = NO
+	# {  5} O+NO2   = NO3
+	# {  6} O+NO    = NO2
+	# {  7} O3+NO2  = NO3
+	# {  8} O3      = O
+	# {  9} O3      = O1D
+	# { 10} O1D     = O
+	#                       { 11} O1D+H2O = 2*OH   # in ** O3+hv Rad Source **
+	#                       { 12} O3+OH   = HO2    # in ** OH + (Organic&NO2) **
+	#                       { 13} O3+HO2  = OH     # in ** HO2 + OH via radical **
+	# { 14} NO3     = 0.89*NO2+0.89*O+0.11*NO
+	# { 15} NO3+NO  = 2*NO2
+	# { 16} NO3+NO2 = NO+NO2
+	# { 17} NO3+NO2 = N2O5
+	# { 18} N2O5+H2O= 2*HNO3
+	# { 19} N2O5    = NO3+NO2
+	# { 20} NO+NO   = 2*NO2
 	
-
-	chemNO = +ir[1] +ir[4] +0.11*ir[14] +ir[16] -ir[3] -ir[6] -ir[15]
-	chem_NO = 0
-	if chemNO > 0:
-		chem_NO = chemNO
-	NO_O3 = -ir[1] -ir[4] -0.11*ir[14] -ir[16] +ir[3] +ir[6] +ir[15]
-	old_O3 = 0
-	if NO_O3 > 0:
-		old_O3 = NO_O3
-	from_O3_old = +ir[3] +ir[6] +0.89*ir[14] +2*ir[15] +ir[16] +ir[17] -ir[1] -ir[4] -ir[5] -ir[7] -ir[16] -ir[19]
-	rem_O3_old = 0
-	if from_O3_old > 0:
-		rem_O3_old = from_O3_old
-	NOz = old_O3 - rem_O3_old
+	## Notes:
+	#  two conditions are expected:
+	#    no net production of NO2 by other processes, and
+	#      O3+NO == NO2 here       (this is 'old_O3')
+	#    or
+	#    HO2/RO2 + NO is producing NO2 and
+	#      NO2+hv == O3 + NO here  (this is 'new O3')
+	#    these cases can be distinguished by the sign of O3 in net reaction
+	#
+	#  In the former case, 
+	#    save the mag of 'old O3' in net_reaction_mass[iO3_o] 
+	#    zero out net_reaction_mass[iO3]
+	#
+	#  In the latter case,
+	#    zero out the mag of net_reaction_mass[iO3_o]
+	#  and expect to be exporting (ie producing)
+	#    O3  - THE net production of ozone (still have O3+org losses, etc)
+	#    O   - for reaction with organics in ** Ox+org new radicals **
+	#    NO3 - for reaction with organics in ** NO3+org new radicals **
+	#    O1D - for reaction with H2O      in ** O3+hv Rad source **
+	#    N2O5- as NOz
+	#    HNO3- as NOz
+	#
 	
 	
 	
-	net_rxn_masses[i2j(kk,iNO  )] = +ip[iNO][iInitial] +ip[iNO][iEmiss_Area] \
-									+ip[iNO][iEmiss_Pnt] +ip[iNO][iEmiss_PiG] +ip[iNO][iAdv_W]\
-									+ip[iNO][iAdv_E] +ip[iNO][iAdv_S] +ip[iNO][iAdv_N]\
-									+ip[iNO][iAdv_B] +ip[iNO][iAdv_T] +ip[iNO][iDil_V]\
-									+ip[iNO][iDif_W] +ip[iNO][iDif_E] +ip[iNO][iDif_S]\
-									+ip[iNO][iDif_N] +ip[iNO][iDif_B] +ip[iNO][iDif_T]\
-									+ip[iNO][iDep_D] +ip[iNO][iDep_W] +ip[iNO][iChem_Aero]\
-									+ip[iNO][iDilut] +ip[iNO][iTrain] -ip[iNO][iFinal]\
-									+chem_NO
-	net_rxn_masses[i2j(kk,iNO2 )] = +ir[28] +ir[46] +ir[64] +ir[79] +rem_O3_old
-	net_rxn_masses[i2j(kk,iO3_old)] = old_O3 ## this is not actually ozone, but cosumption of NO in the O3/NO2 chemistry
-	net_rxn_masses[i2j(kk,iNO3 )] = NOz    #+ir[5] +ir[7] -ir[14] -ir[16] +ir[17] -ir[19] 
-	net_rxn_masses[i2j(kk,iHONO)] = +0.2*ir[21] +ir[22] -ir[23] -ir[24] -2*ir[25]
-	net_rxn_masses[i2j(kk,iOH  )] = +ir[28]
-	net_rxn_masses[i2j(kk,iHO2 )] = -ir[28]
-	net_rxn_masses[i2j(kk,iC2O3)] = -ir[46]
-	net_rxn_masses[i2j(kk,iXO2 )] = -ir[79]
-	net_rxn_masses[i2j(kk,iTO2 )] = -ir[64]
-	net_rxn_masses[i2j(kk,iNTR )] = +ir[81]
-	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81]
+	net_rxn_masses[i2j(kk,iNO2 )] = +ir[3] +ir[6] +0.89*ir[14] +2*ir[15] +ir[16]\
+	                                +ir[19] +2*ir[20]\
+	                                -ir[1] -ir[4] -ir[5] -ir[7] -ir[16] -ir[17]
+	                                
+	net_rxn_masses[i2j(kk,iNO  )] = +ir[1] +ir[4] +0.11*ir[14] +ir[16]\
+	                                -ir[3] -ir[6] -ir[15] -2*ir[20]
+	
+	net_rxn_masses[i2j(kk,iO   )] = +ir[1] +ir[8] +ir[10]\
+	                                -ir[2] -ir[4] -ir[5] -ir[6]
+	                                
+	net_rxn_masses[i2j(kk,iO3  )] = +ir[2] -ir[3] -ir[7] -ir[8] -ir[9]
+	
+	net_rxn_masses[i2j(kk,iH2O )] = +ir[9] -ir[10]
+	net_rxn_masses[i2j(kk,iNO3 )] = +ir[5] +ir[7] -ir[14] -ir[16] +ir[17] 
+	net_rxn_masses[i2j(kk,iN2O5)] = +ir[17] -ir[18] -ir[19]
+	net_rxn_masses[i2j(kk,iHNO3)] = +2*ir[18]
+	
+	# prepare for the 'no net production of O3' case...
+	net_rxn_masses[i2j(kk,iO3_o)] = 0.0 
+	net_rxn_masses[i2j(kk,iNO_o)] = 0.0 
+	net_rxn_masses[i2j(kk,iNO2o)] = 0.0 
+	net_rxn_masses[i2j(kk,iNOzo)] = 0.0 
 	
 	
-	############## NO2 Cycle ################################
-	
+	#-------------------------------------------------------
+	### The Net Rxns for ** NO2 Termination **  
 	kk += 1  
 	
-	O3 = +ir[2] -ir[3] -ir[7] -ir[8] -ir[9]
-	prodO3 = 0
-	if O3 > 0:
-		prodO3 = O3
+	# { 26} NO2+OH=HNO3
+	# { 47} C2O3+NO2=PAN
+	# { 48} PAN=C2O3+NO2
+	# { 55} ROR+NO2=NTR
+	# { 64} TO2+NO=0.9*NO2+0.9*HO2+0.9*OPEN+0.1*NTR
+	# { 68} CRO+NO2=NTR
+	# { 96} NO2+ISOP=0.2*ISPD+0.8*NTR+XO2+0.8*HO2+0.2*NO+0.8*ALD2+2.4*PAR
+	# 
 	
-	net_rxn_masses[i2j(kk,iNO  )] = chem_NO
-	net_rxn_masses[i2j(kk,iNO2 )] = -ir[26] -ir[47] +ir[48] -ir[55] +0.9*ir[64]\
-									-ir[68] +0.2*ir[78] -ir[96] -chem_NO
-	net_rxn_masses[i2j(kk,iO3  )] = prodO3
 	net_rxn_masses[i2j(kk,iHNO3)] = +ir[26]
-	net_rxn_masses[i2j(kk,iNO3 )] = -ir[94]   ### JUST FOR THE PRODUCTION OF NTR
-	net_rxn_masses[i2j(kk,iOH  )] = -ir[26] 
-	net_rxn_masses[i2j(kk,iC2O3)] = -ir[47] +ir[48]
-	net_rxn_masses[i2j(kk,iTO2 )] = -ir[64]
 	net_rxn_masses[i2j(kk,iPAN )] = +ir[47] -ir[48]
-	net_rxn_masses[i2j(kk,iCRO )] = -ir[68]
-	net_rxn_masses[i2j(kk,iNTR )] = +ir[55] +0.1*ir[64] +ir[68] +0.8*ir[78]\
-									+0.85*ir[94] +0.8*ir[96]
-	net_rxn_masses[i2j(kk,iROR )] = -ir[55]
-	net_rxn_masses[i2j(kk,iISOP)] = -ir[96]
-	net_rxn_masses[i2j(kk,iISPD)] = -ir[94]
-	
-	
-	
-	############## PROCESSES #############################################
-	
-	# Initial Concentrations:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = +ip[iNO  ][iInitial]
-	net_rxn_masses[i2j(kk,iNO2 )] = +ip[iNO2 ][iInitial]
-	net_rxn_masses[i2j(kk,iO3  )] = +ip[iO3  ][iInitial]
-	net_rxn_masses[i2j(kk,iOLE )] = +ip[iOLE ][iInitial]
-	net_rxn_masses[i2j(kk,iPAN )] = +ip[iPAN ][iInitial]
-	net_rxn_masses[i2j(kk,iN2O5)] = +ip[iN2O5][iInitial]
-	net_rxn_masses[i2j(kk,iPAR )] = +ip[iPAR ][iInitial]
-	net_rxn_masses[i2j(kk,iTOL )] = +ip[iTOL ][iInitial]
-	net_rxn_masses[i2j(kk,iXYL )] = +ip[iXYL ][iInitial]
-	net_rxn_masses[i2j(kk,iFORM)] = +ip[iFORM][iInitial]
-	net_rxn_masses[i2j(kk,iALD2)] = +ip[iALD2][iInitial]
-	net_rxn_masses[i2j(kk,iETH )] = +ip[iETH ][iInitial]
-	net_rxn_masses[i2j(kk,iCRES)] = +ip[iCRES][iInitial]
-	net_rxn_masses[i2j(kk,iMGLY)] = +ip[iMGLY][iInitial]
-	net_rxn_masses[i2j(kk,iOPEN)] = +ip[iOPEN][iInitial]
-	net_rxn_masses[i2j(kk,iPNA )] = +ip[iPNA ][iInitial]
-	net_rxn_masses[i2j(kk,iCO  )] = +ip[iCO  ][iInitial]
-	net_rxn_masses[i2j(kk,iHONO)] = +ip[iHONO][iInitial]
-	net_rxn_masses[i2j(kk,iH2O2)] = +ip[iH2O2][iInitial]
-	net_rxn_masses[i2j(kk,iHNO3)] = +ip[iHNO3][iInitial]
-	net_rxn_masses[i2j(kk,iISOP)] = +ip[iISOP][iInitial]
-	net_rxn_masses[i2j(kk,iMEOH)] = +ip[iMEOH][iInitial]
-	net_rxn_masses[i2j(kk,iETOH)] = +ip[iETOH][iInitial]
-	
-	
-	# Chemistry:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iChemistry]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iChemistry]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iChemistry]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iChemistry]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iChemistry]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iChemistry]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iChemistry]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iChemistry]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iChemistry]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iChemistry]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iChemistry]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iChemistry]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iChemistry]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iChemistry]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iChemistry]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iChemistry]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iChemistry]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iChemistry]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iChemistry]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iChemistry]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iChemistry]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iChemistry]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iChemistry]
-	
-	# Area Emissions:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iEmiss_Area]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iEmiss_Area]
-	
-	# Point Emissions:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iEmiss_Pnt]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iEmiss_Pnt]
-	
-	
-	# TOTAL EMISSIONS:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = +ip[iNO  ][iEmiss_Area] +ip[iNO  ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iNO2 )] = +ip[iNO2 ][iEmiss_Area] +ip[iNO2 ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iO3  )] = +ip[iO3  ][iEmiss_Area] +ip[iO3  ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iOLE )] = +ip[iOLE ][iEmiss_Area] +ip[iOLE ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iPAN )] = +ip[iPAN ][iEmiss_Area] +ip[iPAN ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iN2O5)] = +ip[iN2O5][iEmiss_Area] +ip[iN2O5][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iPAR )] = +ip[iPAR ][iEmiss_Area] +ip[iPAR ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iTOL )] = +ip[iTOL ][iEmiss_Area] +ip[iTOL ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iXYL )] = +ip[iXYL ][iEmiss_Area] +ip[iXYL ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iFORM)] = +ip[iFORM][iEmiss_Area] +ip[iFORM][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iALD2)] = +ip[iALD2][iEmiss_Area] +ip[iALD2][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iETH )] = +ip[iETH ][iEmiss_Area] +ip[iETH ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iCRES)] = +ip[iCRES][iEmiss_Area] +ip[iCRES][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iMGLY)] = +ip[iMGLY][iEmiss_Area] +ip[iMGLY][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iOPEN)] = +ip[iOPEN][iEmiss_Area] +ip[iOPEN][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iPNA )] = +ip[iPNA ][iEmiss_Area] +ip[iPNA ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iCO  )] = +ip[iCO  ][iEmiss_Area] +ip[iCO  ][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iHONO)] = +ip[iHONO][iEmiss_Area] +ip[iHONO][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iH2O2)] = +ip[iH2O2][iEmiss_Area] +ip[iH2O2][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iHNO3)] = +ip[iHNO3][iEmiss_Area] +ip[iHNO3][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iISOP)] = +ip[iISOP][iEmiss_Area] +ip[iISOP][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iMEOH)] = +ip[iMEOH][iEmiss_Area] +ip[iMEOH][iEmiss_Pnt] 
-	net_rxn_masses[i2j(kk,iETOH)] = +ip[iETOH][iEmiss_Area] +ip[iETOH][iEmiss_Pnt] 
-	
-	# PiG:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iEmiss_PiG]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iEmiss_PiG]
-	
-	
-	# west b. advection:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iAdv_W]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iAdv_W]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iAdv_W]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iAdv_W]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iAdv_W]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iAdv_W]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iAdv_W]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iAdv_W]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iAdv_W]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iAdv_W]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iAdv_W]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iAdv_W]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iAdv_W]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iAdv_W]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iAdv_W]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iAdv_W]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iAdv_W]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iAdv_W]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iAdv_W]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iAdv_W]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iAdv_W]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iAdv_W]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iAdv_W]
-	
-	# east b. advection:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iAdv_E]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iAdv_E]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iAdv_E]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iAdv_E]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iAdv_E]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iAdv_E]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iAdv_E]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iAdv_E]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iAdv_E]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iAdv_E]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iAdv_E]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iAdv_E]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iAdv_E]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iAdv_E]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iAdv_E]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iAdv_E]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iAdv_E]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iAdv_E]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iAdv_E]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iAdv_E]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iAdv_E]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iAdv_E]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iAdv_E]
-	
-	# south b. advection:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iAdv_S]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iAdv_S]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iAdv_S]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iAdv_S]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iAdv_S]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iAdv_S]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iAdv_S]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iAdv_S]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iAdv_S]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iAdv_S]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iAdv_S]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iAdv_S]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iAdv_S]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iAdv_S]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iAdv_S]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iAdv_S]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iAdv_S]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iAdv_S]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iAdv_S]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iAdv_S]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iAdv_S]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iAdv_S]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iAdv_S]
-	
-	# north b. advection:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iAdv_N]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iAdv_N]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iAdv_N]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iAdv_N]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iAdv_N]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iAdv_N]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iAdv_N]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iAdv_N]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iAdv_N]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iAdv_N]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iAdv_N]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iAdv_N]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iAdv_N]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iAdv_N]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iAdv_N]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iAdv_N]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iAdv_N]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iAdv_N]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iAdv_N]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iAdv_N]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iAdv_N]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iAdv_N]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iAdv_N]
-	
-	# bottom b. advection:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iAdv_B]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iAdv_B]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iAdv_B]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iAdv_B]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iAdv_B]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iAdv_B]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iAdv_B]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iAdv_B]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iAdv_B]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iAdv_B]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iAdv_B]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iAdv_B]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iAdv_B]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iAdv_B]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iAdv_B]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iAdv_B]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iAdv_B]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iAdv_B]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iAdv_B]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iAdv_B]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iAdv_B]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iAdv_B]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iAdv_B]
-	
-	# top b. advection:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iAdv_T]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iAdv_T]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iAdv_T]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iAdv_T]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iAdv_T]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iAdv_T]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iAdv_T]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iAdv_T]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iAdv_T]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iAdv_T]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iAdv_T]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iAdv_T]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iAdv_T]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iAdv_T]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iAdv_T]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iAdv_T]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iAdv_T]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iAdv_T]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iAdv_T]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iAdv_T]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iAdv_T]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iAdv_T]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iAdv_T]
-	
-	# dil. in the vert.:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDil_V]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDil_V]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDil_V]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDil_V]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDil_V]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDil_V]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDil_V]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDil_V]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDil_V]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDil_V]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDil_V]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDil_V]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDil_V]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDil_V]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDil_V]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDil_V]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDil_V]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDil_V]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDil_V]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDil_V]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDil_V]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDil_V]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDil_V]
-	
-	# west b. diffusion:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDif_W]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDif_W]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDif_W]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDif_W]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDif_W]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDif_W]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDif_W]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDif_W]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDif_W]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDif_W]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDif_W]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDif_W]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDif_W]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDif_W]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDif_W]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDif_W]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDif_W]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDif_W]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDif_W]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDif_W]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDif_W]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDif_W]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDif_W]
-	
-	# east b. diffusion:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDif_E]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDif_E]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDif_E]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDif_E]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDif_E]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDif_E]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDif_E]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDif_E]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDif_E]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDif_E]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDif_E]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDif_E]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDif_E]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDif_E]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDif_E]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDif_E]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDif_E]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDif_E]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDif_E]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDif_E]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDif_E]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDif_E]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDif_E]
-	
-	# south b. diffusion:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDif_S]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDif_S]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDif_S]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDif_S]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDif_S]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDif_S]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDif_S]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDif_S]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDif_S]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDif_S]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDif_S]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDif_S]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDif_S]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDif_S]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDif_S]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDif_S]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDif_S]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDif_S]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDif_S]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDif_S]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDif_S]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDif_S]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDif_S]
-	
-	# north b. diffusion:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDif_N]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDif_N]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDif_N]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDif_N]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDif_N]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDif_N]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDif_N]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDif_N]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDif_N]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDif_N]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDif_N]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDif_N]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDif_N]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDif_N]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDif_N]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDif_N]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDif_N]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDif_N]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDif_N]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDif_N]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDif_N]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDif_N]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDif_N]
-	
-	# bottom b. diffusion:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDif_B]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDif_B]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDif_B]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDif_B]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDif_B]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDif_B]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDif_B]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDif_B]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDif_B]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDif_B]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDif_B]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDif_B]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDif_B]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDif_B]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDif_B]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDif_B]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDif_B]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDif_B]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDif_B]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDif_B]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDif_B]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDif_B]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDif_B]
-	
-	# top b. diffusion:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDif_T]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDif_T]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDif_T]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDif_T]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDif_T]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDif_T]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDif_T]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDif_T]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDif_T]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDif_T]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDif_T]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDif_T]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDif_T]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDif_T]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDif_T]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDif_T]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDif_T]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDif_T]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDif_T]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDif_T]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDif_T]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDif_T]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDif_T]
-	
-	# dry deposition:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDep_D]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDep_D]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDep_D]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDep_D]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDep_D]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDep_D]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDep_D]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDep_D]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDep_D]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDep_D]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDep_D]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDep_D]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDep_D]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDep_D]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDep_D]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDep_D]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDep_D]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDep_D]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDep_D]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDep_D]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDep_D]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDep_D]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDep_D]
-	
-	# wet deposition:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDep_W]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDep_W]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDep_W]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDep_W]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDep_W]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDep_W]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDep_W]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDep_W]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDep_W]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDep_W]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDep_W]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDep_W]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDep_W]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDep_W]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDep_W]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDep_W]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDep_W]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDep_W]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDep_W]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDep_W]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDep_W]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDep_W]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDep_W]
-	
-	# aerosol chemistry:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iChem_Aero]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iChem_Aero]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iChem_Aero]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iChem_Aero]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iChem_Aero]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iChem_Aero]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iChem_Aero]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iChem_Aero]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iChem_Aero]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iChem_Aero]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iChem_Aero]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iChem_Aero]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iChem_Aero]
-	
-	# dilution:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iDilut]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iDilut]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iDilut]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iDilut]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iDilut]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iDilut]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iDilut]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iDilut]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iDilut]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iDilut]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iDilut]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iDilut]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iDilut]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iDilut]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iDilut]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iDilut]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iDilut]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iDilut]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iDilut]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iDilut]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iDilut]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iDilut]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iDilut]
-	
-	# en(de)trainment:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iTrain]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iTrain]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iTrain]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iTrain]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iTrain]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iTrain]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iTrain]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iTrain]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iTrain]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iTrain]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iTrain]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iTrain]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iTrain]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iTrain]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iTrain]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iTrain]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iTrain]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iTrain]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iTrain]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iTrain]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iTrain]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iTrain]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iTrain]
-	
-	# HORIZONTAL TRANSPORTATION:
-	
-	kk += 1
-	i
-	net_rxn_masses[i2j(kk,iNO  )] = +ip[iNO  ][iAdv_W] +ip[iNO  ][iAdv_E] +ip[iNO  ][iAdv_S] +ip[iNO  ][iAdv_N] +ip[iNO  ][iDif_W] +ip[iNO  ][iDif_E] +ip[iNO  ][iDif_S] +ip[iNO  ][iDif_N]
-	net_rxn_masses[i2j(kk,iNO2 )] = +ip[iNO2 ][iAdv_W] +ip[iNO2 ][iAdv_E] +ip[iNO2 ][iAdv_S] +ip[iNO2 ][iAdv_N] +ip[iNO2 ][iDif_W] +ip[iNO2 ][iDif_E] +ip[iNO2 ][iDif_S] +ip[iNO2 ][iDif_N]
-	net_rxn_masses[i2j(kk,iO3  )] = +ip[iO3  ][iAdv_W] +ip[iO3  ][iAdv_E] +ip[iO3  ][iAdv_S] +ip[iO3  ][iAdv_N] +ip[iO3  ][iDif_W] +ip[iO3  ][iDif_E] +ip[iO3  ][iDif_S] +ip[iO3  ][iDif_N]
-	net_rxn_masses[i2j(kk,iOLE )] = +ip[iOLE ][iAdv_W] +ip[iOLE ][iAdv_E] +ip[iOLE ][iAdv_S] +ip[iOLE ][iAdv_N] +ip[iOLE ][iDif_W] +ip[iOLE ][iDif_E] +ip[iOLE ][iDif_S] +ip[iOLE ][iDif_N]
-	net_rxn_masses[i2j(kk,iPAN )] = +ip[iPAN ][iAdv_W] +ip[iPAN ][iAdv_E] +ip[iPAN ][iAdv_S] +ip[iPAN ][iAdv_N] +ip[iPAN ][iDif_W] +ip[iPAN ][iDif_E] +ip[iPAN ][iDif_S] +ip[iPAN ][iDif_N]
-	net_rxn_masses[i2j(kk,iN2O5)] = +ip[iN2O5][iAdv_W] +ip[iN2O5][iAdv_E] +ip[iN2O5][iAdv_S] +ip[iN2O5][iAdv_N] +ip[iN2O5][iDif_W] +ip[iN2O5][iDif_E] +ip[iN2O5][iDif_S] +ip[iN2O5][iDif_N]
-	net_rxn_masses[i2j(kk,iPAR )] = +ip[iPAR ][iAdv_W] +ip[iPAR ][iAdv_E] +ip[iPAR ][iAdv_S] +ip[iPAR ][iAdv_N] +ip[iPAR ][iDif_W] +ip[iPAR ][iDif_E] +ip[iPAR ][iDif_S] +ip[iPAR ][iDif_N]
-	net_rxn_masses[i2j(kk,iTOL )] = +ip[iTOL ][iAdv_W] +ip[iTOL ][iAdv_E] +ip[iTOL ][iAdv_S] +ip[iTOL ][iAdv_N] +ip[iTOL ][iDif_W] +ip[iTOL ][iDif_E] +ip[iTOL ][iDif_S] +ip[iTOL ][iDif_N]
-	net_rxn_masses[i2j(kk,iXYL )] = +ip[iXYL ][iAdv_W] +ip[iXYL ][iAdv_E] +ip[iXYL ][iAdv_S] +ip[iXYL ][iAdv_N] +ip[iXYL ][iDif_W] +ip[iXYL ][iDif_E] +ip[iXYL ][iDif_S] +ip[iXYL ][iDif_N]
-	net_rxn_masses[i2j(kk,iFORM)] = +ip[iFORM][iAdv_W] +ip[iFORM][iAdv_E] +ip[iFORM][iAdv_S] +ip[iFORM][iAdv_N] +ip[iFORM][iDif_W] +ip[iFORM][iDif_E] +ip[iFORM][iDif_S] +ip[iFORM][iDif_N]
-	net_rxn_masses[i2j(kk,iALD2)] = +ip[iALD2][iAdv_W] +ip[iALD2][iAdv_E] +ip[iALD2][iAdv_S] +ip[iALD2][iAdv_N] +ip[iALD2][iDif_W] +ip[iALD2][iDif_E] +ip[iALD2][iDif_S] +ip[iALD2][iDif_N]
-	net_rxn_masses[i2j(kk,iETH )] = +ip[iETH ][iAdv_W] +ip[iETH ][iAdv_E] +ip[iETH ][iAdv_S] +ip[iETH ][iAdv_N] +ip[iETH ][iDif_W] +ip[iETH ][iDif_E] +ip[iETH ][iDif_S] +ip[iETH ][iDif_N]
-	net_rxn_masses[i2j(kk,iCRES)] = +ip[iCRES][iAdv_W] +ip[iCRES][iAdv_E] +ip[iCRES][iAdv_S] +ip[iCRES][iAdv_N] +ip[iCRES][iDif_W] +ip[iCRES][iDif_E] +ip[iCRES][iDif_S] +ip[iCRES][iDif_N]
-	net_rxn_masses[i2j(kk,iMGLY)] = +ip[iMGLY][iAdv_W] +ip[iMGLY][iAdv_E] +ip[iMGLY][iAdv_S] +ip[iMGLY][iAdv_N] +ip[iMGLY][iDif_W] +ip[iMGLY][iDif_E] +ip[iMGLY][iDif_S] +ip[iMGLY][iDif_N]
-	net_rxn_masses[i2j(kk,iOPEN)] = +ip[iOPEN][iAdv_W] +ip[iOPEN][iAdv_E] +ip[iOPEN][iAdv_S] +ip[iOPEN][iAdv_N] +ip[iOPEN][iDif_W] +ip[iOPEN][iDif_E] +ip[iOPEN][iDif_S] +ip[iOPEN][iDif_N]
-	net_rxn_masses[i2j(kk,iPNA )] = +ip[iPNA ][iAdv_W] +ip[iPNA ][iAdv_E] +ip[iPNA ][iAdv_S] +ip[iPNA ][iAdv_N] +ip[iPNA ][iDif_W] +ip[iPNA ][iDif_E] +ip[iPNA ][iDif_S] +ip[iPNA ][iDif_N]
-	net_rxn_masses[i2j(kk,iCO  )] = +ip[iCO  ][iAdv_W] +ip[iCO  ][iAdv_E] +ip[iCO  ][iAdv_S] +ip[iCO  ][iAdv_N] +ip[iCO  ][iDif_W] +ip[iCO  ][iDif_E] +ip[iCO  ][iDif_S] +ip[iCO  ][iDif_N]
-	net_rxn_masses[i2j(kk,iHONO)] = +ip[iHONO][iAdv_W] +ip[iHONO][iAdv_E] +ip[iHONO][iAdv_S] +ip[iHONO][iAdv_N] +ip[iHONO][iDif_W] +ip[iHONO][iDif_E] +ip[iHONO][iDif_S] +ip[iHONO][iDif_N]
-	net_rxn_masses[i2j(kk,iH2O2)] = +ip[iH2O2][iAdv_W] +ip[iH2O2][iAdv_E] +ip[iH2O2][iAdv_S] +ip[iH2O2][iAdv_N] +ip[iH2O2][iDif_W] +ip[iH2O2][iDif_E] +ip[iH2O2][iDif_S] +ip[iH2O2][iDif_N]
-	net_rxn_masses[i2j(kk,iHNO3)] = +ip[iHNO3][iAdv_W] +ip[iHNO3][iAdv_E] +ip[iHNO3][iAdv_S] +ip[iHNO3][iAdv_N] +ip[iHNO3][iDif_W] +ip[iHNO3][iDif_E] +ip[iHNO3][iDif_S] +ip[iHNO3][iDif_N]
-	net_rxn_masses[i2j(kk,iISOP)] = +ip[iISOP][iAdv_W] +ip[iISOP][iAdv_E] +ip[iISOP][iAdv_S] +ip[iISOP][iAdv_N] +ip[iISOP][iDif_W] +ip[iISOP][iDif_E] +ip[iISOP][iDif_S] +ip[iISOP][iDif_N]
-	net_rxn_masses[i2j(kk,iMEOH)] = +ip[iMEOH][iAdv_W] +ip[iMEOH][iAdv_E] +ip[iMEOH][iAdv_S] +ip[iMEOH][iAdv_N] +ip[iMEOH][iDif_W] +ip[iMEOH][iDif_E] +ip[iMEOH][iDif_S] +ip[iMEOH][iDif_N]
-	net_rxn_masses[i2j(kk,iETOH)] = +ip[iETOH][iAdv_W] +ip[iETOH][iAdv_E] +ip[iETOH][iAdv_S] +ip[iETOH][iAdv_N] +ip[iETOH][iDif_W] +ip[iETOH][iDif_E] +ip[iETOH][iDif_S] +ip[iETOH][iDif_N]
-
-
-# VERTICAL TRANSPORTATION:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = +ip[iNO  ][iAdv_B] +ip[iNO  ][iAdv_T] +ip[iNO  ][iDif_B] +ip[iNO  ][iDif_T] +ip[iNO  ][iDil_V] +ip[iNO  ][iDilut] +ip[iNO  ][iTrain]
-	net_rxn_masses[i2j(kk,iNO2 )] = +ip[iNO2 ][iAdv_B] +ip[iNO2 ][iAdv_T] +ip[iNO2 ][iDif_B] +ip[iNO2 ][iDif_T] +ip[iNO2 ][iDil_V] +ip[iNO2 ][iDilut] +ip[iNO2 ][iTrain]
-	net_rxn_masses[i2j(kk,iO3  )] = +ip[iO3  ][iAdv_B] +ip[iO3  ][iAdv_T] +ip[iO3  ][iDif_B] +ip[iO3  ][iDif_T] +ip[iO3  ][iDil_V] +ip[iO3  ][iDilut] +ip[iO3  ][iTrain]
-	net_rxn_masses[i2j(kk,iOLE )] = +ip[iOLE ][iAdv_B] +ip[iOLE ][iAdv_T] +ip[iOLE ][iDif_B] +ip[iOLE ][iDif_T] +ip[iOLE ][iDil_V] +ip[iOLE ][iDilut] +ip[iOLE ][iTrain]
-	net_rxn_masses[i2j(kk,iPAN )] = +ip[iPAN ][iAdv_B] +ip[iPAN ][iAdv_T] +ip[iPAN ][iDif_B] +ip[iPAN ][iDif_T] +ip[iPAN ][iDil_V] +ip[iPAN ][iDilut] +ip[iPAN ][iTrain]
-	net_rxn_masses[i2j(kk,iN2O5)] = +ip[iN2O5][iAdv_B] +ip[iN2O5][iAdv_T] +ip[iN2O5][iDif_B] +ip[iN2O5][iDif_T] +ip[iN2O5][iDil_V] +ip[iN2O5][iDilut] +ip[iN2O5][iTrain]
-	net_rxn_masses[i2j(kk,iPAR )] = +ip[iPAR ][iAdv_B] +ip[iPAR ][iAdv_T] +ip[iPAR ][iDif_B] +ip[iPAR ][iDif_T] +ip[iPAR ][iDil_V] +ip[iPAR ][iDilut] +ip[iPAR ][iTrain]
-	net_rxn_masses[i2j(kk,iTOL )] = +ip[iTOL ][iAdv_B] +ip[iTOL ][iAdv_T] +ip[iTOL ][iDif_B] +ip[iTOL ][iDif_T] +ip[iTOL ][iDil_V] +ip[iTOL ][iDilut] +ip[iTOL ][iTrain]
-	net_rxn_masses[i2j(kk,iXYL )] = +ip[iXYL ][iAdv_B] +ip[iXYL ][iAdv_T] +ip[iXYL ][iDif_B] +ip[iXYL ][iDif_T] +ip[iXYL ][iDil_V] +ip[iXYL ][iDilut] +ip[iXYL ][iTrain]
-	net_rxn_masses[i2j(kk,iFORM)] = +ip[iFORM][iAdv_B] +ip[iFORM][iAdv_T] +ip[iFORM][iDif_B] +ip[iFORM][iDif_T] +ip[iFORM][iDil_V] +ip[iFORM][iDilut] +ip[iFORM][iTrain]
-	net_rxn_masses[i2j(kk,iALD2)] = +ip[iALD2][iAdv_B] +ip[iALD2][iAdv_T] +ip[iALD2][iDif_B] +ip[iALD2][iDif_T] +ip[iALD2][iDil_V] +ip[iALD2][iDilut] +ip[iALD2][iTrain]
-	net_rxn_masses[i2j(kk,iETH )] = +ip[iETH ][iAdv_B] +ip[iETH ][iAdv_T] +ip[iETH ][iDif_B] +ip[iETH ][iDif_T] +ip[iETH ][iDil_V] +ip[iETH ][iDilut] +ip[iETH ][iTrain]
-	net_rxn_masses[i2j(kk,iCRES)] = +ip[iCRES][iAdv_B] +ip[iCRES][iAdv_T] +ip[iCRES][iDif_B] +ip[iCRES][iDif_T] +ip[iCRES][iDil_V] +ip[iCRES][iDilut] +ip[iCRES][iTrain]
-	net_rxn_masses[i2j(kk,iMGLY)] = +ip[iMGLY][iAdv_B] +ip[iMGLY][iAdv_T] +ip[iMGLY][iDif_B] +ip[iMGLY][iDif_T] +ip[iMGLY][iDil_V] +ip[iMGLY][iDilut] +ip[iMGLY][iTrain]
-	net_rxn_masses[i2j(kk,iOPEN)] = +ip[iOPEN][iAdv_B] +ip[iOPEN][iAdv_T] +ip[iOPEN][iDif_B] +ip[iOPEN][iDif_T] +ip[iOPEN][iDil_V] +ip[iOPEN][iDilut] +ip[iOPEN][iTrain]
-	net_rxn_masses[i2j(kk,iPNA )] = +ip[iPNA ][iAdv_B] +ip[iPNA ][iAdv_T] +ip[iPNA ][iDif_B] +ip[iPNA ][iDif_T] +ip[iPNA ][iDil_V] +ip[iPNA ][iDilut] +ip[iPNA ][iTrain]
-	net_rxn_masses[i2j(kk,iCO  )] = +ip[iCO  ][iAdv_B] +ip[iCO  ][iAdv_T] +ip[iCO  ][iDif_B] +ip[iCO  ][iDif_T] +ip[iCO  ][iDil_V] +ip[iCO  ][iDilut] +ip[iCO  ][iTrain]
-	net_rxn_masses[i2j(kk,iHONO)] = +ip[iHONO][iAdv_B] +ip[iHONO][iAdv_T] +ip[iHONO][iDif_B] +ip[iHONO][iDif_T] +ip[iHONO][iDil_V] +ip[iHONO][iDilut] +ip[iHONO][iTrain]
-	net_rxn_masses[i2j(kk,iH2O2)] = +ip[iH2O2][iAdv_B] +ip[iH2O2][iAdv_T] +ip[iH2O2][iDif_B] +ip[iH2O2][iDif_T] +ip[iH2O2][iDil_V] +ip[iH2O2][iDilut] +ip[iH2O2][iTrain]
-	net_rxn_masses[i2j(kk,iHNO3)] = +ip[iHNO3][iAdv_B] +ip[iHNO3][iAdv_T] +ip[iHNO3][iDif_B] +ip[iHNO3][iDif_T] +ip[iHNO3][iDil_V] +ip[iHNO3][iDilut] +ip[iHNO3][iTrain]
-	net_rxn_masses[i2j(kk,iISOP)] = +ip[iISOP][iAdv_B] +ip[iISOP][iAdv_T] +ip[iISOP][iDif_B] +ip[iISOP][iDif_T] +ip[iISOP][iDil_V] +ip[iISOP][iDilut] +ip[iISOP][iTrain]
-	net_rxn_masses[i2j(kk,iMEOH)] = +ip[iMEOH][iAdv_B] +ip[iMEOH][iAdv_T] +ip[iMEOH][iDif_B] +ip[iMEOH][iDif_T] +ip[iMEOH][iDil_V] +ip[iMEOH][iDilut] +ip[iMEOH][iTrain]
-	net_rxn_masses[i2j(kk,iETOH)] = +ip[iETOH][iAdv_B] +ip[iETOH][iAdv_T] +ip[iETOH][iDif_B] +ip[iETOH][iDif_T] +ip[iETOH][iDil_V] +ip[iETOH][iDilut] +ip[iETOH][iTrain]
-	
-	
-	# final concentration:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iFinal]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iFinal]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iFinal]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iFinal]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iFinal]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iFinal]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iFinal]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iFinal]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iFinal]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iFinal]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iFinal]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iFinal]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iFinal]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iFinal]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iFinal]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iFinal]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iFinal]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iFinal]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iFinal]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iFinal]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iFinal]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iFinal]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iFinal]
-	
-	# units conversion:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iUn_Con]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iUn_Con]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iUn_Con]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iUn_Con]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iUn_Con]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iUn_Con]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iUn_Con]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iUn_Con]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iUn_Con]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iUn_Con]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iUn_Con]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iUn_Con]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iUn_Con]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iUn_Con]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iUn_Con]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iUn_Con]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iUn_Con]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iUn_Con]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iUn_Con]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iUn_Con]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iUn_Con]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iUn_Con]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iUn_Con]
-	
-	# average cell volume:
-	
-	kk += 1
-	
-	net_rxn_masses[i2j(kk,iNO  )] = ip[iNO  ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iNO2 )] = ip[iNO2 ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iO3  )] = ip[iO3  ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iOLE )] = ip[iOLE ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iPAN )] = ip[iPAN ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iN2O5)] = ip[iN2O5][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iPAR )] = ip[iPAR ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iTOL )] = ip[iTOL ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iXYL )] = ip[iXYL ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iFORM)] = ip[iFORM][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iALD2)] = ip[iALD2][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iETH )] = ip[iETH ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iCRES)] = ip[iCRES][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iMGLY)] = ip[iMGLY][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iOPEN)] = ip[iOPEN][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iPNA )] = ip[iPNA ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iCO  )] = ip[iCO  ][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iHONO)] = ip[iHONO][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iH2O2)] = ip[iH2O2][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iHNO3)] = ip[iHNO3][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iISOP)] = ip[iISOP][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iMEOH)] = ip[iMEOH][iAv_Cel_Vol]
-	net_rxn_masses[i2j(kk,iETOH)] = ip[iETOH][iAv_Cel_Vol]
-	
-	
-	kk += 1
-	
-	
+	net_rxn_masses[i2j(kk,iNTR )] = +ir[55] +0.1*ir[64] +ir[68] +0.8*ir[96]
 	
 	
 	
@@ -5253,7 +2559,7 @@ if options.output_format=="xml":
 	xdoc.delimiter(delim)
 	xdoc.starthour(hour_number[0])
 	xdoc.endhour(hour_number[-1])
-	xdoc.summaries(irrfile=doc1.replace('"','').replace('\n',''))
+	xdoc.summaries(irrfile=irrfile_docline)
 	xdoc._push()
 	
 	kk = 0
@@ -5283,7 +2589,7 @@ if options.output_format=="xml":
 	xdoc._pop()
 	xdoc._pop()
 	
-	xdoc.reactions(irrfile=doc1.replace('"','').replace('\n',''))
+	xdoc.reactions(version="0.1", irrfile=irrfile_docline)
 	xdoc._push()
 	
 	kk = 0
@@ -5314,7 +2620,7 @@ if options.output_format=="xml":
 else:
 	# Output the hourly and total net reactions to file...
 	print >>fout, "IRR file doc line was"
-	print >>fout, doc1
+	print >>fout, irrfile_docline
 	
 	kk = 0
 	print >>fout, "%-21s" % "Hour",
@@ -5346,7 +2652,7 @@ else:
 	
 	# Output the hourly and total net reactions to file...
 	print >>fout, "IRR file doc line was"
-	print >>fout, doc1
+	print >>fout, irrfile_docline
 	
 	kk = 0
 	print >>fout, "%-21s" % "Hour",
