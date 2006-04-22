@@ -3,7 +3,7 @@ __doc__ = \
 """
 Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
 
-net_balance.py [options] EXTFILE OUTFILE
+net_balance.py [options] EXTFILE OUTFILE_sum.txt  OUTFILE_net.txt
 
 This version is hard-coded for CB4 Mechanism in CAMx
 
@@ -15,9 +15,9 @@ use -h or --help for details on options
 This file official source is
 $HeadURL$
 """
-ChangeDate = "$LastChangedDate: 2006-04-19 14:19:58 -0400 (Wed, 19 Apr 2006) $"
-RevisionNum= "$LastChangedRevision: 106 $"
-ChangedBy  = "$LastChangedBy: jeffries $"
+ChangeDate = "$LastChangedDate$"
+RevisionNum= "$LastChangedRevision$"
+ChangedBy  = "$LastChangedBy$"
 
 
 
@@ -33,7 +33,7 @@ from optparse import OptionParser
 
 SCRIPT_ID_STRING = "Net_Reaction_CB4.py " + ChangeDate[18:-2]
 
-__version__ = "R" + RevisionNum[21:-2] + "by" + ChangedBy[15:-2]
+__version__ = "R%s last changed by %s" % (RevisionNum[22:-2], ChangedBy[16:-2])
 
 
 
@@ -88,7 +88,7 @@ if options.verbose:
 	print
 	print "======================================================"
 	print "Script ",  SCRIPT_ID_STRING
-	print "This is        version ",  __version__
+	print "This is version ",  __version__
 	print ""
 	print "Reading from:"
 	print "%s" % input_filename
@@ -117,65 +117,69 @@ SPC_Names = [
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
   'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ',\
   'NO3 ', 'C2O3', 'XO2 ', 'XO2N', 'NTR ', 'CRO ', 'ISPD', 'TO2 ', 'ROR ',\
-  'SO2 ', 'xHO2', 'H2O ', '-OOX', 'VOC ', 'O3_o', 'NO_o', 'NO2o', 'NOzo' ]
+  'SO2 ', 'xHO2', 'H2O ', '-OOX', 'VOC ', \
+  'O3_o', 'O__o', 'NO_o', 'NO2o', 'OH_o', 'NO3o', 'NA_o' ]
 
 # Use xHO2 to track 'prompt HO2' and separate it from direct HO2.
-# Use H2O as a product in some reactions to track a term pathway
-# Use tracking species -OOX to collect the XO2+XO2 type reaction
-#    products;  this is not a real species in CB4.
-# Use VOC as a summing of individual HC species that reacted.
-# Use O3_o, NO_o, NO2_o, NOzo to track the consumption of O3 
+# Use H2O  as a product in some reactions to track a term pathway
+# Use -OOX to track the XO2+XO2 type reaction products.
+# Use VOC  as a summing of individual HC species that reacted.
+# Use O3_o, O__o, OH_o, NO_o, NO2_o, NOzo to track the consumption of O3 
 #    by early and late titration of NO to NO2 in NO cycle net reaction.
 
 
 # integer indexing for CB4 species
-iNO   =  0
-iNO2  =  1
-iO3   =  2
-iOLE  =  3
-iPAN  =  4
-iN2O5 =  5
-iPAR  =  6
-iTOL  =  7
-iXYL  =  8
-iFORM =  9
-iALD2 = 10 
-iETH  = 11 
-iCRES = 12 
-iMGLY = 13 
-iOPEN = 14 
-iPNA  = 15 
-iCO   = 16
-iHONO = 17 
-iH2O2 = 18 
-iHNO3 = 19 
-iISOP = 20 
-iMEOH = 21 
-iETOH = 22 
-iCH4  = 23
-iO    = 24
-iOH   = 25
-iHO2  = 26
-iNO3  = 27
-iC2O3 = 28
-iXO2  = 29
-iXO2N = 30
-iNTR  = 31
-iCRO  = 32
-iISPD = 33
-iTO2  = 34
-iROR  = 35
-iSO2  = 36
-ixHO2 = 37
-iH2O  = 38
-iOOX  = 39
-iVOC  = 40
-iO3_o = 41
-iNO_o = 42
-iNO2o = 43
-iNOzo = 44
+z = 0
+iNO   =  z ; z += 1
+iNO2  =  z ; z += 1
+iO3   =  z ; z += 1
+iOLE  =  z ; z += 1
+iPAN  =  z ; z += 1
+iN2O5 =  z ; z += 1
+iPAR  =  z ; z += 1
+iTOL  =  z ; z += 1
+iXYL  =  z ; z += 1
+iFORM =  z ; z += 1
+iALD2 =  z ; z += 1 
+iETH  =  z ; z += 1
+iCRES =  z ; z += 1
+iMGLY =  z ; z += 1
+iOPEN =  z ; z += 1
+iPNA  =  z ; z += 1
+iCO   =  z ; z += 1
+iHONO =  z ; z += 1
+iH2O2 =  z ; z += 1
+iHNO3 =  z ; z += 1
+iISOP =  z ; z += 1
+iMEOH =  z ; z += 1
+iETOH =  z ; z += 1
+iCH4  =  z ; z += 1
+iO    =  z ; z += 1
+iOH   =  z ; z += 1
+iHO2  =  z ; z += 1
+iNO3  =  z ; z += 1
+iC2O3 =  z ; z += 1
+iXO2  =  z ; z += 1
+iXO2N =  z ; z += 1
+iNTR  =  z ; z += 1
+iCRO  =  z ; z += 1
+iISPD =  z ; z += 1
+iTO2  =  z ; z += 1
+iROR  =  z ; z += 1
+iSO2  =  z ; z += 1
+ixHO2 =  z ; z += 1
+iH2O  =  z ; z += 1
+iOOX  =  z ; z += 1
+iVOC  =  z ; z += 1
+iO3_o =  z ; z += 1
+iO__o =  z ; z += 1
+iNO_o =  z ; z += 1
+iNO2o =  z ; z += 1
+iOH_o =  z ; z += 1
+iNO3o =  z ; z += 1
+iNA_o =  z ; z += 1
 
-max_i_spc = iNOzo + 1
+max_i_spc = z
 
 # only the first 24 species are included in the physical processes...
 max_process_spc = 24
@@ -941,17 +945,20 @@ indx_net_rxn = []
 jj = this_jstart
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
 jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iO   ] = jj; jj += 1; indx_net_rxn.append(iO   )
+jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
-jndx_net_rxn[iH2O ] = jj; jj += 1; indx_net_rxn.append(iH2O )
+jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
+jndx_net_rxn[iO   ] = jj; jj += 1; indx_net_rxn.append(iO   )
 jndx_net_rxn[iNO3 ] = jj; jj += 1; indx_net_rxn.append(iNO3 )
 jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 
-jndx_net_rxn[iO3_o ] = jj; jj += 1; indx_net_rxn.append(iO3_o)
-jndx_net_rxn[iNO_o ] = jj; jj += 1; indx_net_rxn.append(iNO_o)
-jndx_net_rxn[iNO2o ] = jj; jj += 1; indx_net_rxn.append(iNO2o)
-jndx_net_rxn[iNOzo ] = jj; jj += 1; indx_net_rxn.append(iNOzo)
+jndx_net_rxn[iO3_o] = jj; jj += 1; indx_net_rxn.append(iO3_o)
+jndx_net_rxn[iNO_o] = jj; jj += 1; indx_net_rxn.append(iNO_o)
+jndx_net_rxn[iNA_o] = jj; jj += 1; indx_net_rxn.append(iNA_o)
+jndx_net_rxn[iNO2o] = jj; jj += 1; indx_net_rxn.append(iNO2o)
+jndx_net_rxn[iO__o] = jj; jj += 1; indx_net_rxn.append(iO__o)
+jndx_net_rxn[iOH_o] = jj; jj += 1; indx_net_rxn.append(iOH_o)
+jndx_net_rxn[iNO3o] = jj; jj += 1; indx_net_rxn.append(iNO3o)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -1103,9 +1110,8 @@ fout = open(output_filename, 'w')
 fin = open(input_filename, 'r')
 
 # first two lines are 'doc' lines giving data source
-irrfile_docline = fin.readline()
-# fix the quoted error in doc line from file...
-string.strip(irrfile_docline, '"\n')
+#   skip the quote error in doc line from file...
+irrfile_docline = fin.readline()[1:-2]
 # skip the second doc line...
 line = fin.readline()
 
@@ -1152,10 +1158,11 @@ while ( time > 0 ) :
 	# { 11} O1D+H2O =2*OH
 	# { 34} H2O2    =2*OH
 	
+	# { 27} OH+HNO3 = NO3
 
 	net_rxn_masses[i2j(kk,iO3  )] = -ir[11]
 	net_rxn_masses[i2j(kk,iH2O2)] = -ir[34]
-	net_rxn_masses[i2j(kk,iOH  )] = 2.0*ir[11] + 2.0*ir[34]
+	net_rxn_masses[i2j(kk,iOH  )] = 2.0*ir[11] -ir[27] + 2.0*ir[34]
 	
 	
 	#-------------------------------------------------------
@@ -1553,16 +1560,19 @@ while ( time > 0 ) :
 	# {  8} O3      = O
 	# {  9} O3      = O1D
 	# { 10} O1D     = O
-	#                       { 11} O1D+H2O = 2*OH   # in ** O3+hv Rad Source **
+	# { 11} O1D+H2O = 2*OH   # in ** O3+hv Rad Source **
 	#                       { 12} O3+OH   = HO2    # in ** OH + (Organic&NO2) **
 	#                       { 13} O3+HO2  = OH     # in ** HO2 + OH via radical **
-	# { 14} NO3     = 0.89*NO2+0.89*O+0.11*NO
+	# { 14} NO3     = 0.89*NO2 + 0.89*O + 0.11*NO
 	# { 15} NO3+NO  = 2*NO2
 	# { 16} NO3+NO2 = NO+NO2
 	# { 17} NO3+NO2 = N2O5
 	# { 18} N2O5+H2O= 2*HNO3
 	# { 19} N2O5    = NO3+NO2
 	# { 20} NO+NO   = 2*NO2
+	
+	# { 27} OH+HNO3 = NO3
+
 	
 	## Notes:
 	#  two conditions are expected:
@@ -1583,9 +1593,7 @@ while ( time > 0 ) :
 	#    O3  - THE net production of ozone (still have O3+org losses, etc)
 	#    O   - for reaction with organics in ** Ox+org new radicals **
 	#    NO3 - for reaction with organics in ** NO3+org new radicals **
-	#    O1D - for reaction with H2O      in ** O3+hv Rad source **
-	#    N2O5- as NOz
-	#    HNO3- as NOz
+	#    OH  - for reaction with anything
 	#
 	
 	
@@ -1597,21 +1605,50 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iNO  )] = +ir[1] +ir[4] +0.11*ir[14] +ir[16]\
 	                                -ir[3] -ir[6] -ir[15] -2*ir[20]
 	
-	net_rxn_masses[i2j(kk,iO   )] = +ir[1] +ir[8] +ir[10]\
+	net_rxn_masses[i2j(kk,iHNO3)] = +2*ir[18] -ir[27]
+	
+	net_rxn_masses[i2j(kk,iO   )] = +ir[1] +ir[8] +ir[10] +0.89*ir[14]\
 	                                -ir[2] -ir[4] -ir[5] -ir[6]
 	                                
 	net_rxn_masses[i2j(kk,iO3  )] = +ir[2] -ir[3] -ir[7] -ir[8] -ir[9]
 	
-	net_rxn_masses[i2j(kk,iH2O )] = +ir[9] -ir[10]
-	net_rxn_masses[i2j(kk,iNO3 )] = +ir[5] +ir[7] -ir[14] -ir[16] +ir[17] 
+	net_rxn_masses[i2j(kk,iOH  )] = +2.0*ir[11] -ir[27]
+	
+	net_rxn_masses[i2j(kk,iNO3 )] = +ir[5] +ir[7] +ir[19] +ir[27]\
+	                                -ir[14] -ir[15] -ir[16] -ir[17] 
+	                                
 	net_rxn_masses[i2j(kk,iN2O5)] = +ir[17] -ir[18] -ir[19]
-	net_rxn_masses[i2j(kk,iHNO3)] = +2*ir[18]
+	
 	
 	# prepare for the 'no net production of O3' case...
 	net_rxn_masses[i2j(kk,iO3_o)] = 0.0 
 	net_rxn_masses[i2j(kk,iNO_o)] = 0.0 
 	net_rxn_masses[i2j(kk,iNO2o)] = 0.0 
-	net_rxn_masses[i2j(kk,iNOzo)] = 0.0 
+	net_rxn_masses[i2j(kk,iO__o)] = 0.0 
+	net_rxn_masses[i2j(kk,iOH_o)] = 0.0 
+	net_rxn_masses[i2j(kk,iNO3o)] = 0.0 
+	net_rxn_masses[i2j(kk,iNA_o)] = 0.0 
+	
+	if net_rxn_masses[i2j(kk,iO3  )] < 0 :
+		# this is old O3 titrating NO and old O3 is oxidizing NO2
+		#   save in special variables and zero out regular variables
+		net_rxn_masses[i2j(kk,iO3_o)] = net_rxn_masses[i2j(kk,iO3  )]
+		net_rxn_masses[i2j(kk,iNO_o)] = net_rxn_masses[i2j(kk,iNO  )]
+		net_rxn_masses[i2j(kk,iNO2o)] = net_rxn_masses[i2j(kk,iNO2 )]
+		net_rxn_masses[i2j(kk,iO__o)] = net_rxn_masses[i2j(kk,iO   )]
+		net_rxn_masses[i2j(kk,iOH_o)] = net_rxn_masses[i2j(kk,iOH  )]
+		net_rxn_masses[i2j(kk,iNO3o)] = net_rxn_masses[i2j(kk,iNO3 )]
+		net_rxn_masses[i2j(kk,iNA_o)] = net_rxn_masses[i2j(kk,iHNO3)]
+		
+		net_rxn_masses[i2j(kk,iO3  )] = 0.0
+		net_rxn_masses[i2j(kk,iNO  )] = 0.0
+		net_rxn_masses[i2j(kk,iNO2 )] = 0.0
+		net_rxn_masses[i2j(kk,iO   )] = 0.0
+		net_rxn_masses[i2j(kk,iOH  )] = 0.0
+		net_rxn_masses[i2j(kk,iNO3 )] = 0.0
+		net_rxn_masses[i2j(kk,iN2O5)] = 0.0
+		net_rxn_masses[i2j(kk,iHNO3)] = 0.0
+
 	
 	
 	#-------------------------------------------------------
