@@ -248,7 +248,7 @@ iNOx  = iCH4
 iNOy  = iO
 iVOCm = iOH
 iVOCC = iHO2
-iVOCk = iNO3
+ikOHa = iNO3
 
 #  NOx  = NO + NO2
 #  NOy  = NOx + PAN + N2O5 + PNA + HONO + HNO3 
@@ -256,7 +256,7 @@ iVOCk = iNO3
 #          + OPEN + ISOP + MEOH + ETOH
 #  VOCC = 2*OLE + PAR + 7*TOL + 8*XYL + FORM + 2*ALD2 + 2*ETH + 7*CRES + 3*MGLY
 #          + 7*OPEN + 5*ISOP + MEOH + 2*ETOH
-#  VOCk = VOCm * k_OH
+#  kOHa = (VOC_i * k_OH_i)/VOCm
 
 num_process_all = num_process_spc+5
 
@@ -265,7 +265,7 @@ Phy_spc_names = [
   'NO  ', 'NO2 ', 'O3  ', 'OLE ', 'PAN ', 'N2O5', 'PAR ', 'TOL ', 'XYL ',\
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
   'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'NOx ', 'NOy ', 'VOCm', 'VOCC',
-  'VOCk' ]
+  'kOHa' ]
 
 
 # provide constants needed to compute some of the aggregate variables
@@ -274,27 +274,27 @@ nox_spc  = [ iNO, iNO2 ]
 noy_spc  = [ iNO, iNO2, iPAN, iN2O5, iPNA, iHONO, iHNO3 ]
 
 k_OH_spc = [ iOLE, iPAR, iTOL, iXYL, iFORM, iALD2, 
-             iETH, iCRES, iMGLY, iCO, iISOP, iMEOH, iETOH ]
+             iETH, iCRES, iMGLY, iISOP, iMEOH, iETOH ]
              
 k_OH = [ 0.0 for p in range(num_process_spc) ]
-per_ppb_h = 60.0 / (1000 * 1000)
+scale_koh =  1.0E-4
 
 # the k_OH at 298 from CB4 mech in per_ppm_min
-k_OH[iNO2 ] = per_ppb_h * 1.682E+4
-k_OH[iOLE ] = per_ppb_h * 4.200E+4
-k_OH[iPAR ] = per_ppb_h * 1.203E+3
-k_OH[iTOL ] = per_ppb_h * 9.150E+3
-k_OH[iXYL ] = per_ppb_h * 3.620E+4
-k_OH[iFORM] = per_ppb_h * 1.500E+4
-k_OH[iALD2] = per_ppb_h * 2.400E+4
-k_OH[iETH ] = per_ppb_h * 1.192E+4
-k_OH[iCRES] = per_ppb_h * 6.100E+4
-k_OH[iMGLY] = per_ppb_h * 2.600E+4
-k_OH[iOPEN] = per_ppb_h * 4.400E+4
-k_OH[iCO  ] = per_ppb_h * 3.220E+2
-k_OH[iISOP] = per_ppb_h * 1.476E+5
-k_OH[iMEOH] = per_ppb_h * 1.600E+3
-k_OH[iETOH] = per_ppb_h * 4.300E+3
+k_OH[iCO  ] = scale_koh * 3.220E+2
+k_OH[iPAR ] = scale_koh * 1.203E+3
+k_OH[iMEOH] = scale_koh * 1.600E+3
+k_OH[iETOH] = scale_koh * 4.300E+3
+k_OH[iTOL ] = scale_koh * 9.150E+3
+k_OH[iFORM] = scale_koh * 1.500E+4
+k_OH[iETH ] = scale_koh * 1.192E+4
+k_OH[iNO2 ] = scale_koh * 1.682E+4
+k_OH[iALD2] = scale_koh * 2.400E+4
+k_OH[iMGLY] = scale_koh * 2.600E+4
+k_OH[iXYL ] = scale_koh * 3.620E+4
+k_OH[iOLE ] = scale_koh * 4.200E+4
+k_OH[iOPEN] = scale_koh * 4.400E+4
+k_OH[iCRES] = scale_koh * 6.100E+4
+k_OH[iISOP] = scale_koh * 1.476E+5
 
 VOC_carb_num = [ 0.0 for p in range(num_process_spc) ]
 
@@ -1232,7 +1232,7 @@ while ( time > 0 ) :
 	noy_j_proc  = [ p   for p in nox_j_proc]
 	vocm_j_proc = [ p   for p in nox_j_proc]
 	vocc_j_proc = [ p   for p in nox_j_proc]
-	vock_j_proc = [ p   for p in nox_j_proc]
+	koha_j_proc = [ p   for p in nox_j_proc]
 	
 	for s in range(num_process_spc):
 		# use 'i' to refer to the full list of processes in file
@@ -1276,11 +1276,10 @@ while ( time > 0 ) :
 				 noy_j_proc[j] += j_proc[j]
 		if s in k_OH_spc:
 			for j in range(num_j_processes):
-				if s != iCO :
-					vocm_j_proc[j] += j_proc[j]
-					vocc_j_proc[j] += VOC_carb_num[s] * j_proc[j]
-				vock_j_proc[j] += k_OH[s] * j_proc[j]
-
+				vocm_j_proc[j] += j_proc[j]
+				vocc_j_proc[j] += VOC_carb_num[s] * j_proc[j]
+				koha_j_proc[j] += k_OH[s] * j_proc[j]
+		
 		# now accumulate the values over time
 		#   for the first time, Initial is saved once
 		if time == first_time:
@@ -1289,12 +1288,17 @@ while ( time > 0 ) :
 		for jp in range(jChemistry,jFinal) :
 			total_species_process_masses[s][jp] += j_proc[jp]
 		# the Final will be done after read loop is over.
+	for j in range(num_j_processes):
+		if abs(vocm_j_proc[j]) > 0.0 :
+			koha_j_proc[j] = koha_j_proc[j] / vocm_j_proc[j]
+		else:
+			koha_j_proc[j] = k_OH[iNO2]
 	
 	species_process_masses[iNOx ].append( nox_j_proc)
 	species_process_masses[iNOy ].append( noy_j_proc)
 	species_process_masses[iVOCm].append(vocm_j_proc)
 	species_process_masses[iVOCC].append(vocc_j_proc)
-	species_process_masses[iVOCk].append(vock_j_proc)
+	species_process_masses[ikOHa].append(koha_j_proc)
 	
 	#   for the first time,aggregate Initial is saved once
 	if time == first_time:
@@ -1302,14 +1306,14 @@ while ( time > 0 ) :
 		total_species_process_masses[iNOy ][jInitial] =  noy_j_proc[jInitial]
 		total_species_process_masses[iVOCm][jInitial] = vocm_j_proc[jInitial]
 		total_species_process_masses[iVOCC][jInitial] = vocc_j_proc[jInitial]
-		total_species_process_masses[iVOCk][jInitial] = vock_j_proc[jInitial]
+		total_species_process_masses[ikOHa][jInitial] = koha_j_proc[jInitial]
 	# accumulate Chemistry to Deposition for aggregates each time.
 	for jp in range(jChemistry,jFinal) :
 		total_species_process_masses[iNOx ][jp] +=  nox_j_proc[jp]
 		total_species_process_masses[iNOy ][jp] +=  noy_j_proc[jp]
 		total_species_process_masses[iVOCm][jp] += vocm_j_proc[jp]
 		total_species_process_masses[iVOCC][jp] += vocc_j_proc[jp]
-		total_species_process_masses[iVOCk][jp] += vock_j_proc[jp]
+		total_species_process_masses[ikOHa][jp] += koha_j_proc[jp]
 	# the Final will be done after read loop is over.
 		
 		
@@ -1874,8 +1878,8 @@ total_species_process_masses[iVOCm][jFinal] = \
               species_process_masses[iVOCm][-1][jFinal]
 total_species_process_masses[iVOCC][jFinal] = \
               species_process_masses[iVOCC][-1][jFinal]
-total_species_process_masses[iVOCk][jFinal] = \
-              species_process_masses[iVOCk][-1][jFinal]
+total_species_process_masses[ikOHa][jFinal] = \
+              species_process_masses[ikOHa][-1][jFinal]
 
 	      
 
