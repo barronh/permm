@@ -23,7 +23,6 @@ ChangedBy  = "$LastChangedBy$"
 
 import os.path
 import sys
-import string  # for strip
 
 import re
 import copy    # for deepcopy
@@ -75,8 +74,9 @@ parser.add_option("-x", "--xml",
 if len(args) != 2:
 	parser.error("Invalid number of arguments")
 	
-input_filename  = os.path.abspath(args[0])
-output_filename = os.path.abspath(args[1])
+input_filename = os.path.abspath(args[0])
+given_filename = os.path.abspath(args[1])
+(root_output_filename, oldext) = os.path.splitext(given_filename)
 
 # requires a valid ext file
 if not os.path.exists(input_filename):
@@ -94,12 +94,13 @@ if options.verbose:
 	print "%s" % input_filename
 	print ""
 	print "Writing to  :"
-	print "%s" % output_filename
+	print "%s" % root_output_filename
 	print ""
 
 # ----- options now processed
 
 
+## ==========================================================
 # create regular expressions to read the input file..
 time_re  = re.compile('Time =[0-9]{6}', re.IGNORECASE)
 irr_re   = re.compile('\{\s*\d+\}\s+\d+', re.IGNORECASE)
@@ -108,11 +109,69 @@ split_re = re.compile('[ ]+')
 
 
 
+## ==========================================================
+# function to get an hour's worth of data..
+def get_irr_data(f):
+	"""
+	f -- opened irr&ipr file
+	return (time (as integer), ir_rates (as list), ip_rates (as list of lists)
+	if time < 0, end of file
+	"""
+	# initialize ir and ip storage...
+	ir_time  = -1
+	ir_rates = [0,]
+	ip_rates = []
+	
+	line = f.readline()
+	if line[0] == '|':
+		return (ir_time, ir_rates, ip_rates)
+		
+	# next line is first Time =
+	if time_re.match(line) != None:   # if this is a 'Time =" line...
+		time = line.split('=')[1][0:2] # pick 'HH' out of 'HH0000'
+		ir_time = int(time)           # store hh
+	else :
+		print "ERROR:: did not find a time."
+		sys.exit(1)
+	
+	# read in the !"Rxn No"    "Int Rate" header
+	line = f.readline()
+	
+	# read the irr values
+	while line[0] != ';' :
+		line = f.readline()
+		if irr_re.match(line) != None:    # if this is a { n} n.nnnn line ...
+			ir_value = float(split_re.split(line.replace('{','').replace('}','').strip())[1])
+			ir_rates.append(ir_value)
+	
+	# read in the ! Species      Initial conc. ... header
+	line = f.readline()
+	# 
+	# ip_rates = [ [ip_values], [ip_values], [ip_values], ... ]
+	#   order of sub-lists 'ip_values' is order of iProcess id Number
+	#   for this hour.
+	line = f.readline()
+	while line[0] != ';' :
+		if ipr_re.match(line) != None:
+			ip_set = split_re.split(line[11:-1].strip())
+			ip_values = [ float(v) for v in ip_set ]
+			ip_rates.append(ip_values)
+		line = f.readline()
+	
+	return (ir_time, ir_rates, ip_rates)
 
 
+
+
+
+
+## ==========================================================
 #  GLOBAL DATA FOR CAMX CB4 Mechanism 3 ...
 
-SPC_Names = [
+# the number of irr lines in the input file
+max_i_rxn = 97
+
+Net_spc_names = [
   'NO  ', 'NO2 ', 'O3  ', 'OLE ', 'PAN ', 'N2O5', 'PAR ', 'TOL ', 'XYL ',\
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
   'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ',\
@@ -152,7 +211,7 @@ iH2O2 =  z ; z += 1
 iHNO3 =  z ; z += 1
 iISOP =  z ; z += 1
 iMEOH =  z ; z += 1
-iETOH =  z ; z += 1
+iETOH =  z ; z += 1  # last species in physical process
 iCH4  =  z ; z += 1
 iO    =  z ; z += 1
 iOH   =  z ; z += 1
@@ -181,11 +240,79 @@ iNA_o =  z ; z += 1
 
 max_i_spc = z
 
-# only the first 24 species are included in the physical processes...
-max_process_spc = 24
+num_process_spc = 23
 
-# the number of irr lines in the input file
-max_i_rxn = 97
+# only the first 23 species are included in the physical processes...
+# add some 'aggregate' species to processes...
+iNOx  = iCH4
+iNOy  = iO
+iVOCm = iOH
+iVOCC = iHO2
+iVOCk = iNO3
+
+#  NOx  = NO + NO2
+#  NOy  = NOx + PAN + N2O5 + PNA + HONO + HNO3 
+#  VOCm = OLE + PAR + TOL + XYL + FORM + ALD2 + ETH + CRES + MGLY
+#          + OPEN + ISOP + MEOH + ETOH
+#  VOCC = 2*OLE + PAR + 7*TOL + 8*XYL + FORM + 2*ALD2 + 2*ETH + 7*CRES + 3*MGLY
+#          + 7*OPEN + 5*ISOP + MEOH + 2*ETOH
+#  VOCk = VOCm * k_OH
+
+num_process_all = num_process_spc+5
+
+# provide labels...
+Phy_spc_names = [
+  'NO  ', 'NO2 ', 'O3  ', 'OLE ', 'PAN ', 'N2O5', 'PAR ', 'TOL ', 'XYL ',\
+  'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
+  'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'NOx ', 'NOy ', 'VOCm', 'VOCC',
+  'VOCk' ]
+
+
+# provide constants needed to compute some of the aggregate variables
+
+nox_spc  = [ iNO, iNO2 ]
+noy_spc  = [ iNO, iNO2, iPAN, iN2O5, iPNA, iHONO, iHNO3 ]
+
+k_OH_spc = [ iOLE, iPAR, iTOL, iXYL, iFORM, iALD2, 
+             iETH, iCRES, iMGLY, iCO, iISOP, iMEOH, iETOH ]
+             
+k_OH = [ 0.0 for p in range(num_process_spc) ]
+per_ppb_h = 60.0 / (1000 * 1000)
+
+# the k_OH at 298 from CB4 mech in per_ppm_min
+k_OH[iNO2 ] = per_ppb_h * 1.682E+4
+k_OH[iOLE ] = per_ppb_h * 4.200E+4
+k_OH[iPAR ] = per_ppb_h * 1.203E+3
+k_OH[iTOL ] = per_ppb_h * 9.150E+3
+k_OH[iXYL ] = per_ppb_h * 3.620E+4
+k_OH[iFORM] = per_ppb_h * 1.500E+4
+k_OH[iALD2] = per_ppb_h * 2.400E+4
+k_OH[iETH ] = per_ppb_h * 1.192E+4
+k_OH[iCRES] = per_ppb_h * 6.100E+4
+k_OH[iMGLY] = per_ppb_h * 2.600E+4
+k_OH[iOPEN] = per_ppb_h * 4.400E+4
+k_OH[iCO  ] = per_ppb_h * 3.220E+2
+k_OH[iISOP] = per_ppb_h * 1.476E+5
+k_OH[iMEOH] = per_ppb_h * 1.600E+3
+k_OH[iETOH] = per_ppb_h * 4.300E+3
+
+VOC_carb_num = [ 0.0 for p in range(num_process_spc) ]
+
+VOC_carb_num[iOLE ] = 2
+VOC_carb_num[iPAR ] = 1
+VOC_carb_num[iTOL ] = 7
+VOC_carb_num[iXYL ] = 8
+VOC_carb_num[iFORM] = 1
+VOC_carb_num[iALD2] = 2
+VOC_carb_num[iETH ] = 2
+VOC_carb_num[iCRES] = 7
+VOC_carb_num[iMGLY] = 3
+VOC_carb_num[iOPEN] = 5
+VOC_carb_num[iCO  ] = 1
+VOC_carb_num[iISOP] = 5
+VOC_carb_num[iMEOH] = 1
+VOC_carb_num[iETOH] = 2
+
 
 # integer indexing for input file processes
 iInitial    =  0
@@ -213,7 +340,10 @@ iDilut      = 21
 iTrain      = 22 
 iFinal      = 23
 
-max_i_processes = iFinal + 1
+num_i_processes = iFinal + 1
+
+Proc_Names = [
+ 'Initial', 'Chemistry ', 'Emissions', 'H_Trans', 'V_Trans', 'Entrain', 'Deposit', 'Final']
 
 # integer indexing for lumped species processes
 jInitial    =  0
@@ -225,11 +355,12 @@ jEntrain    =  5
 jDepo       =  6
 jFinal      =  7
 
-max_j_processes = jFinal + 1
+num_j_processes = jFinal + 1
 
 
 
-# Set up data representation for the net reactions
+## ==========================================================
+# DATA STORAGE for Net Reactions, Summaries, Physical Processes
 
 # Start with info about the net_rxns sets...
 #   allocate vector of names of the net_rxns
@@ -299,22 +430,27 @@ def i2j(k,i):
 #   a proc list is list of masses by process, e.g., [ [ [I,C,T,D,F], [I,C,T,D,F] ] ]
 #  
 species_process_masses = []
-#a_species_vector = 
-for s in range(max_process_spc): 
+for s in range(num_process_all): 
 	species_process_masses.append([])   # set up list for process species
 
 #   accumulate the species_process_masses over all time.
-total_species_processes_masses = []
-for s in range(max_process_spc): 
-	total_species_processes_masses.append([]) # set up list for process species
+total_species_process_masses = []
+#   create a 0-filled initial vector of j-processes..
+j_proc_null = [ 0.0 for p in range(num_j_processes) ]
+for s in range(num_process_all): 
+	# for each species, append a 0-valued j-processes vector
+	total_species_process_masses.append([z for z in j_proc_null])
+	# use incremented addition into each element to accumulate, 
+	#  eg, total_species_process_masses[s][jInitial] += this_jInitial
 
 
 
 
+## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+##  P A R T   O N E  : D E F I N E  T H E  N E T  R E A C T I O N S 
 
 
-
-# @@@@@@@@ N E T   R E A C T I O N S  @@@@@@@@@
+# @@@@@@@@ N E T   R E A C T I O N  G R O U P S  @@@@@@@@@
 #
 #  1) ** O3+hv   Radical Source  **   IdNum = n_O3hvrad
 #  2) ** HONO+hv Radical Source  **   IdNum = n_HONOhvrad
@@ -1027,9 +1163,6 @@ for n in indx_net_rxn:
 	net_rxn_spcname.append(n)
 
 
-
-
-
 ## >>>>>> finished setting up all net reaction storage <<<<<<
 num_net_rxn_sets  = this_net_rxn_set
 max_j  = jstart_next_nr_set
@@ -1037,64 +1170,7 @@ max_j  = jstart_next_nr_set
 
 
 
-## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-##  P A R T   T W O  : C A L C U L A T E  T H E  N E T  M A S S E S
-
-
 ## ==========================================================
-# function to get an hour's worth of data..
-def get_irr_data(f):
-	"""
-	f -- opened irr&ipr file
-	return (time (as integer), ir_rates (as list), ip_rates (as list of lists)
-	if time < 0, end of file
-	"""
-	# initialize ir and ip storage...
-	ir_time  = -1
-	ir_rates = [0,]
-	ip_rates = []
-	for i in range(max_process_spc):  # make space for process rates for CB4's 24 species
-		ip_rates.append([])
-	
-	line = f.readline()
-	if line[0] == '|':
-		return (ir_time, ir_rates, ip_rates)
-		
-	# next line is first Time =
-	if time_re.match(line) != None:   # if this is a 'Time =" line...
-		time = line.split('=')[1][0:2] # pick 'HH' out of 'HH0000'
-		ir_time = int(time)           # store hh
-	else :
-		print "ERROR:: did not find a time."
-		sys.exit(1)
-	
-	# read in the !"Rxn No"    "Int Rate" header
-	line = f.readline()
-	
-	# read the irr values
-	while line[0] != ';' :
-		line = f.readline()
-		if irr_re.match(line) != None:    # if this is a { n} n.nnnn line ...
-			ir_value = float(split_re.split(line.replace('{','').replace('}','').strip())[1])
-			ir_rates.append(ir_value)
-	
-	# for now skip reading the process rates..
-	# read in the ! Species      Initial conc. ... header
-	# 
-	# ip_rates = [ [ip_values], [ip_values], [ip_values], ... ]
-	#   order of sub-lists 'ip_values' is order of iProcess id Number
-	#   for this hour.
-	line = f.readline()
-	while line[0] != ';' :
-		line = f.readline()
-		if ipr_re.match(line) != None:
-			ip_values = [ float(v) for v in \
-			     split_re.split(line.replace('"','').replace('"','').strip())[1:] ]
-			ip_rates.append(ip_values)
-	
-	return (ir_time, ir_rates, ip_rates)
-
-
 
 ## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ##  P A R T   T W O  : C A L C U L A T E  T H E  N E T  M A S S E S
@@ -1102,16 +1178,13 @@ def get_irr_data(f):
 
 ## ==========================================================
 if options.verbose:
-	print "Opening the files.."
-
-# open the files...
-fout = open(output_filename, 'w')
+	print "Opening input file.."
 
 fin = open(input_filename, 'r')
 
 # first two lines are 'doc' lines giving data source
 #   skip the quote error in doc line from file...
-irrfile_docline = fin.readline()[1:-2]
+irrfile_docline = fin.readline()[1:-1]
 # skip the second doc line...
 line = fin.readline()
 
@@ -1128,6 +1201,7 @@ if options.verbose:
 ## ==========================================================
 ## big loop repeated for each time in file...
 ##
+first_time = -1
 while ( time > 0 ) :
 	if options.verbose:
 		print "Time %d  hours" % time
@@ -1135,9 +1209,109 @@ while ( time > 0 ) :
 		print "ERROR: no ir data!"
 		sys.exit(1)
 		
-#	if len(ip) != max_process_spc:
+#	if len(ip) != num_process_spc:
 #		print "ERROR: no ip data!"
 #		sys.exit(1)
+#		
+#	print "ip data"
+#	i = 0
+#	for svalue in ip:
+#		print Net_spc_names[i]
+#		print svalue
+#		i += 1
+		print "--------------"
+	
+	if first_time < 0:
+		first_time = time
+	
+	#-------------------------------------------------------
+	# ... process the ip data for this time...
+	#-------------------------------------------------------
+	# fill out accumulator vectors for aggregates...
+	nox_j_proc  = [ 0.0 for p in range(num_j_processes)]
+	noy_j_proc  = [ p   for p in nox_j_proc]
+	vocm_j_proc = [ p   for p in nox_j_proc]
+	vocc_j_proc = [ p   for p in nox_j_proc]
+	vock_j_proc = [ p   for p in nox_j_proc]
+	
+	for s in range(num_process_spc):
+		# use 'i' to refer to the full list of processes in file
+		# use 'j' to refer to the lumped processes we are saving
+		
+		# get the i-processes read in for this time...
+		sp = ip[s]
+		# create a j-process vector for this species at this time
+		j_proc = []
+		j_proc.append(sp[iInitial])
+		j_proc.append(sp[iChemistry])
+		# sum all of the emissions into a single value
+		t_emiss = sp[iEmiss_Area] + sp[iEmiss_Pnt] + sp[iEmiss_PiG]
+		j_proc.append(t_emiss)
+		
+		# sum all the horizontal transport into a single value
+		t_htrans = sp[iAdv_W] + sp[iAdv_E] + sp[iAdv_S] + sp[iAdv_N] \
+		          +sp[iDif_W] + sp[iDif_E] + sp[iDif_S] + sp[iDif_N]
+		j_proc.append(t_htrans)
+		
+		# sum the vertical transport into a single value
+		t_vtrans = sp[iAdv_B] + sp[iAdv_T] + sp[iDif_B] + sp[iDif_T]
+		j_proc.append(t_vtrans)
+		
+		# sum the entrainment and dilution into a single value
+		j_proc.append(sp[iTrain]+sp[iDilut])
+		
+		# sum the wet and dry deposition into a single value
+		j_proc.append(sp[iDep_D]+sp[iDep_W])
+		
+		j_proc.append(sp[iFinal])
+		
+		# this is species s at this time by j-processes
+		species_process_masses[s].append(j_proc)
+		
+		if s in nox_spc:
+			for j in range(num_j_processes):
+				 nox_j_proc[j] += j_proc[j]
+		if s in noy_spc:
+			for j in range(num_j_processes):
+				 noy_j_proc[j] += j_proc[j]
+		if s in k_OH_spc:
+			for j in range(num_j_processes):
+				if s != iCO :
+					vocm_j_proc[j] += j_proc[j]
+					vocc_j_proc[j] += VOC_carb_num[s] * j_proc[j]
+				vock_j_proc[j] += k_OH[s] * j_proc[j]
+
+		# now accumulate the values over time
+		#   for the first time, Initial is saved once
+		if time == first_time:
+			total_species_process_masses[s][jInitial] = j_proc[jInitial]
+		# accumulate Chemistry to Deposition for each time.
+		for jp in range(jChemistry,jFinal) :
+			total_species_process_masses[s][jp] += j_proc[jp]
+		# the Final will be done after read loop is over.
+	
+	species_process_masses[iNOx ].append( nox_j_proc)
+	species_process_masses[iNOy ].append( noy_j_proc)
+	species_process_masses[iVOCm].append(vocm_j_proc)
+	species_process_masses[iVOCC].append(vocc_j_proc)
+	species_process_masses[iVOCk].append(vock_j_proc)
+	
+	#   for the first time,aggregate Initial is saved once
+	if time == first_time:
+		total_species_process_masses[iNOx ][jInitial] =  nox_j_proc[jInitial]
+		total_species_process_masses[iNOy ][jInitial] =  noy_j_proc[jInitial]
+		total_species_process_masses[iVOCm][jInitial] = vocm_j_proc[jInitial]
+		total_species_process_masses[iVOCC][jInitial] = vocc_j_proc[jInitial]
+		total_species_process_masses[iVOCk][jInitial] = vock_j_proc[jInitial]
+	# accumulate Chemistry to Deposition for aggregates each time.
+	for jp in range(jChemistry,jFinal) :
+		total_species_process_masses[iNOx ][jp] +=  nox_j_proc[jp]
+		total_species_process_masses[iNOy ][jp] +=  noy_j_proc[jp]
+		total_species_process_masses[iVOCm][jp] += vocm_j_proc[jp]
+		total_species_process_masses[iVOCC][jp] += vocc_j_proc[jp]
+		total_species_process_masses[iVOCk][jp] += vock_j_proc[jp]
+	# the Final will be done after read loop is over.
+		
 		
 	#-------------------------------------------------------
 	# ... process the ir data for this time...
@@ -1686,6 +1860,24 @@ while ( time > 0 ) :
 	
 	### end of the hour loop 
 
+
+# insert the last time jFinal into the total_species_process_masses
+for s in range(num_process_all):
+	total_species_process_masses[s][jFinal] = \
+	      species_process_masses[s][-1][jFinal]
+	      
+total_species_process_masses[iNOx ][jFinal] = \
+              species_process_masses[iNOx ][-1][jFinal]
+total_species_process_masses[iNOy ][jFinal] = \
+              species_process_masses[iNOy ][-1][jFinal]
+total_species_process_masses[iVOCm][jFinal] = \
+              species_process_masses[iVOCm][-1][jFinal]
+total_species_process_masses[iVOCC][jFinal] = \
+              species_process_masses[iVOCC][-1][jFinal]
+total_species_process_masses[iVOCk][jFinal] = \
+              species_process_masses[iVOCk][-1][jFinal]
+
+	      
 
 ######### repeat to here for each set of net reactions ######
 
@@ -2583,9 +2775,18 @@ num_rows_in_section = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_diagram_row  = jj
 
+
+
+
+## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+##  P A R T   F O U R  : P R I N T  T H E  S U M M A R I E S   
+##                       P R I N T  T H E  N E T  R E A C T I O N S
+## ===================================================================
+
+# choose 'xlm' style output or 'table' style output
 if options.output_format=="xml":
 	from jaxml import XML_document
-	fout.close()
+	xml_output_filename = root_output_filename+".xml"
 	delim="\t"
 	
 	#Create the generator object
@@ -2630,7 +2831,7 @@ if options.output_format=="xml":
 	xdoc._push()
 	
 	kk = 0
-	for i in range(0,len(net_rxn_masses)):
+	for i in range(len(net_rxn_masses)):
 		if i == net_rxn_jindex[kk] :
 			xdoc._pop()
 			xdoc._pop()
@@ -2644,30 +2845,37 @@ if options.output_format=="xml":
 		xdoc._pop()
 		xdoc._push()
 		xdoc.species()
-		xdoc.name(SPC_Names[net_rxn_spcname[i]])
+		xdoc.name(Net_spc_names[net_rxn_spcname[i]])
 		dia_temp = []
-		for t in range(0,len(hour_number)):
+		for t in range(len(hour_number)):
 			dia_temp.append(hourly_net_rxn_masses[t][i])
 		
 		xdoc.values(delim.join(map(str,dia_temp)), uom="ppb")
 		xdoc.total(daily_net_rxn_masses[i], uom='ppb')
 	
 	#write out values to file
-	xdoc._output(output_filename)
+	xdoc._output(xml_output_filename)
 else:
-	# Output the hourly and total net reactions to file...
+	# Output the diagram sections summaries to file...
+	# open the output file...
+	sum_output_filename = root_output_filename+".sum"
+	fout = open(sum_output_filename, 'w')
+	
+	print >>fout, "Diagram Section Summaries"
+	print >>fout
 	print >>fout, "IRR file doc line was"
 	print >>fout, irrfile_docline
+	print >>fout
 	
 	kk = 0
 	print >>fout, "%-21s" % "Hour",
 	for t in hour_number:
-		print >>fout, "      %02d" % t,
+		print >>fout, "        %02d" % t,
 	print >>fout,  "    Daily"	
 	print >>fout
 	print >>fout, "Summary Section Name"
 	print >>fout, "Item             ppb"
-	for i in range(0,len(hourly_diagram_values)):
+	for i in range(len(hourly_diagram_values)):
 		if i == diagram_sect_start[kk] :
 			print >>fout
 			print >>fout
@@ -2676,25 +2884,70 @@ else:
 			if kk < len(diagram_sect_start)-1:
 				kk += 1
 		print  >>fout, "%-20s " % section_labels[i],
-		for t in range(0,num_hrs):
-			print >>fout, "%8.4f" % (hourly_diagram_values[i][t]),
-		print >>fout, "%8.4f" % daily_diagram_values[i]
-	
-	
-	
+		for t in range(num_hrs):
+			print >>fout, "%10.4f" % (hourly_diagram_values[i][t]),
+		print >>fout, "%10.4f" % daily_diagram_values[i]
 	print >>fout
+	fout.close()
+	
+	# Output the physical processes to file...
+	# open the output file...
+	phy_output_filename = root_output_filename+".phy"
+	fout = open(phy_output_filename, 'w')
+	
+	print >>fout, "Physical Processes By Species"
 	print >>fout
+	print >>fout, "IRR file doc line was"
+	print >>fout, irrfile_docline
+	
+	print >>fout, "%-21s" % "Hour",
+	for t in hour_number:
+		print >>fout, "        %02d" % t,
+	print >>fout,  "    Daily"	
 	print >>fout
+	print >>fout, "Species"
+	print >>fout, "  Process, ppb or ppb/h"
+	for s in range(num_process_all):
+		if ((s+1) % 8) == 0:
+			print >>fout, "%-21s" % "Hour",
+			for t in hour_number:
+				print >>fout, "        %02d" % t,
+			print >>fout,  "    Daily"	
+			print >>fout
+		print >>fout, "%-20s" % Phy_spc_names[s]
+		hour_sum = [0.0]*(num_hrs+1)
+		for p in range(num_j_processes):
+			print  >>fout, "  %-18s " % Proc_Names[p],
+			for t in range(num_hrs):
+				print >>fout, "%10.4f" % (species_process_masses[s][t][p]),
+				if p < jFinal:
+					hour_sum[t] += species_process_masses[s][t][p]
+			print >>fout, "%10.4f" % total_species_process_masses[s][p]
+			if p < jFinal:
+				hour_sum[-1] += total_species_process_masses[s][p]
+		print  >>fout, "  %-18s " % "Sum Processes",
+		for t in range(num_hrs):
+			print >>fout, "%10.4f" % (hour_sum[t]),
+		print >>fout, "%10.4f" % hour_sum[-1]
+		print >>fout
+	print >>fout
+	fout.close()
 	
 	
 	# Output the hourly and total net reactions to file...
+	# open the output file...
+	net_output_filename = root_output_filename+".net"
+	fout = open(net_output_filename, 'w')
+	
+	print >>fout, "Net Reactions"
+	print >>fout
 	print >>fout, "IRR file doc line was"
 	print >>fout, irrfile_docline
 	
 	kk = 0
 	print >>fout, "%-21s" % "Hour",
 	for t in hour_number:
-		print >>fout, "      %02d" % t,
+		print >>fout, "        %02d" % t,
 	print >>fout,  "     Daily"	
 	print >>fout
 	print >>fout, "Net Reaction Name"
@@ -2707,13 +2960,13 @@ else:
 			print >>fout
 			if kk < len(net_rxn_names)-1:
 				kk += 1
-		print  >>fout, "%-20s " % SPC_Names[net_rxn_spcname[i]],
+		print  >>fout, "%-20s " % Net_spc_names[net_rxn_spcname[i]],
 		for t in range(0,len(hour_number)):
-			print >>fout, "%8.4f" % (hourly_net_rxn_masses[t][i]),
-		print >>fout, "%8.4f" % daily_net_rxn_masses[i]
+			print >>fout, "%10.4f" % (hourly_net_rxn_masses[t][i]),
+		print >>fout, "%10.4f" % daily_net_rxn_masses[i]
 	# finished the whole set of net rxn masses for all hours
-
-fout.close()
+	print >>fout
+	fout.close()
 
 
 print "F I N I S H E D"
