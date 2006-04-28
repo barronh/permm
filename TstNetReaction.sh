@@ -20,4 +20,11 @@ python net_balance.py  ../inout/camx420_pa.20000825.base1b.4time_co.4km.bayland.
 python net_balance.py  ../inout/camx420_pa.20000825.base1b.quart_co.4km.bayland.hourly.cycle.8.18.ext \
   ../inout/Bayland_quartCO_0825_818_420.txt
 
+python net_balance.py  ../inout/camx420_pa.20000825.base1b.psito2n2.4km.HALC.4km.hourly.cycle.8.18.ext \
+  ../inout/HALC_8hour_0825_818_420.txt
 
+python net_balance.py  ../inout/camx420_pa.20000830.base1b.psito2n2.4km.HALC.4km.hourly.cycle.8.18.ext \
+  ../inout/HALC_8hour_0830_818_420.txt
+  
+python net_balance.py  ../inout/camx420_pa.20000830.base1b.psito2n2.4km.DRPK.4km.hourly.cycle.8.18.ext \
+  ../inout/DRPK_8hour_0830_818_420.txt  
