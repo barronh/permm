@@ -1,4 +1,9 @@
 #! /bin/sh
+
+## $LastChangedDate: 2006-04-24 11:56:17 -0400 (Mon, 24 Apr 2006) $
+## $LastChangedRevision: 115 $
+## $LastChangedBy: jeffries $
+
 python net_balance.py  ../inout/camx403.20000830.base5b.psito2n2.1km.clinton.1km.hourly.cycle.8.18.ext \
   ../inout/Clinton_1hour_0830_818_403.txt
 
