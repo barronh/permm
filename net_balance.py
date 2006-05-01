@@ -1278,7 +1278,7 @@ while ( time > 0 ) :
 			for j in range(num_j_processes):
 				vocm_j_proc[j] += j_proc[j]
 				vocc_j_proc[j] += VOC_carb_num[s] * j_proc[j]
-				koha_j_proc[j] += k_OH[s] * j_proc[j]
+				koha_j_proc[j] += k_OH[s] * abs(j_proc[j])
 		
 		# now accumulate the values over time
 		#   for the first time, Initial is saved once
@@ -1290,7 +1290,7 @@ while ( time > 0 ) :
 		# the Final will be done after read loop is over.
 	for j in range(num_j_processes):
 		if abs(vocm_j_proc[j]) > 0.0 :
-			koha_j_proc[j] = koha_j_proc[j] / vocm_j_proc[j]
+			koha_j_proc[j] = koha_j_proc[j] / abs(vocm_j_proc[j])
 		else:
 			koha_j_proc[j] = k_OH[iNO2]
 	
