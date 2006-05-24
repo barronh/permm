@@ -23,9 +23,7 @@ ChangedBy  = "$LastChangedBy$"
 
 import os.path
 import sys
-
 import re
-import copy    # for deepcopy
 	
 from optparse import OptionParser
 	
@@ -176,13 +174,14 @@ Net_spc_names = [
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
   'H2O2', 'HNO3', 'ISOP', 'MEOH', 'ETOH', 'CH4 ', 'O   ', 'OH  ', 'HO2 ',\
   'NO3 ', 'C2O3', 'XO2 ', 'XO2N', 'NTR ', 'CRO ', 'ISPD', 'TO2 ', 'ROR ',\
-  'SO2 ', 'xHO2', 'H2O ', '-OOX', 'VOC ', \
+  'SO2 ', 'xHO2', 'H2O ', '-OOX', 'VOC ', 'xFORM', 'xALD', 'xMGLY',\
   'O3_o', 'O__o', 'NO_o', 'NO2o', 'OH_o', 'NO3o', 'NA_o' ]
 
 # Use xHO2 to track 'prompt HO2' and separate it from direct HO2.
 # Use H2O  as a product in some reactions to track a term pathway
 # Use -OOX to track the XO2+XO2 type reaction products.
 # Use VOC  as a summing of individual HC species that reacted.
+# Use xFORM and xALD to track the secondary FORM and ALD produced
 # Use O3_o, O__o, OH_o, NO_o, NO2_o, NOzo to track the consumption of O3 
 #    by early and late titration of NO to NO2 in NO cycle net reaction.
 
@@ -230,6 +229,9 @@ ixHO2 =  z ; z += 1
 iH2O  =  z ; z += 1
 iOOX  =  z ; z += 1
 iVOC  =  z ; z += 1
+ixFOR =  z ; z += 1
+ixALD =  z ; z += 1
+ixMGL =  z ; z += 1
 iO3_o =  z ; z += 1
 iO__o =  z ; z += 1
 iNO_o =  z ; z += 1
@@ -510,8 +512,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species
 for z in [0]*num_spc_in_net_rxn:
@@ -556,8 +558,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
@@ -601,6 +603,8 @@ jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
 jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
+jndx_net_rxn[ixFOR] = jj; jj += 1; indx_net_rxn.append(ixFOR)
+jndx_net_rxn[ixALD] = jj; jj += 1; indx_net_rxn.append(ixALD)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -608,8 +612,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
@@ -658,6 +662,9 @@ jndx_net_rxn[iC2O3] = jj; jj += 1; indx_net_rxn.append(iC2O3)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
 jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
+jndx_net_rxn[ixFOR] = jj; jj += 1; indx_net_rxn.append(ixFOR)
+jndx_net_rxn[ixALD] = jj; jj += 1; indx_net_rxn.append(ixALD)
+jndx_net_rxn[ixMGL] = jj; jj += 1; indx_net_rxn.append(ixMGL)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -665,8 +672,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species in the 
 #   OH+organic net rxn
@@ -717,6 +724,8 @@ jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
 jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
 jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
+jndx_net_rxn[ixFOR] = jj; jj += 1; indx_net_rxn.append(ixFOR)
+jndx_net_rxn[ixALD] = jj; jj += 1; indx_net_rxn.append(ixALD)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -724,8 +733,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
@@ -762,6 +771,8 @@ indx_net_rxn = []
 jj = this_jstart
 
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
+# use NA_o to catch mag of OH + HNO3 = NO3 reaction
+jndx_net_rxn[iNA_o] = jj; jj += 1; indx_net_rxn.append(iNA_o)
 # use H2O to catch mag of OH + HO2 = H2O + O2 reaction..
 jndx_net_rxn[iH2O ] = jj; jj += 1; indx_net_rxn.append(iH2O )
 jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
@@ -790,6 +801,9 @@ jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 jndx_net_rxn[iXO2N] = jj; jj += 1; indx_net_rxn.append(iXO2N)
 jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iVOC ] = jj; jj += 1; indx_net_rxn.append(iVOC )
+jndx_net_rxn[ixFOR] = jj; jj += 1; indx_net_rxn.append(ixFOR)
+jndx_net_rxn[ixALD] = jj; jj += 1; indx_net_rxn.append(ixALD)
+jndx_net_rxn[ixMGL] = jj; jj += 1; indx_net_rxn.append(ixMGL)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -797,8 +811,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species in the 
 #   OH+organic net rxn
@@ -840,6 +854,7 @@ jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
 jndx_net_rxn[iXO2 ] = jj; jj += 1; indx_net_rxn.append(iXO2 )
 jndx_net_rxn[ixHO2] = jj; jj += 1; indx_net_rxn.append(ixHO2)
 jndx_net_rxn[iOOX ] = jj; jj += 1; indx_net_rxn.append(iOOX )
+jndx_net_rxn[ixFOR] = jj; jj += 1; indx_net_rxn.append(ixFOR)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -847,8 +862,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
@@ -897,8 +912,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species 
 for z in [0]*num_spc_in_net_rxn:
@@ -942,8 +957,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species in the 
 #   OH+organic net rxn
@@ -987,6 +1002,7 @@ jndx_net_rxn[iHO2 ] = jj; jj += 1; indx_net_rxn.append(iHO2 )
 jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
 jndx_net_rxn[iOOX ] = jj; jj += 1; indx_net_rxn.append(iOOX )
+jndx_net_rxn[ixFOR] = jj; jj += 1; indx_net_rxn.append(ixFOR)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -994,8 +1010,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species in the 
 #   OH+organic net rxn
@@ -1043,8 +1059,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector the net rxn
 for z in [0]*num_spc_in_net_rxn:
@@ -1081,20 +1097,20 @@ indx_net_rxn = []
 jj = this_jstart
 jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
 jndx_net_rxn[iNO  ] = jj; jj += 1; indx_net_rxn.append(iNO  )
-jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
 jndx_net_rxn[iOH  ] = jj; jj += 1; indx_net_rxn.append(iOH  )
 jndx_net_rxn[iO   ] = jj; jj += 1; indx_net_rxn.append(iO   )
 jndx_net_rxn[iNO3 ] = jj; jj += 1; indx_net_rxn.append(iNO3 )
 jndx_net_rxn[iN2O5] = jj; jj += 1; indx_net_rxn.append(iN2O5)
+jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 
 jndx_net_rxn[iO3_o] = jj; jj += 1; indx_net_rxn.append(iO3_o)
 jndx_net_rxn[iNO_o] = jj; jj += 1; indx_net_rxn.append(iNO_o)
-jndx_net_rxn[iNA_o] = jj; jj += 1; indx_net_rxn.append(iNA_o)
 jndx_net_rxn[iNO2o] = jj; jj += 1; indx_net_rxn.append(iNO2o)
 jndx_net_rxn[iO__o] = jj; jj += 1; indx_net_rxn.append(iO__o)
 jndx_net_rxn[iOH_o] = jj; jj += 1; indx_net_rxn.append(iOH_o)
 jndx_net_rxn[iNO3o] = jj; jj += 1; indx_net_rxn.append(iNO3o)
+jndx_net_rxn[iNA_o] = jj; jj += 1; indx_net_rxn.append(iNA_o)
 
 # how many elements in vector are needed.
 num_spc_in_net_rxn = jj - this_jstart
@@ -1102,8 +1118,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for net rxn
 for z in [0]*num_spc_in_net_rxn:
@@ -1138,6 +1154,7 @@ indx_net_rxn = []
 
 # fill in the jindex at the iSPC locations for the net rxn
 jj = this_jstart
+jndx_net_rxn[iNO2 ] = jj; jj += 1; indx_net_rxn.append(iNO2 )
 jndx_net_rxn[iHNO3] = jj; jj += 1; indx_net_rxn.append(iHNO3)
 jndx_net_rxn[iPAN ] = jj; jj += 1; indx_net_rxn.append(iPAN )
 jndx_net_rxn[iNTR ] = jj; jj += 1; indx_net_rxn.append(iNTR )
@@ -1149,8 +1166,8 @@ num_spc_in_net_rxn = jj - this_jstart
 # save the starting value of the vector index offset for the next cycle...
 jstart_next_nr_set  = jj
 
-# DEEP copy a new jndx vector for net_rxn to the net_rxn_species array
-net_rxn_species.append(copy.deepcopy(jndx_net_rxn))
+# copy a new jndx vector for net_rxn to the net_rxn_species array
+net_rxn_species.append([e for e in jndx_net_rxn])
 
 # add and init new elements to the net_rxn_masses vector for species in the 
 #   OH+organic net rxn
@@ -1209,17 +1226,10 @@ while ( time > 0 ) :
 		print "ERROR: no ir data!"
 		sys.exit(1)
 		
-#	if len(ip) != num_process_spc:
-#		print "ERROR: no ip data!"
-#		sys.exit(1)
-#		
-#	print "ip data"
-#	i = 0
-#	for svalue in ip:
-#		print Net_spc_names[i]
-#		print svalue
-#		i += 1
-		print "--------------"
+	if len(ip) != num_process_spc:
+		print "ERROR: no ip data!"
+		sys.exit(1)
+		
 	
 	if first_time < 0:
 		first_time = time
@@ -1392,6 +1402,10 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iXO2 )] =  ir[45]+0.7*ir[95]
 	net_rxn_masses[i2j(kk,ixHO2)] =  ir[45]+0.7*ir[95]
 	
+	#   ... secondary aldehydes
+	net_rxn_masses[i2j(kk,ixFOR)] =  ir[45]+0.9*ir[95]
+	net_rxn_masses[i2j(kk,ixALD)] =  0.067*ir[95]
+	
 	
 	#-------------------------------------------------------
 	### The Net Rxns for ** Ox+Org Radical Source **
@@ -1452,6 +1466,15 @@ while ( time > 0 ) :
 										+0.066*ir[93]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.02*ir[56]
 	
+	#   ... secondary aldehydes
+	net_rxn_masses[i2j(kk,ixFOR)] = 0.20*ir[56]+0.56*ir[75]\
+										+0.74*ir[58]+ir[62]+0.70*ir[71]+0.60*ir[77]\
+										+0.15*ir[93]
+	net_rxn_masses[i2j(kk,ixALD)] = 0.63*ir[56]\
+										+0.50*ir[58]       +0.03*ir[71]+0.15*ir[77]\
+										+0.02*ir[93]
+	net_rxn_masses[i2j(kk,ixMGL)] = 0.20*ir[71]+0.85*ir[93]
+										
 	
 	#-------------------------------------------------------
 	### The Net Rxns for ** NO3+Org Radical Source **
@@ -1489,12 +1512,17 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iNO2 )] =  ir[59]+0.2*ir[78]
 	net_rxn_masses[i2j(kk,iNTR )] =  0.80*ir[78]+0.85*ir[94]
 	
+		#   ... secondary aldehydes
+	net_rxn_masses[i2j(kk,ixFOR)] = ir[59]+0.282*ir[94]
+	net_rxn_masses[i2j(kk,ixALD)] = ir[59]+0.80 *ir[78]+0.357*ir[94]
+	
 	
 	#-------------------------------------------------------
 	### The Net Rxns for ** OH + (organic+NO2) **
 	kk += 1  
 	
-	# { 26} OH + NO2  = HNO3
+	# { 26} OH + NO2  = HNO3    # use HNO3 for this HNO3
+	# { 27} OH + HNO3 = NO3     # use NA_o for this HNO3
 	
 	# { 90} OH + HO2  = H2O + O2
 	
@@ -1522,7 +1550,7 @@ while ( time > 0 ) :
 	# { 63} OH + TOL  = 0.08*XO2+0.08*xHO2+ 0.36*HO2+0.36*CRES+0.56*TO2
 	#      { 64} TO2 + NO = 0.9*NO2+0.9*xHO2+0.9*OPEN+0.1*NTR
 	#                    [ code 0.9*NO2 as 0.9*XO2 + 0.9*xHO2 ]
-	#                    [ code 0.1*NTR as 0.1*XNO2           ]
+	#                    [ code 0.1*NTR as 0.1*NTR in XO2/XO2N set]
 	#                    [ add NO loss and NO2 gain in XO2/XO2N net reactions]
 	#      { 65} TO2  = CRES + HO2
 	# { 66} OH + CRES = 0.4*CRO + 0.6*XO2 + 0.6*xHO2 + 0.3*OPEN
@@ -1536,7 +1564,7 @@ while ( time > 0 ) :
 	
 	# notes:: 
 	#   3) for ir[55], ROR, NTR is from NO2+rad not NO+RO2, omitted here
-	#                    but tracked in '?????' net reaction set.
+	#                    but tracked in 'NO2 Term' net reaction set.
 	#   4) for ir[66], CRO, NTR is from NO2+rad not NO+RO2, omitted the CRO production.
 	#                   but ir[68] production is tracked in 'NO2 Term' net reaction set.
 	#
@@ -1546,8 +1574,9 @@ while ( time > 0 ) :
 	#                       loss in the XO2 + NO net reaction below.
 	
 	
-	#   ... the organics losses
+	#   ... the other reactant losses
 	net_rxn_masses[i2j(kk,iNO2 )] = -ir[26]
+	net_rxn_masses[i2j(kk,iNA_o)] = -ir[27]
 	net_rxn_masses[i2j(kk,iH2O )] = -ir[90]
 	net_rxn_masses[i2j(kk,iO3  )] = -ir[12]
 	net_rxn_masses[i2j(kk,iH2O2)] = -ir[35]
@@ -1568,7 +1597,7 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iISOP)] = -ir[76]
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[92]
 	#    ... the OH losses
-	net_rxn_masses[i2j(kk,iOH  )] = -ir[26]-ir[90]-ir[12]-ir[35]-ir[36]\
+	net_rxn_masses[i2j(kk,iOH  )] = -ir[26]-ir[27]-ir[90]-ir[12]-ir[35]-ir[36]\
 	                                -ir[37]-ir[84]-ir[85]-ir[43]-ir[73]\
 	                                -ir[70]-ir[51]-ir[52]-ir[61]-ir[57]\
 	                                -ir[63]-ir[66]-ir[72]-ir[76]-ir[92]
@@ -1597,6 +1626,13 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.13*ir[52]+0.088*ir[76]+0.04*ir[53]\
 										+0.1*ir[64]
 	
+	#   ... secondary aldehydes
+	net_rxn_masses[i2j(kk,ixFOR)] = ir[84]+ir[70]+ir[51]+1.56*ir[61]+ir[57]
+	net_rxn_masses[i2j(kk,ixALD)] = ir[85]+0.11*ir[52]+1.10*ir[53]+0.22*ir[61]\
+										+ir[57]+0.273*ir[92]
+	net_rxn_masses[i2j(kk,ixMGL)] = 0.80*ir[72]+0.168*ir[92]
+	
+	
 	# sum of VOCs 
 	net_rxn_masses[i2j(kk,iVOC )] =  -ir[37]-ir[84]-ir[85]-ir[43]-ir[73]\
                                      -ir[51]-ir[52]-ir[61]-ir[57]-ir[63]\
@@ -1624,6 +1660,9 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iXO2 )] = +ir[46] +2*ir[49] +0.79*ir[50]
 	net_rxn_masses[i2j(kk,ixHO2)] = +ir[46] +2*ir[49] +0.79*ir[50]
 	net_rxn_masses[i2j(kk,iOOX )] = +0.21*ir[50]
+	#   ... secondary aldehydes
+	net_rxn_masses[i2j(kk,ixFOR)] = +ir[46] +2*ir[49] +0.79*ir[50]
+	
 		
 	
 	#-------------------------------------------------------
@@ -1643,7 +1682,7 @@ while ( time > 0 ) :
 	#   2)  ir[64] see note 5 under ** OH + (organic+NO2) **
 	
 	net_rxn_masses[i2j(kk,iXO2 )] = -ir[79] -2*ir[80] -ir[89]
-	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -2*ir[88] -ir[89] +0.1*ir[64]
+	net_rxn_masses[i2j(kk,iXO2N)] = -ir[81] -2*ir[88] -ir[89]
 	net_rxn_masses[i2j(kk,iNO  )] = -ir[79]   -ir[81] -ir[64]
 	net_rxn_masses[i2j(kk,iNO2 )] = +ir[79] +0.9*ir[64]
 	
@@ -1660,7 +1699,7 @@ while ( time > 0 ) :
 	                                +ir[46] +2*ir[49] +0.79*ir[50]\
 	                                +0.79*ir[50]
 	
-	net_rxn_masses[i2j(kk,iNTR )] = +ir[81]
+	net_rxn_masses[i2j(kk,iNTR )] = +ir[81]+0.1*ir[64]
 	net_rxn_masses[i2j(kk,iOOX )] = +2*ir[80] +2*ir[88] +2*ir[89]
 	
 
@@ -1704,6 +1743,8 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iOH  )] = +ir[13] +0.79*ir[50]
 	net_rxn_masses[i2j(kk,iH2O2)] = +ir[32] +ir[33] 
 	net_rxn_masses[i2j(kk,iOOX )] = +ir[86] +ir[87]
+	#   ... secondary aldehydes
+	net_rxn_masses[i2j(kk,ixFOR)] = +0.79*ir[50]
 	
 	
 	#-------------------------------------------------------
@@ -1749,7 +1790,7 @@ while ( time > 0 ) :
 	# { 19} N2O5    = NO3+NO2
 	# { 20} NO+NO   = 2*NO2
 	
-	# { 27} OH+HNO3 = NO3
+	#                       { 27} OH+HNO3 = NO3    # in ** OH + (organic+NO2) **
 
 	
 	## Notes:
@@ -1783,16 +1824,16 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iNO  )] = +ir[1] +ir[4] +0.11*ir[14] +ir[16]\
 	                                -ir[3] -ir[6] -ir[15] -2*ir[20]
 	
-	net_rxn_masses[i2j(kk,iHNO3)] = +2*ir[18] -ir[27]
+	net_rxn_masses[i2j(kk,iHNO3)] = +2*ir[18]
 	
 	net_rxn_masses[i2j(kk,iO   )] = +ir[1] +ir[8] +ir[10] +0.89*ir[14]\
 	                                -ir[2] -ir[4] -ir[5] -ir[6]
 	                                
 	net_rxn_masses[i2j(kk,iO3  )] = +ir[2] -ir[3] -ir[7] -ir[8] -ir[9]
 	
-	net_rxn_masses[i2j(kk,iOH  )] = +2.0*ir[11] -ir[27]
+	net_rxn_masses[i2j(kk,iOH  )] = +2.0*ir[11]
 	
-	net_rxn_masses[i2j(kk,iNO3 )] = +ir[5] +ir[7] +ir[19] +ir[27]\
+	net_rxn_masses[i2j(kk,iNO3 )] = +ir[5] +ir[7] +ir[19] \
 	                                -ir[14] -ir[15] -ir[16] -ir[17] 
 	                                
 	net_rxn_masses[i2j(kk,iN2O5)] = +ir[17] -ir[18] -ir[19]
@@ -1842,6 +1883,8 @@ while ( time > 0 ) :
 	# { 96} NO2+ISOP=0.2*ISPD+0.8*NTR+XO2+0.8*HO2+0.2*NO+0.8*ALD2+2.4*PAR
 	# 
 	
+	net_rxn_masses[i2j(kk,iNO2 )] = -ir[26]-ir[47]+ir[48]\
+										-ir[55]-0.1*ir[64]-ir[68]-0.8*ir[96]
 	net_rxn_masses[i2j(kk,iHNO3)] = +ir[26]
 	net_rxn_masses[i2j(kk,iPAN )] = +ir[47] -ir[48]
 	net_rxn_masses[i2j(kk,iNTR )] = +ir[55] +0.1*ir[64] +ir[68] +0.8*ir[96]
@@ -1853,7 +1896,7 @@ while ( time > 0 ) :
 	
 	# save these hourly results for later output....
 	hour_number.append(time)
-	hourly_net_rxn_masses.append(copy.deepcopy(net_rxn_masses))
+	hourly_net_rxn_masses.append([e for e in net_rxn_masses])
 	
 	# accumulate this hour's net masses into a daily total..
 	for i in range(0,len(net_rxn_masses)):
@@ -1931,7 +1974,7 @@ row_acc = [0.0]*num_hrs
 total_acc = 0
 #      for the sum of the row_accumulator
 
-def copyhours(hourlynet = [], elem = 0, row = []):
+def copyhours_net(hourlynet = [], elem = 0, row = []):
 	"copy same element at each hour to an hourly vector of values"
 	
 	if len(row) == num_hrs :
@@ -1940,11 +1983,12 @@ def copyhours(hourlynet = [], elem = 0, row = []):
 	else :
 		raise IndexError
 	
-def accumulate_rxn(hourlynet = [], elem = 0, acc = []):
-	"accumulate same element at each hour to an hourly vector of values"
-	if len(cc) == num_hrs :
+def copyhours_phy(hourlyphy = [], spc = 0, proc = 0, row = []):
+	"copy same element at each hour to an hourly vector of values"
+	
+	if len(row) == num_hrs :
 		for t in range(0,num_hrs):
-			acc[t]      += hourlynet[t][elem]
+			row[t] = hourlyphy[spc][t][proc]
 	else :
 		raise IndexError
 	
@@ -1964,10 +2008,12 @@ def accumulate_row(row = [], acc = []):
 #   2) "XO2/XO2N new, prod, loss"
 #   3) "HO2      new, prod, loss"
 #   4) "OH       new, prod, loss"
+#   5) "New NO2, available NO2"
 
 
 
 ## begin Diagram Section storage allocation
+# intermediate working vector, must be of correct len
 a_row   = [0.0]*num_hrs
 
 #-------------------------------------------------------
@@ -1985,8 +2031,8 @@ diagram_sect_start.append(this_jstart)
 
 jj = this_jstart
 
-section_labels.append(" Ald+hv  C2O3") 
-copyhours(hourly_net_rxn_masses, i2j(n_Aldhvrad, iC2O3 ), a_row)
+section_labels.append("  Ald+hv -> n_C2O3") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_Aldhvrad, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 hourly_tot_c2o3p = [e for e in a_row]
 
@@ -1994,8 +2040,8 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_Aldhvrad, iC2O3 )])
 
 jj += 1
 
-section_labels.append(" Ox+org  C2O3") 
-copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iC2O3 ), a_row)
+section_labels.append("  Ox+org -> n_C2O3") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OxOrgrad, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 accumulate_row(a_row,hourly_tot_c2o3p)
 
@@ -2003,8 +2049,8 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iC2O3 )])
 
 jj += 1
 
-section_labels.append(" NO3+org C2O3") 
-copyhours(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iC2O3 ), a_row)
+section_labels.append("  NO3+org-> n_C2O3") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 accumulate_row(a_row,hourly_tot_c2o3p)
 
@@ -2012,7 +2058,7 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_NO3Orgrad, iC2O3 )])
 
 jj += 1
 
-section_labels.append("Total  C2O3 New") 
+section_labels.append("Total  New C2O3") 
 #save hourly and daily new C3O3 for later use with OH
 hourly_newc2o3 = [e for e in hourly_tot_c2o3p]
 daily_newc2o3  = sum(hourly_newc2o3)
@@ -2023,7 +2069,7 @@ daily_diagram_values.append(daily_newc2o3)
 jj += 1
 
 section_labels.append("OH+Org C2O3 Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iC2O3 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iC2O3 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 accumulate_row(a_row,hourly_tot_c2o3p)
 
@@ -2041,7 +2087,7 @@ daily_diagram_values.append(daily_tot_c2o3p)
 jj += 1
 
 section_labels.append("C2O3+NO2 PAN Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_PANProd, iPAN ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_PANProd, iPAN ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 tot_c2o3l = [e for e in a_row]  # PAN plus C2O2 + NO2
 
@@ -2050,7 +2096,7 @@ daily_diagram_values.append(sum(tot_c2o3l))
 jj += 1
 
 section_labels.append("C2O3+NO Loss")
-copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iC2O3 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iC2O3 ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2061,7 +2107,7 @@ daily_diagram_values.append(sum(b_row))
 jj += 1
 
 section_labels.append("  NO2 prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iNO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iNO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 daily_no2_prod = sum(a_row)
 daily_diagram_values.append(daily_no2_prod)
@@ -2073,7 +2119,7 @@ daily_no2_prod_c2o3 = daily_no2_prod/daily_tot_c2o3p
 jj += 1
 
 section_labels.append("  XO2 prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iXO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iXO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 
 daily_diagram_values.append(sum(a_row))
@@ -2085,7 +2131,7 @@ daily_xo2_prod_c2o3 = sum(a_row)/daily_tot_c2o3p
 jj += 1
 
 section_labels.append("  OOX prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iOOX ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iOOX ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 
 daily_diagram_values.append(sum(a_row))
@@ -2133,8 +2179,8 @@ diagram_sect_start.append(this_jstart)
 
 jj = this_jstart
 
-section_labels.append(" Ald+hv  XO2") 
-copyhours(hourly_net_rxn_masses, i2j(n_Aldhvrad, iXO2 ), a_row)
+section_labels.append("  Ald+hv -> n_XO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_Aldhvrad, iXO2 ), a_row)
 # start acculating the sources of XO2
 hourly_tot_xo2p = [e for e in a_row]
 hourly_diagram_values.append([e for e in a_row])
@@ -2143,8 +2189,8 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_Aldhvrad, iXO2 )])
 
 jj += 1
 
-section_labels.append(" Ox+org  XO2") 
-copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iXO2 ), a_row)
+section_labels.append("  Ox+org -> n_XO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OxOrgrad, iXO2 ), a_row)
 accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2152,8 +2198,8 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iXO2 )])
 
 jj += 1
 
-section_labels.append(" NO3+org XO2") 
-copyhours(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iXO2 ), a_row)
+section_labels.append("  NO3+org-> n_XO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iXO2 ), a_row)
 accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2161,7 +2207,7 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_NO3Orgrad, iXO2 )])
 
 jj += 1
 
-section_labels.append("Total  XO2  New") 
+section_labels.append("Total  New XO2") 
 # save the new XO2
 hourly_newxo2 = [e for e in hourly_tot_xo2p]
 daily_newxo2  = sum(hourly_newxo2)
@@ -2172,7 +2218,7 @@ daily_diagram_values.append(daily_newxo2)
 jj += 1
 
 section_labels.append("C2O3   XO2  Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iXO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iXO2 ), a_row)
 accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2181,7 +2227,7 @@ daily_diagram_values.append(sum(a_row))
 jj += 1
 
 section_labels.append("OH+Org XO2  Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iXO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iXO2 ), a_row)
 accumulate_row(a_row,hourly_tot_xo2p)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2198,8 +2244,8 @@ daily_diagram_values.append(daily_tot_xo2p)
 
 jj += 1
 
-section_labels.append(" Ox+org  XO2N") 
-copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iXO2N ), a_row)
+section_labels.append("  Ox+org -> n_XO2N") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OxOrgrad, iXO2N ), a_row)
 # accumulate the XO2N 
 hourly_tot_xo2n = [e for e in a_row]
 hourly_diagram_values.append([e for e in a_row])
@@ -2208,8 +2254,8 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iXO2N )])
 
 jj += 1
 
-section_labels.append(" NO3+org XO2N") 
-copyhours(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iXO2N ), a_row)
+section_labels.append("  NO3+org-> n_XO2N") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO3Orgrad, iXO2N ), a_row)
 accumulate_row(a_row,hourly_tot_xo2n)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2217,7 +2263,7 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_NO3Orgrad, iXO2N )])
 
 jj += 1
 
-section_labels.append("Total  XO2N New") 
+section_labels.append("Total  New XO2N") 
 hourly_diagram_values.append([e for e in hourly_tot_xo2n])
 
 daily_diagram_values.append(sum(hourly_tot_xo2n))
@@ -2225,7 +2271,7 @@ daily_diagram_values.append(sum(hourly_tot_xo2n))
 jj += 1
 
 section_labels.append("OH+Org XO2N Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iXO2N ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iXO2N ), a_row)
 accumulate_row(a_row,hourly_tot_xo2n)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2239,15 +2285,15 @@ daily_diagram_values.append(sum(hourly_tot_xo2n))
 
 jj += 1
 
-section_labels.append("Total  XO2* Prod")
+section_labels.append("Total  XO2+XO2N Prod")
 accumulate_row(hourly_tot_xo2p,hourly_tot_xo2n)
 hourly_diagram_values.append([e for e in hourly_tot_xo2n])
 daily_diagram_values.append(sum(hourly_tot_xo2n))
 
 jj += 1
 
-section_labels.append("XO2 +NO Loss")
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iXO2 ), a_row)
+section_labels.append("XO2  + NO Loss")
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iXO2 ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2256,8 +2302,8 @@ daily_diagram_values.append(sum(b_row))
 
 jj += 1
 
-section_labels.append("XO2N+NO Loss")
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iXO2N ), a_row)
+section_labels.append("XO2N + NO Loss")
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iXO2N ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2266,14 +2312,14 @@ daily_diagram_values.append(sum(b_row))
 
 jj += 1
 
-section_labels.append("Total XO2* Loss") 
+section_labels.append("Total XO2+XO2N Loss") 
 hourly_diagram_values.append([e for e in tot_rows])
 daily_diagram_values.append(sum(tot_rows))
 
 jj += 1
 
 section_labels.append("  NO  loss") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2283,7 +2329,7 @@ daily_diagram_values.append(sum(b_row))
 jj += 1
 
 section_labels.append("  NO2 prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 daily_no2_prod = sum(a_row)
 
@@ -2295,7 +2341,7 @@ daily_no2_prod_xo2 = daily_no2_prod/daily_tot_xo2p
 jj += 1
 
 section_labels.append("  HO2 prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, ixHO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, ixHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 daily_ho2_prod = sum(a_row)
 
@@ -2308,7 +2354,7 @@ daily_ho2_prod_xo2 = daily_ho2_prod/daily_tot_xo2p
 jj += 1
 
 section_labels.append("  NTR prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNTR ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNTR ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 
 daily_diagram_values.append(sum(a_row))
@@ -2316,7 +2362,7 @@ daily_diagram_values.append(sum(a_row))
 jj += 1
 
 section_labels.append(" *OOX prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iOOX ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iOOX ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 
 daily_diagram_values.append(sum(a_row))
@@ -2357,8 +2403,8 @@ diagram_sect_start.append(this_jstart)
 
 jj = this_jstart
 
-section_labels.append(" Ald+hv  HO2") 
-copyhours(hourly_net_rxn_masses, i2j(n_Aldhvrad, iHO2 ), a_row)
+section_labels.append("  Ald+hv -> n_HO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_Aldhvrad, iHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # initialize total ho2 accumulator...
 hourly_tot_ho2p = [e for e in a_row]
@@ -2367,8 +2413,8 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_Aldhvrad, iHO2 )])
 
 jj += 1
 
-section_labels.append(" Ox+org  HO2") 
-copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iHO2 ), a_row)
+section_labels.append("  Ox+org -> n_HO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OxOrgrad, iHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add in this HO2..
 accumulate_row(a_row,hourly_tot_ho2p)
@@ -2377,7 +2423,7 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iHO2 )])
 
 jj += 1
 
-section_labels.append("Total  HO2 New") 
+section_labels.append("Total New HO2 Prod") 
 # save total new HO2
 hourly_newho2 = [e for e in hourly_tot_ho2p]
 daily_newho2  = sum(hourly_newho2)
@@ -2387,8 +2433,8 @@ daily_diagram_values.append(daily_newho2)
 
 jj += 1
 
-section_labels.append("OH+Org HO2 Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iHO2 ), a_row)
+section_labels.append("  OH+Org HO2 Prod") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add in this HO2..
 accumulate_row(a_row,hourly_tot_ho2p)
@@ -2397,8 +2443,8 @@ daily_diagram_values.append(sum(a_row))
 
 jj += 1
 
-section_labels.append("XO2+NO HO2 Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, ixHO2 ), a_row)
+section_labels.append("  XO2+NO HO2 Prod") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, ixHO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add in this HO2..
 accumulate_row(a_row,hourly_tot_ho2p)
@@ -2418,7 +2464,7 @@ jj += 1
 
 # now start the losses of HO2...
 section_labels.append("HO2+(O3,rads) Loss") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iHO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iHO2 ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2430,7 +2476,7 @@ daily_diagram_values.append(sum(b_row))
 jj += 1
 
 section_labels.append("  O3   Loss") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iO3  ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iO3  ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2440,7 +2486,7 @@ daily_diagram_values.append(sum(b_row))
 jj += 1
 
 section_labels.append("  XO2  Loss") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iXO2  ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iXO2  ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2450,7 +2496,7 @@ daily_diagram_values.append(sum(b_row))
 jj += 1
 
 section_labels.append("  C2O3 Loss") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iC2O3  ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iC2O3  ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2460,7 +2506,7 @@ daily_diagram_values.append(sum(b_row))
 jj += 1
 
 section_labels.append("  H2O2 Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iH2O2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iH2O2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 
 daily_diagram_values.append(sum(a_row))
@@ -2468,7 +2514,7 @@ daily_diagram_values.append(sum(a_row))
 jj += 1
 
 section_labels.append("  -OOX Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iOOX ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iOOX ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 
 daily_diagram_values.append(sum(a_row))
@@ -2476,7 +2522,7 @@ daily_diagram_values.append(sum(a_row))
 jj += 1
 
 section_labels.append("  OH   Prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iOH ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iOH ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # start a new accumulator for OH produced 
 hourly_tot_ohp = [e for e in a_row]
@@ -2486,7 +2532,7 @@ daily_diagram_values.append(sum(a_row))
 jj += 1
 
 section_labels.append("HO2+OH Loss")
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iH2O ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iH2O ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2498,7 +2544,7 @@ daily_diagram_values.append(sum(b_row))
 jj += 1
 
 section_labels.append("HO2+NO Loss")
-copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iHO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iHO2 ), a_row)
 # these are negative values, chg sign
 b_row = [-e for e in a_row]
 hourly_diagram_values.append([e for e in b_row])
@@ -2509,8 +2555,8 @@ daily_diagram_values.append(sum(b_row))
 
 jj += 1
 
-section_labels.append("  NO2 prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iNO2 ), a_row)
+section_labels.append("  NO2  Prod") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iNO2 ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # save the only NO2 produced in this section...
 daily_no2_prod = sum(a_row)
@@ -2523,8 +2569,8 @@ daily_no2_prod_ho2 = daily_no2_prod/daily_tot_ho2p
 
 jj += 1
 
-section_labels.append("  OH prod") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iOH ), a_row)
+section_labels.append("  OH   Prod") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iOH ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add the OH produced via HO2+NO
 accumulate_row(a_row,hourly_tot_ohp)
@@ -2597,7 +2643,7 @@ diagram_sect_start.append(this_jstart)
 jj = this_jstart
 
 # accumulate the secondary new OH 
-section_labels.append(" new C2O3     OH")
+section_labels.append("  new C2O3  -> n_OH")
 a_row = [ p*t for (p,t) in zip(hourly_newc2o3,hourly_oh_prod_c2o3)]
 hourly_diagram_values.append([e for e in a_row])
 # initialize total OH accumulator...
@@ -2607,7 +2653,7 @@ daily_diagram_values.append(daily_newc2o3*daily_oh_prod_c2o3)
 
 jj += 1
 
-section_labels.append(" new XO2      OH")
+section_labels.append("  new XO2   -> n_OH")
 a_row = [ p*t for (p,t) in zip(hourly_newxo2,hourly_oh_prod_xo2)]
 hourly_diagram_values.append([e for e in a_row])
 # add in this OH..
@@ -2617,7 +2663,7 @@ daily_diagram_values.append(daily_newxo2*daily_oh_prod_xo2)
 
 jj += 1
 
-section_labels.append(" new HO2      OH")
+section_labels.append("  new HO2   -> n_OH")
 a_row = [ p*t for (p,t) in zip(hourly_newho2,hourly_oh_prod_ho2)]
 hourly_diagram_values.append([e for e in a_row])
 # add in this OH..
@@ -2637,8 +2683,10 @@ daily_diagram_values.append(daily_tot_sec_newoh)
 
 jj += 1
 
-section_labels.append(" O3/H2O2+hv   OH") 
-copyhours(hourly_net_rxn_masses, i2j(n_O3hvrad, iOH  ), a_row)
+section_labels.append("  (O3&H2O2)+hv->n_OH") 
+# this is directly from O3+hv-->2 OH, so it includes
+#   O3_o + hv already.
+copyhours_net(hourly_net_rxn_masses, i2j(n_O3hvrad, iOH  ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add in this OH..
 accumulate_row(a_row,hourly_tot_newoh)
@@ -2647,8 +2695,8 @@ daily_diagram_values.append(daily_net_rxn_masses[i2j(n_O3hvrad, iOH )])
 
 jj += 1
 
-section_labels.append(" Ox+org       OH") 
-copyhours(hourly_net_rxn_masses, i2j(n_OxOrgrad, iOH ), a_row)
+section_labels.append("  Ox+org      ->n_OH") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OxOrgrad, iOH ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add in this OH..
 accumulate_row(a_row,hourly_tot_newoh)
@@ -2668,7 +2716,7 @@ jj += 1
 
 section_labels.append("recreated OH")
 # first fetch the total OH that reacted in the OHOrgOxid net reaction
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iOH ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iOH ), a_row)
 hourly_tot_oh_reacted = [-e for e in a_row]
 daily_tot_oh_reacted  = sum(hourly_tot_oh_reacted)
 
@@ -2683,7 +2731,7 @@ daily_diagram_values.append(sum(hourly_recreated_oh))
 jj += 1
 
 section_labels.append("Total OH reacted") 
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iOH ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iOH ), a_row)
 hourly_tot_oh_reacted = [-e for e in a_row]
 daily_tot_oh_reacted  = sum(hourly_tot_oh_reacted)
 hourly_diagram_values.append([e for e in hourly_tot_oh_reacted])
@@ -2704,7 +2752,7 @@ daily_diagram_values.append(daily_oh_chain)
 
 jj += 1
 
-section_labels.append("OH Pr")
+section_labels.append("OH P_r")
 hourly_oh_pr = [ 1- (q/Q) for (Q,q) \
                       in zip(hourly_tot_oh_reacted, hourly_tot_newoh)] 
 daily_oh_chain  = daily_tot_oh_reacted / daily_tot_newoh
@@ -2716,7 +2764,7 @@ daily_diagram_values.append(1-(1/daily_oh_chain))
 jj += 1
 
 section_labels.append("Total VOC reacted") 
-copyhours(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iVOC ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iVOC ), a_row)
 hourly_tot_voc_reacted = [-e for e in a_row]
 daily_tot_voc_reacted  = sum(hourly_tot_voc_reacted)
 hourly_diagram_values.append([e for e in hourly_tot_voc_reacted])
@@ -2725,8 +2773,82 @@ daily_diagram_values.append(daily_tot_voc_reacted)
 
 jj += 1
 
+section_labels.append("  NO  by C2O3") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iNO ), a_row)
+hourly_tot_no_oxid = [e for e in a_row]
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("  NO  by XO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO ), a_row)
+accumulate_row(a_row,hourly_tot_no_oxid)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("  NO  by HO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iNO ), a_row)
+accumulate_row(a_row,hourly_tot_no_oxid)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("  NO  by O3o") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iNO_o ), a_row)
+accumulate_row(a_row,hourly_tot_no_oxid)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("Total NO  Oxidized") 
+
+hourly_diagram_values.append([e for e in hourly_tot_no_oxid])
+
+daily_tot_no_oxid = sum(hourly_tot_no_oxid)
+
+daily_diagram_values.append(daily_tot_no_oxid)
+
+jj += 1
+
+section_labels.append("  NO loss by XO2") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNTR ), a_row)
+hourly_tot_no_loss = [e for e in a_row]
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("  NO loss by O3o") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iNO3o ), a_row)
+accumulate_row(a_row,hourly_tot_no_loss)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("Total NO  Lossed") 
+
+hourly_diagram_values.append([e for e in hourly_tot_no_loss])
+
+daily_tot_no_loss = sum(hourly_tot_no_loss)
+
+daily_diagram_values.append(daily_tot_no_loss)
+
+jj += 1
+
 section_labels.append("  NO2 by C2O3") 
-copyhours(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iNO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_C2O3NOOxid, iNO2 ), a_row)
 hourly_tot_no2_oxid = [e for e in a_row]
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2735,7 +2857,7 @@ daily_diagram_values.append(sum(a_row))
 jj += 1
 
 section_labels.append("  NO2 by XO2") 
-copyhours(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_XO2NOOxid, iNO2 ), a_row)
 accumulate_row(a_row,hourly_tot_no2_oxid)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2744,7 +2866,16 @@ daily_diagram_values.append(sum(a_row))
 jj += 1
 
 section_labels.append("  NO2 by HO2") 
-copyhours(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iNO2 ), a_row)
+copyhours_net(hourly_net_rxn_masses, i2j(n_HO2NOOxid, iNO2 ), a_row)
+accumulate_row(a_row,hourly_tot_no2_oxid)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("  NO2 by O3o") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iNO2o ), a_row)
 accumulate_row(a_row,hourly_tot_no2_oxid)
 hourly_diagram_values.append([e for e in a_row])
 
@@ -2762,7 +2893,7 @@ daily_diagram_values.append(daily_tot_no2_oxid)
 
 jj += 1
 
-section_labels.append("NO2 per VOC") 
+section_labels.append("NO2 per VOC reacted") 
 hourly_no2_voc = [ n/v for (n,v) \
                  in zip(hourly_tot_no2_oxid,hourly_tot_voc_reacted)]
 hourly_diagram_values.append([e for e in hourly_no2_voc])
@@ -2770,6 +2901,556 @@ hourly_diagram_values.append([e for e in hourly_no2_voc])
 daily_no2_voc = daily_tot_no2_oxid / daily_tot_voc_reacted
 
 daily_diagram_values.append(daily_no2_voc)
+
+jj += 1
+
+# how many elements in vector are needed.
+num_rows_in_section = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_diagram_row  = jj
+
+
+#-------------------------------------------------------
+### The Diagram Section for ** new NO2, total avail NO2 **
+this_diag_section = next_diag_section  
+next_diag_section += 1
+
+#    ... save the name and starting location of this net_rxn
+diagram_sect_names.append("New NO2, Total Available NO2")
+sec_id_num += 1
+
+this_jstart = jstart_next_diagram_row
+diagram_sect_start.append(this_jstart)
+
+jj = this_jstart
+
+# accumulate the physical NO2 processes new 
+#  ... initial concentration
+section_labels.append("NO2 initial")
+copyhours_phy(species_process_masses, iNO2, jInitial, a_row)
+hourly_total_new_no2 = [e for e in a_row ]
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = total_species_process_masses[iNO2][jInitial]
+daily_total_new_no2 = t_value
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... emissions
+section_labels.append("  NO2 emissions")
+copyhours_phy(species_process_masses, iNO2, jEmission, a_row)
+accumulate_row(a_row,hourly_total_new_no2)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = total_species_process_masses[iNO2][jEmission]
+daily_total_new_no2 += t_value
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... horiz trans as source
+section_labels.append("  NO2 horiz trans")
+copyhours_phy(species_process_masses, iNO2, jHor_Trans, a_row)
+# only count horiz trans as new NO2 if positive value
+for h in range(num_hrs):
+	if a_row[h] < 0.0:
+		a_row[h] = 0.0
+accumulate_row(a_row,hourly_total_new_no2)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_total_new_no2 += t_value
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... vert trans
+section_labels.append("  NO2 vert  trans")
+copyhours_phy(species_process_masses, iNO2, jVer_Trans, a_row)
+# only count vert trans as new NO2 if positive value
+for h in range(num_hrs):
+	if a_row[h] < 0.0:
+		a_row[h] = 0.0
+accumulate_row(a_row,hourly_total_new_no2)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_total_new_no2 += abs(t_value)
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... entrain/dil
+section_labels.append("  NO2 entrain/dil")
+copyhours_phy(species_process_masses, iNO2, jEntrain, a_row)
+# only count entrain as new NO2 if positive value
+for h in range(num_hrs):
+	if a_row[h] < 0.0:
+		a_row[h] = 0.0
+accumulate_row(a_row,hourly_total_new_no2)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_total_new_no2 += t_value
+daily_diagram_values.append(t_value)
+jj += 1
+
+#  ...sum
+section_labels.append("Total new NO2")
+hourly_diagram_values.append([e for e in hourly_total_new_no2])
+
+daily_diagram_values.append(daily_total_new_no2)
+
+jj += 1
+
+#   ... add the chemically produced NO2...
+hourly_total_avail_no2 = [e for e in hourly_total_new_no2 ]
+section_labels.append("Total Available NO2")
+accumulate_row(hourly_tot_no2_oxid,hourly_total_avail_no2)
+
+hourly_diagram_values.append([e for e in hourly_total_avail_no2])
+
+daily_total_avail_no2 = daily_tot_no2_oxid + daily_total_new_no2
+daily_diagram_values.append(daily_total_avail_no2)
+
+
+jj += 1
+
+# how many elements in vector are needed.
+num_rows_in_section = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_diagram_row  = jj
+
+
+#-------------------------------------------------------
+### The Diagram Section for ** physical NO2 losses **
+this_diag_section = next_diag_section  
+next_diag_section += 1
+
+#    ... save the name and starting location of this net_rxn
+diagram_sect_names.append("Physical NO2 Losses")
+sec_id_num += 1
+
+this_jstart = jstart_next_diagram_row
+diagram_sect_start.append(this_jstart)
+
+jj = this_jstart
+
+# accumulate the physical NO2 processes 
+#  ... initial concentration
+section_labels.append("NO2 Final")
+copyhours_phy(species_process_masses, iNO2, jFinal, a_row)
+hourly_no2_final = [e for e in a_row ]
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = total_species_process_masses[iNO2][jFinal]
+daily_no2_final = t_value
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... deposition
+section_labels.append("  NO2 deposition")
+copyhours_phy(species_process_masses, iNO2, jDepo, a_row)
+# change the sign for accumulation....
+b_row = [-e for e in a_row]
+hourly_tot_phy_no2_losses = [ e for e in b_row ]
+#   but write out the correct signed values
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = total_species_process_masses[iNO2][jDepo]
+daily_tot_phy_no2_losses = abs(t_value)
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... horiz trans
+section_labels.append("  NO2 horiz trans")
+copyhours_phy(species_process_masses, iNO2, jHor_Trans, a_row)
+# only count horiz trans a loss if neg value
+for h in range(num_hrs):
+	if a_row[h] > 0.0:
+		a_row[h] = 0.0
+# change the sign for accumulation....
+b_row = [-e for e in a_row]
+accumulate_row(b_row,hourly_tot_phy_no2_losses)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_tot_phy_no2_losses += abs(t_value)
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... vert trans
+section_labels.append("  NO2 vert  trans")
+copyhours_phy(species_process_masses, iNO2, jVer_Trans, a_row)
+# only count vert trans a loss if neg value
+for h in range(num_hrs):
+	if a_row[h] > 0.0:
+		a_row[h] = 0.0
+# change the sign for accumulation....
+b_row = [-e for e in a_row]
+accumulate_row(b_row,hourly_tot_phy_no2_losses)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_tot_phy_no2_losses += abs(t_value)
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... entrain/dil
+section_labels.append("  NO2 entrain/dil")
+copyhours_phy(species_process_masses, iNO2, jEntrain, a_row)
+# only count entrain a loss if neg value
+for h in range(num_hrs):
+	if a_row[h] > 0.0:
+		a_row[h] = 0.0
+# change the sign for accumulation....
+b_row = [-e for e in a_row]
+accumulate_row(b_row,hourly_tot_phy_no2_losses)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_tot_phy_no2_losses += abs(t_value)
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ...sum
+section_labels.append("Total Phy NO2 Losses")
+hourly_diagram_values.append([e for e in hourly_tot_phy_no2_losses])
+
+daily_diagram_values.append(daily_tot_phy_no2_losses)
+
+jj += 1
+
+#  ...total non-chemistry
+section_labels.append("Total all NO2 Sinks")
+accumulate_row(hourly_no2_final,hourly_tot_phy_no2_losses)
+hourly_diagram_values.append([e for e in hourly_tot_phy_no2_losses])
+
+daily_tot_phy_no2_losses += daily_no2_final
+daily_diagram_values.append(daily_tot_phy_no2_losses)
+
+jj += 1
+
+#   ... compute the NO2 avail for chemistry as a diff...
+hourly_chem_sink_no2 = [ a-s for (a,s) in \
+						zip(hourly_total_avail_no2, hourly_tot_phy_no2_losses)]
+section_labels.append("Total NO2 for Chem")
+
+hourly_diagram_values.append([e for e in hourly_chem_sink_no2])
+
+daily_chem_sink_no2 = daily_total_avail_no2 - daily_tot_phy_no2_losses
+daily_diagram_values.append(daily_chem_sink_no2)
+
+
+jj += 1
+
+# how many elements in vector are needed.
+num_rows_in_section = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_diagram_row  = jj
+
+
+#-------------------------------------------------------
+### The Diagram Section for ** chemical NO2 losses **
+this_diag_section = next_diag_section  
+next_diag_section += 1
+
+#    ... save the name and starting location of this net_rxn
+diagram_sect_names.append("Chemical NO2 Losses")
+sec_id_num += 1
+
+this_jstart = jstart_next_diagram_row
+diagram_sect_start.append(this_jstart)
+
+jj = this_jstart
+
+section_labels.append("   HNO3 formation") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2term, iHNO3 ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("   PAN  formation") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2term, iPAN ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("   NTR  formation") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2term, iNTR ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("Total NO2 Term Loss") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2term, iNO2 ), a_row)
+hourly_chem_no2_loss = [e for e in a_row ]
+hourly_diagram_values.append([e for e in a_row])
+
+daily_chem_no2_loss = sum(a_row)
+daily_diagram_values.append(daily_chem_no2_loss)
+
+jj += 1
+
+section_labels.append("   NO2 Photolyzed") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iNO2 ), a_row)
+hourly_no2_phot = [e for e in a_row]
+hourly_diagram_values.append(hourly_no2_phot)
+
+daily_no2_phot = sum(a_row)
+daily_diagram_values.append(daily_no2_phot)
+
+jj += 1
+
+section_labels.append("   NO  Produced") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iNO  ), a_row)
+hourly_no_prod = [e for e in a_row]
+hourly_diagram_values.append(hourly_no_prod)
+
+daily_no_prod = sum(a_row)
+daily_diagram_values.append(daily_no_prod)
+
+jj += 1
+
+section_labels.append("   O3  Produced, net") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iO3  ), a_row)
+hourly_net_o3_prod = [e for e in a_row]
+hourly_diagram_values.append(hourly_net_o3_prod)
+
+daily_net_o3_prod = sum(a_row)
+daily_diagram_values.append(daily_net_o3_prod)
+
+jj += 1
+
+section_labels.append("   OH  Produced") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iOH  ), a_row)
+hourly_oh_prod_fm_o3 = [e for e in a_row]
+hourly_diagram_values.append(hourly_oh_prod_fm_o3)
+
+daily_oh_prod_fm_o3 = sum(a_row)
+daily_diagram_values.append(daily_oh_prod_fm_o3)
+
+jj += 1
+
+section_labels.append("   O3  Produced, grs") 
+a_row = [ o + h*0.5 for (o,h) in \
+							zip(hourly_net_o3_prod,hourly_oh_prod_fm_o3) ]
+hourly_gross_o3_prod = [e for e in a_row]
+hourly_diagram_values.append(hourly_gross_o3_prod)
+
+daily_gross_o3_prod = sum(a_row)
+daily_diagram_values.append(daily_gross_o3_prod)
+
+jj += 1
+
+section_labels.append("   NO3 Produced") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iNO3  ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+
+daily_diagram_values.append(sum(a_row))
+
+jj += 1
+
+section_labels.append("Total NO2 Chem Loss") 
+a_row = [t+p for (t,p) in \
+						zip(hourly_chem_no2_loss, hourly_no2_phot) ]
+hourly_tot_chem_no2_loss = [e for e in a_row ]
+hourly_diagram_values.append(hourly_tot_chem_no2_loss)
+
+daily_tot_chem_no2_loss = sum(hourly_tot_chem_no2_loss)
+daily_diagram_values.append(daily_tot_chem_no2_loss)
+
+jj += 1
+
+hourly_o3_yield = [0.0] * num_hrs
+section_labels.append("O3 yld per NO2 phot")
+for h in range(num_hrs):
+	if hourly_no2_phot[h] < 0.0 :
+		hourly_o3_yield[h] = hourly_net_o3_prod[h]/abs(hourly_no2_phot[h])
+hourly_diagram_values.append(hourly_o3_yield)
+
+daily_o3_yield = daily_net_o3_prod/abs(daily_no2_phot)
+daily_diagram_values.append(daily_o3_yield)
+
+jj += 1
+
+section_labels.append("NO yld per NO2 avail") 
+hourly_no_yield = [ n/a for (n,a) in \
+				zip(hourly_no_prod, hourly_total_avail_no2) ]
+hourly_diagram_values.append(hourly_no_yield)
+
+daily_no_yield = daily_no_prod/daily_total_avail_no2
+daily_diagram_values.append(daily_no_yield)
+
+jj += 1
+
+section_labels.append("new NO frm new NO2") 
+hourly_new_no_frm_no2 = [ n * y for (n,y) in \
+								zip(hourly_total_new_no2, hourly_no_yield) ]
+hourly_diagram_values.append([e for e in hourly_new_no_frm_no2])
+
+daily_no_frm_no2 = daily_total_new_no2 * daily_no_yield
+daily_diagram_values.append(daily_no_frm_no2)
+
+jj += 1
+
+section_labels.append("recreated NO") 
+hourly_recreated_no = [ p - n for (p,n) in \
+								zip(hourly_no_prod, hourly_new_no_frm_no2) ]
+hourly_diagram_values.append([e for e in hourly_recreated_no])
+
+daily_recreated_no = daily_no_prod - daily_no_frm_no2
+daily_diagram_values.append(daily_recreated_no)
+
+jj += 1
+
+# how many elements in vector are needed.
+num_rows_in_section = jj - this_jstart
+
+# save the starting value of the vector index offset for the next cycle...
+jstart_next_diagram_row  = jj
+
+
+#-------------------------------------------------------
+### The Diagram Section for ** new NO **
+this_diag_section = next_diag_section  
+next_diag_section += 1
+
+#    ... save the name and starting location of this net_rxn
+diagram_sect_names.append("New NO")
+sec_id_num += 1
+
+this_jstart = jstart_next_diagram_row
+diagram_sect_start.append(this_jstart)
+
+jj = this_jstart
+
+# accumulate the physical NO processes new 
+#  ... initial concentration
+section_labels.append("NO initial")
+copyhours_phy(species_process_masses, iNO, jInitial, a_row)
+hourly_total_new_no = [e for e in a_row ]
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = total_species_process_masses[iNO][jInitial]
+daily_total_new_no = t_value
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... emissions
+section_labels.append("  NO emissions")
+copyhours_phy(species_process_masses, iNO, jEmission, a_row)
+accumulate_row(a_row,hourly_total_new_no)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = total_species_process_masses[iNO][jEmission]
+daily_total_new_no += t_value
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... horiz trans as source
+section_labels.append("  NO horiz trans")
+copyhours_phy(species_process_masses, iNO, jHor_Trans, a_row)
+# only count horiz trans as new NO if positive value
+for h in range(num_hrs):
+	if a_row[h] < 0.0:
+		a_row[h] = 0.0
+accumulate_row(a_row,hourly_total_new_no)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_total_new_no += t_value
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... vert trans
+section_labels.append("  NO vert  trans")
+copyhours_phy(species_process_masses, iNO, jVer_Trans, a_row)
+# only count vert trans as new NO if positive value
+for h in range(num_hrs):
+	if a_row[h] < 0.0:
+		a_row[h] = 0.0
+accumulate_row(a_row,hourly_total_new_no)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_total_new_no += abs(t_value)
+daily_diagram_values.append(t_value)
+
+jj += 1
+
+#  ... entrain/dil
+section_labels.append("  NO entrain/dil")
+copyhours_phy(species_process_masses, iNO, jEntrain, a_row)
+# only count entrain as new NO if positive value
+for h in range(num_hrs):
+	if a_row[h] < 0.0:
+		a_row[h] = 0.0
+accumulate_row(a_row,hourly_total_new_no)
+hourly_diagram_values.append([e for e in a_row ])
+
+t_value = sum(a_row)
+daily_total_new_no += t_value
+daily_diagram_values.append(t_value)
+jj += 1
+
+#  ...sum
+section_labels.append("Total new NO")
+hourly_diagram_values.append([e for e in hourly_total_new_no])
+
+daily_diagram_values.append(daily_total_new_no)
+
+jj += 1
+
+#   ... add the chemically produced NO from NO2...
+hourly_new_sec_no = [e for e in hourly_total_new_no ]
+section_labels.append("Total new+sec NO")
+accumulate_row(hourly_new_no_frm_no2,hourly_new_sec_no)
+
+hourly_diagram_values.append([e for e in hourly_new_sec_no])
+
+daily_new_sec_no = daily_no_frm_no2 + daily_total_new_no
+daily_diagram_values.append(daily_new_sec_no)
+
+
+jj += 1
+
+section_labels.append("NO P_n")
+hourly_no_pr = [ (r/abs(t)) for (r,t) \
+                      in zip(hourly_recreated_no, hourly_tot_no_oxid)] 
+
+hourly_diagram_values.append([e for e in hourly_no_pr])
+
+daily_diagram_values.append(daily_recreated_no/abs(daily_tot_no_oxid) ) 
+
+jj += 1
+
+section_labels.append("NO chain length")
+hourly_no_chain = [ (abs(Q) / q) for (Q,q) \
+                      in zip(hourly_tot_no_oxid, hourly_new_sec_no)] 
+daily_no_chain  = abs(daily_tot_no_oxid) / daily_new_sec_no
+
+hourly_diagram_values.append([e for e in hourly_no_chain])
+
+daily_diagram_values.append(daily_no_chain)
 
 jj += 1
 
