@@ -4,32 +4,20 @@
 ## $LastChangedRevision: 115 $
 ## $LastChangedBy: jeffries $
 
-python net_balance.py  ../inout/camx403.20000830.base5b.psito2n2.1km.clinton.1km.hourly.cycle.8.18.ext \
-  ../inout/Clinton_1hour_0830_818_403.txt
+#python net_balance.py  ../inout/X403.000830.b5b.TQ.std.1km.clinton.hourly.cycle.8.18.ext \
+#  ../inout/Clinton_1h_000830_0818h_403.txt
 
-python net_balance.py  ../inout/camx420_pa.20000830.base1b.psito2n2.4km.clinton.hourly.cycle.8.18.ext \
-  ../inout/Clinton_8hour_0830_818_420.txt
+python net_balance.py  ../inout/X420U.000830.b1b.TQ.std.clinton.hourly.cycle.8.18.ext \
+  ../inout/Clinton_8h_000830_0818h.txt
 
-python net_balance.py  ../inout/camx420_pa.20000830.base1b.4time_co.4km.clinton.hourly.cycle.8.18.ext \
-  ../inout/Clinton_4timeCO_0830_818_420.txt
+python net_balance.py  ../inout/X420U.000825.b1b.TQ.std.bayland.hourly.cycle.8.18.ext \
+  ../inout/Bayland_8h_000825_0818h.txt
 
-python net_balance.py  ../inout/camx420_pa.20000830.base1b.quart_co.4km.clinton.hourly.cycle.8.18.ext \
-  ../inout/Clinton_quartCO_0830_818_420.txt
+python net_balance.py  ../inout/X420U.000825.b1b.TQ.std.HALC.hourly.cycle.8.18.ext \
+  ../inout/HALC_8h_000825_0818h.txt
 
-python net_balance.py  ../inout/camx420_pa.20000825.base1b.psito2n2.4km.bayland.hourly.cycle.8.18.ext \
-  ../inout/Bayland_8hour_0825_818_420.txt
-
-python net_balance.py  ../inout/camx420_pa.20000825.base1b.4time_co.4km.bayland.hourly.cycle.8.18.ext \
-  ../inout/Bayland_4timeCO_0825_818_420.txt
-
-python net_balance.py  ../inout/camx420_pa.20000825.base1b.quart_co.4km.bayland.hourly.cycle.8.18.ext \
-  ../inout/Bayland_quartCO_0825_818_420.txt
-
-python net_balance.py  ../inout/camx420_pa.20000825.base1b.psito2n2.4km.HALC.4km.hourly.cycle.8.18.ext \
-  ../inout/HALC_8hour_0825_818_420.txt
-
-python net_balance.py  ../inout/camx420_pa.20000830.base1b.psito2n2.4km.HALC.4km.hourly.cycle.8.18.ext \
-  ../inout/HALC_8hour_0830_818_420.txt
+python net_balance.py  ../inout/X420U.000830.b1b.TQ.std.HALC.hourly.cycle.8.18.ext \
+  ../inout/HALC_8h_000830_0818h.txt
   
-python net_balance.py  ../inout/camx420_pa.20000830.base1b.psito2n2.4km.DRPK.4km.hourly.cycle.8.18.ext \
-  ../inout/DRPK_8hour_0830_818_420.txt  
+python net_balance.py  ../inout/X420U.000830.b1b.TQ.std.DRPK.hourly.cycle.8.18.ext \
+  ../inout/DRPK_8h_000830_0818h.txt  
