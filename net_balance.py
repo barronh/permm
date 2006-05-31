@@ -28,7 +28,7 @@ import re
 from optparse import OptionParser
 	
 
-SCRIPT_ID_STRING = "Net_Reaction_CB4.py " + ChangeDate[18:-2]
+SCRIPT_ID_STRING = "Net_Balance_CB4.py " + ChangeDate[18:-2]
 
 __version__ = "R%s last changed by %s" % (RevisionNum[22:-2], ChangedBy[16:-2])
 

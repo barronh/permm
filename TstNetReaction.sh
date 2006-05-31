@@ -4,8 +4,6 @@
 ## $LastChangedRevision: 115 $
 ## $LastChangedBy: jeffries $
 
-#python net_balance.py  ../inout/X403.000830.b5b.TQ.std.1km.clinton.hourly.cycle.8.18.ext \
-#  ../inout/Clinton_1h_000830_0818h_403.txt
 
 python net_balance.py  ../inout/X420U.000830.b1b.TQ.std.clinton.hourly.cycle.8.18.ext \
   ../inout/Clinton_8h_000830_0818h.txt
