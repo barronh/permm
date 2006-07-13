@@ -3,7 +3,7 @@ __doc__ = \
 """
 Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
 
-net_balance.py [options] EXTFILE OUTFILE_sum.txt  OUTFILE_net.txt
+net_balance.py [options] EXTFILE.EXT OUTFILE_ROOT_NAME
 
 This version is hard-coded for CB4 Mechanism in CAMx
 
@@ -39,16 +39,15 @@ usage  = "usage: %prog [options] EXTFILE OUTFILE"
 version = "%%prog %s" % __version__
 parser = OptionParser(usage=usage, version=version)
 
-parser.add_option("-s", "--show",
-	dest="show",
-	default=False,
-	action="store_true",
-	help="Display graphs on screen")
+parser.add_option("-i", "--indir",
+	dest="indir",
+	default="",
+	help="prepend input dir to inputfilename")
 
 parser.add_option("-o", "--outdir",
 	dest="outdir",
-	default=False,
-	help="prepend output dir to outfilename")
+	default="",
+	help="prepend output dir to outputfilename")
 
 # extent of output
 parser.add_option("-q", "--quiet",
@@ -57,26 +56,25 @@ parser.add_option("-q", "--quiet",
 	default=True,
 	help="don't print status messages to stdout")
 
-# output format
-parser.add_option("-x", "--xml",
-	action="store_const", 
-	dest="output_format",
-	const="xml",
-	default='fixed_width',
-	help="Format output as xml")
-	
 # get options and arguments
 (options, args) = parser.parse_args()
 
 # requires filenames as argument
 if len(args) != 2:
-	parser.error("Invalid number of arguments")
-	
-input_filename = os.path.abspath(args[0])
-given_filename = os.path.abspath(args[1])
+	parser.error("Need two arguments")
+
+# process given file names to include optional in/out paths
+inpath  = args[0]
+outpath = args[1]
+if options.indir :
+	inpath = os.path.join(options.indir,inpath)
+if options.outdir :
+	outpath = os.path.join(options.outdir,outpath)
+input_filename = os.path.abspath(inpath)
+given_filename = os.path.abspath(outpath)
 (root_output_filename, oldext) = os.path.splitext(given_filename)
 
-# requires a valid ext file
+# requires a valid input file
 if not os.path.exists(input_filename):
 	parser.error("Input file does not exist")
 
@@ -117,7 +115,7 @@ def get_irr_data(f):
 	"""
 	# initialize ir and ip storage...
 	ir_time  = -1
-	ir_rates = [0,]
+	ir_rates = [0,]  # account for 1-origin of rates
 	ip_rates = []
 	
 	line = f.readline()
@@ -167,7 +165,7 @@ def get_irr_data(f):
 #  GLOBAL DATA FOR CAMX CB4 Mechanism 3 ...
 
 # the number of irr lines in the input file
-max_i_rxn = 97
+num_cb4_rxn = 97
 
 Net_spc_names = [
   'NO  ', 'NO2 ', 'O3  ', 'OLE ', 'PAN ', 'N2O5', 'PAR ', 'TOL ', 'XYL ',\
@@ -187,6 +185,7 @@ Net_spc_names = [
 
 
 # integer indexing for CB4 species
+#   ORDER IS IMPORTANT -- Must agree with CAMx output order
 z = 0
 iNO   =  z ; z += 1
 iNO2  =  z ; z += 1
@@ -210,7 +209,7 @@ iH2O2 =  z ; z += 1
 iHNO3 =  z ; z += 1
 iISOP =  z ; z += 1
 iMEOH =  z ; z += 1
-iETOH =  z ; z += 1  # last species in physical process
+iETOH =  z ; z += 1;  zp = z # zp is number of last species in physical process
 iCH4  =  z ; z += 1
 iO    =  z ; z += 1
 iOH   =  z ; z += 1
@@ -240,12 +239,12 @@ iOH_o =  z ; z += 1
 iNO3o =  z ; z += 1
 iNA_o =  z ; z += 1
 
-max_i_spc = z
+num_pa_spc = z
 
-num_process_spc = 23
+num_phy_proc_spc = zp
 
-# only the first 23 species are included in the physical processes...
-# add some 'aggregate' species to processes...
+# only the first 23 species (zp) are included in the physical processes...
+# add some 'aggregate' species to processes using same slots...
 iNOx  = iCH4
 iNOy  = iO
 iVOCm = iOH
@@ -260,9 +259,9 @@ ikOHa = iNO3
 #          + 7*OPEN + 5*ISOP + MEOH + 2*ETOH
 #  kOHa = (VOC_i * k_OH_i)/VOCm
 
-num_process_all = num_process_spc+5
+tot_num_phy_proc_spc = num_phy_proc_spc+5
 
-# provide labels...
+# provide labels for these physical process and aggregate species...
 Phy_spc_names = [
   'NO  ', 'NO2 ', 'O3  ', 'OLE ', 'PAN ', 'N2O5', 'PAR ', 'TOL ', 'XYL ',\
   'FORM', 'ALD2', 'ETH ', 'CRES', 'MGLY', 'OPEN', 'PNA ', 'CO  ', 'HONO',\
@@ -275,14 +274,22 @@ Phy_spc_names = [
 nox_spc  = [ iNO, iNO2 ]
 noy_spc  = [ iNO, iNO2, iPAN, iN2O5, iPNA, iHONO, iHNO3 ]
 
+voc_comp_spc = [ iALD2, iFORM, iXYL, iTOL,
+                 iISOP, iOLE, iETH, iETOH, iMEOH, iPAR ] 
+
+num_composition_spc = len(voc_comp_spc)+1
+
+splt_xport_spc = [ iNO, iNO2, iO3, iNOx, iNOy, iVOCm, iVOCC ]
+
+num_splt_xport_spc = len(splt_xport_spc)+1
+
 k_OH_spc = [ iOLE, iPAR, iTOL, iXYL, iFORM, iALD2, 
              iETH, iCRES, iMGLY, iISOP, iMEOH, iETOH ]
              
-k_OH = [ 0.0 for p in range(num_process_spc) ]
+k_OH = [ 0.0 for p in range(num_phy_proc_spc) ]
 scale_koh =  1.0E-4
 
 # the k_OH at 298 from CB4 mech in per_ppm_min
-k_OH[iCO  ] = scale_koh * 3.220E+2
 k_OH[iPAR ] = scale_koh * 1.203E+3
 k_OH[iMEOH] = scale_koh * 1.600E+3
 k_OH[iETOH] = scale_koh * 4.300E+3
@@ -298,7 +305,7 @@ k_OH[iOPEN] = scale_koh * 4.400E+4
 k_OH[iCRES] = scale_koh * 6.100E+4
 k_OH[iISOP] = scale_koh * 1.476E+5
 
-VOC_carb_num = [ 0.0 for p in range(num_process_spc) ]
+VOC_carb_num = [ 0.0 for p in range(num_phy_proc_spc) ]
 
 VOC_carb_num[iOLE ] = 2
 VOC_carb_num[iPAR ] = 1
@@ -310,13 +317,12 @@ VOC_carb_num[iETH ] = 2
 VOC_carb_num[iCRES] = 7
 VOC_carb_num[iMGLY] = 3
 VOC_carb_num[iOPEN] = 5
-VOC_carb_num[iCO  ] = 1
 VOC_carb_num[iISOP] = 5
 VOC_carb_num[iMEOH] = 1
 VOC_carb_num[iETOH] = 2
 
-
 # integer indexing for input file processes
+#   ORDER IS IMPORTANT -- must agree with CAMx Output order
 iInitial    =  0
 iChemistry  =  1
 iEmiss_Area =  2
@@ -345,12 +351,12 @@ iFinal      = 23
 num_i_processes = iFinal + 1
 
 Proc_Names = [
- 'Initial', 'Chemistry ', 'Emissions', 'H_Trans', 'V_Trans', 'Entrain', 'Deposit', 'Final']
+ 'Initial', 'Emissions', 'Chemistry', 'H_Trans', 'V_Trans', 'Entrain', 'Deposit', 'Final']
 
-# integer indexing for lumped species processes
+# integer indexing for aggregated species processes
 jInitial    =  0
-jChemistry  =  1
-jEmission   =  2
+jEmission   =  1
+jChemistry  =  2
 jHor_Trans  =  3
 jVer_Trans  =  4
 jEntrain    =  5
@@ -359,7 +365,7 @@ jFinal      =  7
 
 num_j_processes = jFinal + 1
 
-
+split_xport_processes = [ jChemistry, jHor_Trans, jVer_Trans, jEntrain ]
 
 ## ==========================================================
 # DATA STORAGE for Net Reactions, Summaries, Physical Processes
@@ -374,7 +380,7 @@ net_rxn_names = []
 #   [where SPC is any species name in the above global list].
 net_rxn_species = []
 #   this is indexed by next_net_rxn_set
-#   each row of net_rxn_species will be a vector of len(max_i_spc)
+#   each row of net_rxn_species will be a vector of len(num_pa_spc)
 #    that has in its iSPC position, the jindex number for the species
 #    that are involved in this particular net reaction; iSPC that are not
 #    involved in this net_rxn will have a jNONE value inserted
@@ -433,14 +439,14 @@ def i2j(k,i):
 #   Index order [spc][time][process]
 #  
 species_process_masses = []
-for s in range(num_process_all): 
+for s in range(tot_num_phy_proc_spc): 
 	species_process_masses.append([])   # set up list for process species
 
 #   accumulate the species_process_masses over all time.
 total_species_process_masses = []
 #   create a 0-filled initial vector of j-processes..
 j_proc_null = [ 0.0 for p in range(num_j_processes) ]
-for s in range(num_process_all): 
+for s in range(tot_num_phy_proc_spc): 
 	# for each species, append a 0-valued j-processes vector
 	total_species_process_masses.append([z for z in j_proc_null])
 	# use incremented addition into each element to accumulate, 
@@ -496,7 +502,7 @@ this_jstart = jstart_next_nr_set
 net_rxn_jindex.append(this_jstart)
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 # fill in the jindex at the iSPC locations for the net rxn
@@ -542,7 +548,7 @@ this_jstart = jstart_next_nr_set
 net_rxn_jindex.append(this_jstart)
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 # fill in the jindex at the iSPC locations for the net rxn
@@ -588,7 +594,7 @@ this_jstart = jstart_next_nr_set
 net_rxn_jindex.append(this_jstart)
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 
@@ -642,7 +648,7 @@ this_jstart = jstart_next_nr_set
 net_rxn_jindex.append(this_jstart)
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 # fill in the jindex at the iSPC locations for the net rxn
@@ -704,7 +710,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 
@@ -764,7 +770,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 
@@ -780,13 +786,13 @@ jndx_net_rxn[iO3  ] = jj; jj += 1; indx_net_rxn.append(iO3  )
 jndx_net_rxn[iH2O2] = jj; jj += 1; indx_net_rxn.append(iH2O2)
 jndx_net_rxn[iCO  ] = jj; jj += 1; indx_net_rxn.append(iCO  )
 jndx_net_rxn[iFORM] = jj; jj += 1; indx_net_rxn.append(iFORM)
-jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH)
-jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
 jndx_net_rxn[iALD2] = jj; jj += 1; indx_net_rxn.append(iALD2)
 jndx_net_rxn[iMGLY] = jj; jj += 1; indx_net_rxn.append(iMGLY)
 jndx_net_rxn[iOPEN] = jj; jj += 1; indx_net_rxn.append(iOPEN)
 jndx_net_rxn[iCH4 ] = jj; jj += 1; indx_net_rxn.append(iCH4 )
 jndx_net_rxn[iPAR ] = jj; jj += 1; indx_net_rxn.append(iPAR )
+jndx_net_rxn[iMEOH] = jj; jj += 1; indx_net_rxn.append(iMEOH)
+jndx_net_rxn[iETOH] = jj; jj += 1; indx_net_rxn.append(iETOH)
 jndx_net_rxn[iETH ] = jj; jj += 1; indx_net_rxn.append(iETH )
 jndx_net_rxn[iOLE ] = jj; jj += 1; indx_net_rxn.append(iOLE )
 jndx_net_rxn[iTOL ] = jj; jj += 1; indx_net_rxn.append(iTOL )
@@ -843,7 +849,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 # fill in the jindex at the iSPC locations for the net rxn
@@ -894,7 +900,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 # fill in the jindex at the iSPC locations for the net rxn
@@ -943,7 +949,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 # fill in the jindex at the iSPC locations for the net rxn
@@ -988,7 +994,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 
@@ -1042,7 +1048,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 
@@ -1090,7 +1096,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 
@@ -1149,7 +1155,7 @@ net_rxn_jindex.append(this_jstart)
 
 
 # create a cross reference vector for iSPC to j and fill it with jNONE
-jndx_net_rxn = [jNONE]*max_i_spc
+jndx_net_rxn = [jNONE]*num_pa_spc
 indx_net_rxn = []
 
 
@@ -1223,11 +1229,11 @@ first_time = -1
 while ( time > 0 ) :
 	if options.verbose:
 		print "Time %d  hours" % time
-	if len(ir) != max_i_rxn:
+	if len(ir) != num_cb4_rxn:
 		print "ERROR: no ir data!"
 		sys.exit(1)
 		
-	if len(ip) != num_process_spc:
+	if len(ip) != num_phy_proc_spc:
 		print "ERROR: no ip data!"
 		sys.exit(1)
 		
@@ -1245,7 +1251,7 @@ while ( time > 0 ) :
 	vocc_j_proc = [ p   for p in nox_j_proc]
 	koha_j_proc = [ p   for p in nox_j_proc]
 	
-	for s in range(num_process_spc):
+	for s in range(num_phy_proc_spc):
 		# use 'i' to refer to the full list of processes in file
 		# use 'j' to refer to the lumped processes we are saving
 		
@@ -1253,11 +1259,15 @@ while ( time > 0 ) :
 		sp = ip[s]
 		# create a j-process vector for this species at this time
 		j_proc = []
+		# start by appending the Initial concs
 		j_proc.append(sp[iInitial])
-		j_proc.append(sp[iChemistry])
+		
 		# sum all of the emissions into a single value
 		t_emiss = sp[iEmiss_Area] + sp[iEmiss_Pnt] + sp[iEmiss_PiG]
 		j_proc.append(t_emiss)
+		
+		# append the chemistry
+		j_proc.append(sp[iChemistry])
 		
 		# sum all the horizontal transport into a single value
 		t_htrans = sp[iAdv_W] + sp[iAdv_E] + sp[iAdv_S] + sp[iAdv_N] \
@@ -1295,8 +1305,8 @@ while ( time > 0 ) :
 		#   for the first time, Initial is saved once
 		if time == first_time:
 			total_species_process_masses[s][jInitial] = j_proc[jInitial]
-		# accumulate Chemistry to Deposition for each time.
-		for jp in range(jChemistry,jFinal) :
+		# accumulate Emission to Deposition for each time.
+		for jp in range(jEmission,jFinal) :
 			total_species_process_masses[s][jp] += j_proc[jp]
 		# the Final will be done after read loop is over.
 	for j in range(num_j_processes):
@@ -1318,8 +1328,8 @@ while ( time > 0 ) :
 		total_species_process_masses[iVOCm][jInitial] = vocm_j_proc[jInitial]
 		total_species_process_masses[iVOCC][jInitial] = vocc_j_proc[jInitial]
 		total_species_process_masses[ikOHa][jInitial] = koha_j_proc[jInitial]
-	# accumulate Chemistry to Deposition for aggregates each time.
-	for jp in range(jChemistry,jFinal) :
+	# accumulate Emission to Deposition for aggregates each time.
+	for jp in range(jEmission,jFinal) :
 		total_species_process_masses[iNOx ][jp] +=  nox_j_proc[jp]
 		total_species_process_masses[iNOy ][jp] +=  noy_j_proc[jp]
 		total_species_process_masses[iVOCm][jp] += vocm_j_proc[jp]
@@ -1913,7 +1923,7 @@ while ( time > 0 ) :
 
 
 # insert the last time jFinal into the total_species_process_masses
-for s in range(num_process_all):
+for s in range(tot_num_phy_proc_spc):
 	total_species_process_masses[s][jFinal] = \
 	      species_process_masses[s][-1][jFinal]
 	      
@@ -3464,143 +3474,108 @@ jstart_next_diagram_row  = jj
 ##                       P R I N T  T H E  N E T  R E A C T I O N S
 ## ===================================================================
 
-# choose 'xlm' style output or 'table' style output
-if options.output_format=="xml":
-	from jaxml import XML_document
-	xml_output_filename = root_output_filename+".xml"
-	delim="\t"
-	
-	#Create the generator object
-	xdoc = XML_document()
-	xdoc.netreactions(version="0.1")
-	xdoc._push()
-	
-	xdoc.delimiter(delim)
-	xdoc.starthour(hour_number[0])
-	xdoc.endhour(hour_number[-1])
-	xdoc.summaries(irrfile=irrfile_docline)
-	xdoc._push()
-	
-	kk = 0
-	for i in range(0,len(hourly_diagram_values)):
-		if i == diagram_sect_start[kk] :
-			if kk!=0:
-				xdoc._pop()
-				xdoc._pop()
-			
-			xdoc._push()
-			
-			xdoc.summary()
-			xdoc._push()
-			xdoc.title(diagram_sect_names[kk])
-	
-			if kk < len(diagram_sect_start)-1:
-				kk += 1
-		xdoc.source()	
-		xdoc.name(section_labels[i])
-		xdoc.values(delim.join(map(str,hourly_diagram_values[i][0:num_hrs])), uom="ppb")
-		xdoc.total(daily_diagram_values[i], uom='ppb')
-		xdoc._pop()
-		xdoc._push()
-		
-	xdoc._pop()
-	xdoc._pop()
-	xdoc._pop()
-	xdoc._pop()
-	
-	xdoc.reactions(version="0.1", irrfile=irrfile_docline)
-	xdoc._push()
-	
-	kk = 0
-	for i in range(len(net_rxn_masses)):
-		if i == net_rxn_jindex[kk] :
-			xdoc._pop()
-			xdoc._pop()
-			xdoc._push()
-			xdoc.reaction()
-			xdoc._push()
-			xdoc.title(net_rxn_names[kk])
-	
-			if kk < len(net_rxn_names)-1:
-				kk += 1
-		xdoc._pop()
-		xdoc._push()
-		xdoc.species()
-		xdoc.name(Net_spc_names[net_rxn_spcname[i]])
-		dia_temp = []
-		for t in range(len(hour_number)):
-			dia_temp.append(hourly_net_rxn_masses[t][i])
-		
-		xdoc.values(delim.join(map(str,dia_temp)), uom="ppb")
-		xdoc.total(daily_net_rxn_masses[i], uom='ppb')
-	
-	#write out values to file
-	xdoc._output(xml_output_filename)
-else:
-	# Output the diagram sections summaries to file...
-	# open the output file...
-	sum_output_filename = root_output_filename+".sum"
-	fout = open(sum_output_filename, 'w')
-	
-	print >>fout, "Diagram Section Summaries"
-	print >>fout
-	print >>fout, "IRR file doc line was"
-	print >>fout, irrfile_docline
-	print >>fout
-	
-	kk = 0
-	print >>fout, "%-21s" % "Ending Hour",
-	for t in hour_number:
-		print >>fout, "        %02d" % t,
-	print >>fout,  "    Daily"	
-	print >>fout
-	print >>fout, "Summary Section Name"
-	print >>fout, "Item             ppb"
-	for i in range(len(hourly_diagram_values)):
-		if i == diagram_sect_start[kk] :
-			if ((kk+1) % 3) == 0:
-				print >>fout
-				print >>fout, "%-21s" % "Ending Hour",
-				for t in hour_number:
-					print >>fout, "        %02d" % t,
-				print >>fout,  "    Daily"	
+# Output the diagram sections summaries to file...
+# open the output file...
+sum_output_filename = root_output_filename+".sum"
+fout = open(sum_output_filename, 'w')
+
+print >>fout, "Diagram Section Summaries"
+print >>fout
+print >>fout, "IRR file doc line was"
+print >>fout, irrfile_docline
+print >>fout
+
+kk = 0
+print >>fout, "%-21s" % "Ending Hour",
+for t in hour_number:
+	print >>fout, "        %02d" % t,
+print >>fout,  "    Daily"	
+print >>fout
+print >>fout, "Summary Section Name"
+print >>fout, "Item             ppb"
+for i in range(len(hourly_diagram_values)):
+	if i == diagram_sect_start[kk] :
+		if ((kk+1) % 3) == 0:
 			print >>fout
-			print >>fout
-			print >>fout, "%-20s" % diagram_sect_names[kk]
-			print >>fout
-			if kk < len(diagram_sect_start)-1:
-				kk += 1
-		print  >>fout, "%-20s " % section_labels[i],
-		for t in range(num_hrs):
-			print >>fout, "%10.4f" % (hourly_diagram_values[i][t]),
-		print >>fout, "%10.4f" % daily_diagram_values[i]
-	print >>fout
-	fout.close()
-	
-	# Output the physical processes to file...
-	# open the output file...
-	phy_output_filename = root_output_filename+".phy"
-	fout = open(phy_output_filename, 'w')
-	
-	print >>fout, "Physical Processes By Species"
-	print >>fout
-	print >>fout, "IRR file doc line was"
-	print >>fout, irrfile_docline
-	
-	print >>fout, "%-21s" % "Ending Hour",
-	for t in hour_number:
-		print >>fout, "        %02d" % t,
-	print >>fout,  "    Daily"	
-	print >>fout
-	print >>fout, "Species"
-	print >>fout, "  Process, ppb or ppb/h"
-	for s in range(num_process_all):
-		if ((s+1) % 8) == 0:
 			print >>fout, "%-21s" % "Ending Hour",
 			for t in hour_number:
 				print >>fout, "        %02d" % t,
 			print >>fout,  "    Daily"	
-			print >>fout
+		print >>fout
+		print >>fout
+		print >>fout, "%-20s" % diagram_sect_names[kk]
+		print >>fout
+		if kk < len(diagram_sect_start)-1:
+			kk += 1
+	print  >>fout, "%-20s " % section_labels[i],
+	for t in range(num_hrs):
+		print >>fout, "%10.4f" % (hourly_diagram_values[i][t]),
+	print >>fout, "%10.4f" % daily_diagram_values[i]
+print >>fout
+fout.close()
+
+# Output the physical processes to file...
+# open the output file...
+phy_output_filename = root_output_filename+".phy"
+fout = open(phy_output_filename, 'w')
+
+print >>fout, "Physical Processes By Species"
+print >>fout
+print >>fout, "IRR file doc line was"
+print >>fout, irrfile_docline
+
+print >>fout, "%-21s" % "Ending Hour",
+for t in hour_number:
+	print >>fout, "        %02d" % t,
+print >>fout,  "    Daily"	
+print >>fout
+print >>fout, "Species"
+print >>fout, "  Process, ppb or ppb/h"
+for s in range(tot_num_phy_proc_spc):
+	if ((s+1) % 8) == 0:
+		print >>fout, "%-21s" % "Ending Hour",
+		for t in hour_number:
+			print >>fout, "        %02d" % t,
+		print >>fout,  "    Daily"	
+		print >>fout
+	# if current species is in the list of spc that need split xport, then...
+	if s in splt_xport_spc:
+		spc_mark = Phy_spc_names[s] + "--XT"
+		print >>fout, "%-20s" % spc_mark
+		hour_sum = [0.0]*(num_hrs+1)
+		for p in range(num_j_processes):
+			if p in split_xport_processes:
+				for sgn in [1,-1]:
+					if sgn == 1:
+						proc_name = Proc_Names[p]+", gain"
+					else:
+						proc_name = Proc_Names[p]+", loss"
+					print  >>fout, "  %-18s " % proc_name,
+					a_row = [0.0]*num_hrs
+					for t in range(num_hrs):
+						a_row[t] = species_process_masses[s][t][p]
+						if ((sgn > 0) & (a_row[t] < 0.0)):
+							a_row[t] = 0.0
+						elif ((sgn < 0) & (a_row[t] > 0.0)):
+							a_row[t] = 0.0
+					for t in range(num_hrs):
+						print >>fout, "%10.4f" % (a_row[t]),
+						if p < jFinal:
+							hour_sum[t] += a_row[t]
+					total_mass = sum(a_row)
+					print >>fout, "%10.4f" % total_mass
+					if p < jFinal:
+						hour_sum[-1] += total_mass
+			else:
+				print  >>fout, "  %-18s " % Proc_Names[p],
+				for t in range(num_hrs):
+					print >>fout, "%10.4f" % (species_process_masses[s][t][p]),
+					if p < jFinal:
+						hour_sum[t] += species_process_masses[s][t][p]
+				print >>fout, "%10.4f" % total_species_process_masses[s][p]
+				if p < jFinal:
+					hour_sum[-1] += total_species_process_masses[s][p]
+	else:
 		print >>fout, "%-20s" % Phy_spc_names[s]
 		hour_sum = [0.0]*(num_hrs+1)
 		for p in range(num_j_processes):
@@ -3612,54 +3587,195 @@ else:
 			print >>fout, "%10.4f" % total_species_process_masses[s][p]
 			if p < jFinal:
 				hour_sum[-1] += total_species_process_masses[s][p]
-		print  >>fout, "  %-18s " % "Sum Processes",
+	print  >>fout, "  %-18s " % "Sum Processes",
+	for t in range(num_hrs):
+		print >>fout, "%10.4f" % (hour_sum[t]),
+	print >>fout, "%10.4f" % hour_sum[-1]
+	print >>fout
+print >>fout
+fout.close()
+
+
+# Output the VOC composition by processes to file...
+# open the output file...
+voc_comp_output_filename = root_output_filename+".voc"
+fout = open(voc_comp_output_filename, 'w')
+
+print >>fout, "VOC Composition By Processes"
+print >>fout
+print >>fout, "IRR file doc line was"
+print >>fout, irrfile_docline
+
+print >>fout, "%-21s" % "Ending Hour",
+for t in hour_number:
+	print >>fout, "        %02d" % t,
+print >>fout,  "    Daily"	
+print >>fout
+print >>fout, "Process, ppb or ppb/h"
+print >>fout, "  Species"
+print >>fout
+for p in range(num_j_processes):
+	print  >>fout, "%-21s " % Proc_Names[p]
+	if p in [jInitial, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
+		hour_sum = [0.0]*(num_hrs+1)
+		if p in [jInitial, jFinal]:
+			print >>fout, " %-20s " % "Concs"
+		else:
+			print >>fout, " %-20s " % "Gains"
+		for s in voc_comp_spc:
+			print >>fout, "  %-19s" % Phy_spc_names[s],
+			daily_total = 0.0
+			for t in range(num_hrs):
+				c = species_process_masses[s][t][p]
+				if c >= 0.0 :
+					print >>fout, "%10.4f" % (c),
+					hour_sum[t] += c
+					daily_total += c
+				else:
+					print >>fout, "%10.4f" % (0.0),
+			if p in [jInitial, jFinal]:
+				print >>fout, "%10.4f" % total_species_process_masses[s][p]
+				if p == jInitial :
+					hour_sum[-1] = hour_sum[0]
+				else:
+					hour_sum[-1] = hour_sum[-2]
+			else:
+				print >>fout, "%10.4f" % daily_total
+				hour_sum[-1] += daily_total
+		print  >>fout, "  %-19s" % "VOCm",
 		for t in range(num_hrs):
 			print >>fout, "%10.4f" % (hour_sum[t]),
 		print >>fout, "%10.4f" % hour_sum[-1]
 		print >>fout
-	print >>fout
-	fout.close()
-	
-	
-	# Output the hourly and total net reactions to file...
-	# open the output file...
-	net_output_filename = root_output_filename+".net"
-	fout = open(net_output_filename, 'w')
-	
-	print >>fout, "Net Reactions"
-	print >>fout
-	print >>fout, "IRR file doc line was"
-	print >>fout, irrfile_docline
-	
-	kk = 0
-	print >>fout, "%-21s" % "Ending Hour",
-	for t in hour_number:
-		print >>fout, "        %02d" % t,
-	print >>fout,  "     Daily"	
-	print >>fout
-	print >>fout, "Net Reaction Name"
-	print >>fout, "Species     ppb"
-	for i in range(len(net_rxn_masses)):
-		if i == net_rxn_jindex[kk] :
-			if ((kk+1) % 4) == 0:
-				print >>fout
-				print >>fout, "%-21s" % "Ending Hour",
-				for t in hour_number:
-					print >>fout, "        %02d" % t,
-				print >>fout,  "    Daily"	
+	if p in [ jChemistry, jHor_Trans, jVer_Trans, jEntrain, jDepo ]:
+		print >>fout, " %-20s " % "Losses"
+		hour_sum = [0.0]*(num_hrs+1)
+		for s in voc_comp_spc:
+			print >>fout, "  %-19s" % Phy_spc_names[s],
+			daily_total = 0.0
+			for t in range(num_hrs):
+				c = species_process_masses[s][t][p]
+				if c < 0.0 :
+					print >>fout, "%10.4f" % (c),
+					hour_sum[t] += c
+					daily_total += c
+				else:
+					print >>fout, "%10.4f" % (0.0),
+			print >>fout, "%10.4f" % daily_total
+			hour_sum[-1] += daily_total
+		print  >>fout, "  %-19s" % "VOCm",
+		for t in range(num_hrs):
+			print >>fout, "%10.4f" % (hour_sum[t]),
+		print >>fout, "%10.4f" % hour_sum[-1]
+		print >>fout
+print >>fout
+print >>fout
+print >>fout, "%-21s" % "Ending Hour",
+for t in hour_number:
+	print >>fout, "        %02d" % t,
+print >>fout,  "    Daily"	
+print >>fout
+print >>fout, "Process, ppbC or ppbC/h"
+print >>fout, "  Species"
+print >>fout
+for p in range(num_j_processes):
+	print  >>fout, "%-21s " % Proc_Names[p]
+	if p in [jInitial, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
+		hour_sum = [0.0]*(num_hrs+1)
+		if p in [jInitial, jFinal]:
+			print >>fout, " %-20s " % "Concs"
+		else:
+			print >>fout, " %-20s " % "Gains"
+		for s in voc_comp_spc:
+			print >>fout, "  %-19s" % Phy_spc_names[s],
+			daily_total = 0.0
+			for t in range(num_hrs):
+				c = VOC_carb_num[s]*species_process_masses[s][t][p]
+				if c >= 0.0 :
+					print >>fout, "%10.4f" % (c),
+					hour_sum[t] += c
+					daily_total += c
+				else:
+					print >>fout, "%10.4f" % (0.0),
+			if p in [jInitial, jFinal]:
+				c = VOC_carb_num[s]*total_species_process_masses[s][p]
+				print >>fout, "%10.4f" % (c)
+				if p == jInitial :
+					hour_sum[-1] = hour_sum[0]
+				else:
+					hour_sum[-1] = hour_sum[-2]
+			else:
+				print >>fout, "%10.4f" % daily_total
+				hour_sum[-1] += daily_total
+		print  >>fout, "  %-19s" % "VOCm",
+		for t in range(num_hrs):
+			print >>fout, "%10.4f" % (hour_sum[t]),
+		print >>fout, "%10.4f" % hour_sum[-1]
+		print >>fout
+	if p in [ jChemistry, jHor_Trans, jVer_Trans, jEntrain, jDepo ]:
+		print >>fout, " %-20s " % "Losses"
+		hour_sum = [0.0]*(num_hrs+1)
+		for s in voc_comp_spc:
+			print >>fout, "  %-19s" % Phy_spc_names[s],
+			daily_total = 0.0
+			for t in range(num_hrs):
+				c = VOC_carb_num[s]*species_process_masses[s][t][p]
+				if c < 0.0 :
+					print >>fout, "%10.4f" % (c),
+					hour_sum[t] += c
+					daily_total += c
+				else:
+					print >>fout, "%10.4f" % (0.0),
+			print >>fout, "%10.4f" % daily_total
+			hour_sum[-1] += daily_total
+		print  >>fout, "  %-19s" % "VOCm",
+		for t in range(num_hrs):
+			print >>fout, "%10.4f" % (hour_sum[t]),
+		print >>fout, "%10.4f" % hour_sum[-1]
+		print >>fout
+print >>fout
+fout.close()
+
+
+# Output the hourly and total net reactions to file...
+# open the output file...
+net_output_filename = root_output_filename+".net"
+fout = open(net_output_filename, 'w')
+
+print >>fout, "Net Reactions"
+print >>fout
+print >>fout, "IRR file doc line was"
+print >>fout, irrfile_docline
+
+kk = 0
+print >>fout, "%-21s" % "Ending Hour",
+for t in hour_number:
+	print >>fout, "        %02d" % t,
+print >>fout,  "     Daily"	
+print >>fout
+print >>fout, "Net Reaction Name"
+print >>fout, "Species     ppb"
+for i in range(len(net_rxn_masses)):
+	if i == net_rxn_jindex[kk] :
+		if ((kk+1) % 4) == 0:
 			print >>fout
-			print >>fout
-			print >>fout, "%-20s" % net_rxn_names[kk]
-			print >>fout
-			if kk < len(net_rxn_names)-1:
-				kk += 1
-		print  >>fout, "%-20s " % Net_spc_names[net_rxn_spcname[i]],
-		for t in range(0,len(hour_number)):
-			print >>fout, "%10.4f" % (hourly_net_rxn_masses[t][i]),
-		print >>fout, "%10.4f" % daily_net_rxn_masses[i]
-	# finished the whole set of net rxn masses for all hours
-	print >>fout
-	fout.close()
+			print >>fout, "%-21s" % "Ending Hour",
+			for t in hour_number:
+				print >>fout, "        %02d" % t,
+			print >>fout,  "    Daily"	
+		print >>fout
+		print >>fout
+		print >>fout, "%-20s" % net_rxn_names[kk]
+		print >>fout
+		if kk < len(net_rxn_names)-1:
+			kk += 1
+	print  >>fout, "%-20s " % Net_spc_names[net_rxn_spcname[i]],
+	for t in range(0,len(hour_number)):
+		print >>fout, "%10.4f" % (hourly_net_rxn_masses[t][i]),
+	print >>fout, "%10.4f" % daily_net_rxn_masses[i]
+# finished the whole set of net rxn masses for all hours
+print >>fout
+fout.close()
 
 
 print "F I N I S H E D"
