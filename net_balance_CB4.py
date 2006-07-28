@@ -391,13 +391,117 @@ daily_sum_processes  = [jInitial, jEmission, jChemistry,
                         jHor_Trans, jVer_Trans, jEntrain, jDepo,
                         jTempAdj ]
 
+# ------ Constants for Daily Phy/Chem Tables ---------------------
+
+# integer indexing for output daily_phy_table indexing
+
+z = 0
+kNOx_init = z; z += 1
+kNOx_aver = z; z += 1
+kNOy_aver = z; z += 1
+kNOx_emis = z; z += 1
+kNOy_Hxpt = z; z += 1
+kNOy_Vxpt = z; z += 1
+kNOy_entr = z; z += 1
+kNOy_depo = z; z += 1
+kNOx_fina = z; z += 1  # temperature adjusted
+kNOy_fina = z; z += 1  # temperature adjusted
+
+kVOCm_init = z; z += 1
+kVOCm_aver = z; z += 1
+kVOCC_aver = z; z += 1
+kVOCm_emis = z; z += 1
+kVOCm_Hxpt = z; z += 1
+kVOCm_Vxpt = z; z += 1
+kVOCm_entr = z; z += 1
+kVOCm_depo = z; z += 1
+kVOCm_fina = z; z += 1 # temperature adjusted
+kVOCC_fina = z; z += 1 # temperature adjusted
+
+kVOCm2NOx_emis = z; z += 1
+kVOCm2NOx_aver = z; z += 1
+
+num_k_phy_tab = z
+
+PhyTab_Names = [
+ 'NOx initial', 'NOx average', 'NOy average', 'NOx emissions', 
+ 'NOy H transport',  'NOy V transport', 'NOy entrainment', 'NOy deposition', 
+ 'NOx Final', 'NOy Final', 
+ 'VOCm initial', 'VOCm average', 'VOCC average', 'VOCm emissions', 
+ 'VOCm H transport',  'VOCm V transport', 'VOCm entrainment', 'VOCm deposition', 
+ 'VOCm Final', 'VOCC Final']
+
+
+# integer indexing for output daily_chem_table indexing
+
+z = 0
+lorgnewOH  = z; z += 1
+linornewOH = z; z += 1
+ltotnewOH  = z; z += 1
+lfracorgOH = z; z += 1
+lOHchain   = z; z += 1
+ltotOHr    = z; z += 1
+lfracOHNO2 = z; z += 1
+ltotNO2r   = z; z += 1
+lfracOHCO  = z; z += 1
+ltotCOr    = z; z += 1
+lfracOHVOC = z; z += 1
+ltotVOCr   = z; z += 1
+lNO2VOCr   = z; z += 1
+ltotNO2p   = z; z += 1
+
+ltotnewNO2   = z; z += 1
+ltotNO2avail = z; z += 1
+ltotNO2ploss = z; z += 1
+ltotNO2closs = z; z += 1
+ltotNO2tloss = z; z += 1
+ltotNO2hv    = z; z += 1
+lrecreatedNO = z; z += 1
+lNOchain     = z; z += 1
+lO3prod      = z; z += 1
+
+lO3_init = z; z += 1
+lO3_aver = z; z += 1
+lO3_peak = z; z += 1
+lO3_PIGl = z; z += 1   # is O3 emissions == O3 lost to PIG NO titration
+lO3_Hxpt = z; z += 1
+lO3_Vxpt = z; z += 1
+lO3_entr = z; z += 1
+lO3_depo = z; z += 1
+lO3_reac = z; z += 1
+lO3_fina = z; z += 1 # temperature adjusted
+
+num_l_chem_tab = z
+
+ChemTab_Names = [
+ '  org new OH', 'inorg new OH', 'total new OH', '% org new OH', 
+ 'OH chain length',  'total OH reacted', '% OH with NO2', 'total NO2 reacted', 
+ '% OH with CO', 'total CO reacted', '% OH with VOC', 'total VOC reacted', 
+ 'NO2 per VOC+CO_r', 'total NO2 produced', 
+ 'total new NO2', 'total NO2 available', 'NO2 physical losses', 'NO2 chemical losses', 
+ 'NO2 termination loss',  'NO2 photolysis', 'recreated NO', 'NO chain length', 
+ 'O3 produced', 'O3 inital', 'O3 average', 'O3 peak', 'O3 PIG loss', 'O3 H transport',
+ 'O3 V transport', 'O3 entrainment', 'O3 deposition', 'O3 reacted', 'O3 final' ]
 
 
 
 ## ==========================================================
 # DATA STORAGE for Net Reactions, Summaries, Physical Processes
 
-# Start with info about the net_rxns sets...
+# Start with daily tables for phy and chem summaries...
+
+table_daily_phy  = [0.0]*num_k_phy_tab
+
+table_daily_chem = [0.0]*num_l_chem_tab
+
+# Start with the peak O3 prod tables for phy and chem summaries...
+
+table_peakO3_phy   = [0.0]*num_k_phy_tab
+
+table_peakO3_chem  = [0.0]*num_l_chem_tab
+
+
+# Next do the allocation of the net_rxns sets...
 #   allocate vector of names of the net_rxns
 net_rxn_names = []
 #   this is indexed by next_net_rxn_set
@@ -1357,7 +1461,7 @@ while ( time > 0 ) :
 			koha_j_proc[j] = k_OH[iNO2]
 	
 	species_process_masses[iNOx ].append( nox_j_proc)
-	species_process_masses[iNOy ].append( nox_j_proc)
+	species_process_masses[iNOy ].append( noy_j_proc)
 	species_process_masses[iOx  ].append(  ox_j_proc)
 	species_process_masses[iVOCm].append(vocm_j_proc)
 	species_process_masses[iVOCC].append(vocc_j_proc)
@@ -1366,7 +1470,7 @@ while ( time > 0 ) :
 	# accumulate relevant processes for the aggregates for each time.
 	for jp in hourly_sum_processes  :
 		total_species_process_masses[iNOx ][jp] +=  nox_j_proc[jp]
-		total_species_process_masses[iNOy ][jp] +=  nox_j_proc[jp]
+		total_species_process_masses[iNOy ][jp] +=  noy_j_proc[jp]
 		total_species_process_masses[iOx  ][jp] +=   ox_j_proc[jp]
 		total_species_process_masses[iVOCm][jp] += vocm_j_proc[jp]
 		total_species_process_masses[iVOCC][jp] += vocc_j_proc[jp]
@@ -2092,10 +2196,17 @@ def accumulate_row(row = [], acc = []):
 
 
 
-
 ## begin Diagram Section storage allocation
 # intermediate working vector, must be of correct len
 a_row   = [0.0]*num_hrs
+
+
+# Find the peak O3 production hour....
+peakO3_hr = 0
+copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iO3  ), a_row)
+for h in range(num_hrs) :
+	if a_row[h] > a_row[peakO3_hr] :
+		peakO3_hr = h
 
 #-------------------------------------------------------
 ### The Diagram Section for ** C2O3 prod and loss **
@@ -2738,10 +2849,12 @@ jj += 1
 section_labels.append("Total sec new OH") 
 # save the total secondary new OH
 hourly_tot_sec_newoh = [e for e in hourly_tot_newoh]
-daily_tot_sec_newoh  = sum(hourly_tot_sec_newoh)
 hourly_diagram_values.append([e for e in hourly_tot_sec_newoh])
+table_peakO3_chem[lorgnewOH] = hourly_tot_sec_newoh[peakO3_hr]
 
+daily_tot_sec_newoh  = sum(hourly_tot_sec_newoh)
 daily_diagram_values.append(daily_tot_sec_newoh)
+table_daily_chem[lorgnewOH] = daily_tot_sec_newoh
 
 jj += 1
 
@@ -2752,8 +2865,11 @@ copyhours_net(hourly_net_rxn_masses, i2j(n_O3hvrad, iOH  ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add in this OH..
 accumulate_row(a_row,hourly_tot_newoh)
+table_peakO3_chem[linornewOH] = a_row[peakO3_hr]
 
-daily_diagram_values.append(daily_net_rxn_masses[i2j(n_O3hvrad, iOH )])
+t_value = daily_net_rxn_masses[i2j(n_O3hvrad, iOH )]
+daily_diagram_values.append(t_value)
+table_daily_chem[linornewOH] = t_value
 
 jj += 1
 
@@ -2762,18 +2878,28 @@ copyhours_net(hourly_net_rxn_masses, i2j(n_OxOrgrad, iOH ), a_row)
 hourly_diagram_values.append([e for e in a_row])
 # add in this OH..
 accumulate_row(a_row,hourly_tot_newoh)
+table_peakO3_chem[lorgnewOH] += a_row[peakO3_hr]
 
-daily_diagram_values.append(daily_net_rxn_masses[i2j(n_OxOrgrad, iOH )])
+t_value = daily_net_rxn_masses[i2j(n_OxOrgrad, iOH )]
+daily_diagram_values.append(t_value)
+table_daily_chem[lorgnewOH] += t_value
 
 jj += 1
 
 section_labels.append("Total new OH")
 
-daily_tot_newoh = sum(hourly_tot_newoh)
 hourly_diagram_values.append([e for e in hourly_tot_newoh])
+table_peakO3_chem[ltotnewOH] = hourly_tot_newoh[peakO3_hr]
 
+daily_tot_newoh = sum(hourly_tot_newoh)
 daily_diagram_values.append(daily_tot_newoh)
+table_daily_chem[ltotnewOH] = daily_tot_newoh
 
+# compute % org new OH
+table_peakO3_chem[lfracorgOH] = 100.0 * table_peakO3_chem[lorgnewOH] /  \
+									table_peakO3_chem[ltotnewOH]
+table_daily_chem[lfracorgOH]  = 100.0 * table_daily_chem[lorgnewOH] /   \
+									table_daily_chem[ltotnewOH]
 jj += 1
 
 section_labels.append("recreated OH (diff)")
@@ -2794,8 +2920,10 @@ jj += 1
 
 section_labels.append("Total OH reacted") 
 hourly_diagram_values.append([e for e in hourly_tot_oh_reacted])
+table_peakO3_chem[ltotOHr] = hourly_tot_oh_reacted[peakO3_hr]
 
 daily_diagram_values.append(daily_tot_oh_reacted)
+table_daily_chem[ltotOHr] = daily_tot_oh_reacted
 
 jj += 1
 
@@ -2804,11 +2932,12 @@ section_labels.append("OH chain length")
 # first fetch the total OH that reacted in the OHOrgOxid net reaction
 hourly_oh_chain = [ -Q / q for (Q,q) \
                       in zip(hourly_tot_oh_reacted, hourly_tot_newoh)] 
-daily_oh_chain  = -daily_tot_oh_reacted / daily_tot_newoh
-
 hourly_diagram_values.append([e for e in hourly_oh_chain])
+table_peakO3_chem[lOHchain] = hourly_oh_chain[peakO3_hr]
 
+daily_oh_chain  = -daily_tot_oh_reacted / daily_tot_newoh
 daily_diagram_values.append(daily_oh_chain)
+table_daily_chem[lOHchain] = daily_oh_chain
 
 jj += 1
 
@@ -2826,14 +2955,54 @@ daily_diagram_values.append(daily_oh_chain)
 
 jj += 1
 
+section_labels.append("Total NO2 reacted") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iNO2 ), a_row)
+hourly_diagram_values.append([e for e in a_row])
+table_peakO3_chem[ltotNO2r] = a_row[peakO3_hr]
+
+t_value  = sum(a_row)
+daily_diagram_values.append(t_value)
+table_daily_chem[ltotNO2r] = t_value
+
+# compute % OH reacted with CO
+table_peakO3_chem[lfracOHNO2] = 100.0 * table_peakO3_chem[ltotNO2r] /  \
+									table_peakO3_chem[ltotOHr]
+table_daily_chem[lfracOHNO2]  = 100.0 * table_daily_chem[ltotNO2r] /   \
+									table_daily_chem[ltotOHr]
+jj += 1
+
+section_labels.append("Total CO reacted") 
+copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iCO ), a_row)
+hourly_tot_co_reacted = [e for e in a_row]
+hourly_diagram_values.append([e for e in a_row])
+table_peakO3_chem[ltotCOr] = a_row[peakO3_hr]
+
+daily_tot_co_reacted  = sum(a_row)
+daily_diagram_values.append(daily_tot_co_reacted)
+table_daily_chem[ltotCOr] = daily_tot_co_reacted
+
+# compute % OH reacted with CO
+table_peakO3_chem[lfracOHCO] = 100.0 * table_peakO3_chem[ltotCOr] /  \
+									table_peakO3_chem[ltotOHr]
+table_daily_chem[lfracOHCO]  = 100.0 * table_daily_chem[ltotCOr] /   \
+									table_daily_chem[ltotOHr]
+jj += 1
+
 section_labels.append("Total VOC reacted") 
 copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iVOC ), a_row)
 hourly_tot_voc_reacted = [e for e in a_row]
-daily_tot_voc_reacted  = sum(hourly_tot_voc_reacted)
 hourly_diagram_values.append([e for e in hourly_tot_voc_reacted])
+table_peakO3_chem[ltotVOCr] = hourly_tot_voc_reacted[peakO3_hr]
 
+daily_tot_voc_reacted  = sum(hourly_tot_voc_reacted)
 daily_diagram_values.append(daily_tot_voc_reacted)
+table_daily_chem[ltotVOCr] = daily_tot_voc_reacted
 
+# compute % OH reacted with VOC
+table_peakO3_chem[lfracOHVOC] = 100.0 * table_peakO3_chem[ltotVOCr] /  \
+									table_peakO3_chem[ltotOHr]
+table_daily_chem[lfracOHVOC]  = 100.0 * table_daily_chem[ltotVOCr] /   \
+									table_daily_chem[ltotOHr]
 jj += 1
 
 section_labels.append("  NO  by C2O3") 
@@ -2911,21 +3080,24 @@ jj += 1
 section_labels.append("Total NO2 Produced") 
 
 hourly_diagram_values.append([e for e in hourly_tot_no2_oxid])
+table_peakO3_chem[ltotNO2p] = hourly_tot_no2_oxid[peakO3_hr]
 
 daily_tot_no2_oxid = sum(hourly_tot_no2_oxid)
-
 daily_diagram_values.append(daily_tot_no2_oxid)
+table_daily_chem[ltotNO2p] = daily_tot_no2_oxid
 
 jj += 1
 
-section_labels.append("NO2 per VOC reacted") 
-hourly_no2_voc = [ n/-v for (n,v) \
-                 in zip(hourly_tot_no2_oxid,hourly_tot_voc_reacted)]
-hourly_diagram_values.append([e for e in hourly_no2_voc])
+section_labels.append("NO2 per VOC+CO reacted") 
+hourly_no2_vocco = [ n/-(v+c) for (n,v,c) \
+                 in zip(hourly_tot_no2_oxid, \
+                 		hourly_tot_voc_reacted, hourly_tot_co_reacted)]
+hourly_diagram_values.append([e for e in hourly_no2_vocco])
+table_peakO3_chem[lNO2VOCr] = hourly_no2_vocco[peakO3_hr]
 
-daily_no2_voc = daily_tot_no2_oxid / -daily_tot_voc_reacted
-
-daily_diagram_values.append(daily_no2_voc)
+daily_no2_vocco = daily_tot_no2_oxid / -(daily_tot_voc_reacted+daily_tot_co_reacted)
+daily_diagram_values.append(daily_no2_vocco)
+table_daily_chem[lNO2VOCr] = daily_no2_vocco
 
 jj += 1
 
@@ -3012,8 +3184,10 @@ jj += 1
 #  ...sum
 section_labels.append("Total new NO2")
 hourly_diagram_values.append([e for e in hourly_total_new_no2])
+table_peakO3_chem[ltotnewNO2] = hourly_total_new_no2[peakO3_hr]
 
 daily_diagram_values.append(daily_total_new_no2)
+table_daily_chem[ltotnewNO2] = daily_total_new_no2
 
 jj += 1
 
@@ -3098,8 +3272,10 @@ jj += 1
 #   ... show Total Available NO2 and its fraction from chemistry
 section_labels.append("Total Available NO2")
 hourly_diagram_values.append([e for e in hourly_total_avail_no2])
+table_peakO3_chem[ltotNO2avail] = hourly_total_avail_no2[peakO3_hr]
 
 daily_diagram_values.append(daily_total_avail_no2)
+table_daily_chem[ltotNO2avail] = daily_total_avail_no2
 
 jj += 1
 
@@ -3218,8 +3394,10 @@ jj += 1
 #  ...sum
 section_labels.append("Total NO2 phy losses")
 hourly_diagram_values.append([e for e in hourly_tot_phy_no2_losses])
+table_peakO3_chem[ltotNO2ploss] = hourly_tot_phy_no2_losses[peakO3_hr]
 
 daily_diagram_values.append(daily_tot_phy_no2_losses)
+table_daily_chem[ltotNO2ploss] = daily_tot_phy_no2_losses
 
 jj += 1
 
@@ -3284,9 +3462,11 @@ section_labels.append("Total NO2 Term Loss")
 copyhours_net(hourly_net_rxn_masses, i2j(n_NO2term, iNO2 ), a_row)
 hourly_chem_no2_loss = [e for e in a_row ]
 hourly_diagram_values.append([e for e in a_row])
+table_peakO3_chem[ltotNO2tloss] = hourly_chem_no2_loss[peakO3_hr]
 
 daily_chem_no2_loss = sum(a_row)
 daily_diagram_values.append(daily_chem_no2_loss)
+table_daily_chem[ltotNO2tloss] = daily_chem_no2_loss
 
 jj += 1
 
@@ -3294,9 +3474,11 @@ section_labels.append("   NO2 Photolyzed")
 copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iNO2 ), a_row)
 hourly_no2_phot = [e for e in a_row]
 hourly_diagram_values.append(hourly_no2_phot)
+table_peakO3_chem[ltotNO2hv] = hourly_no2_phot[peakO3_hr]
 
 daily_no2_phot = sum(a_row)
 daily_diagram_values.append(daily_no2_phot)
+table_daily_chem[ltotNO2hv] = daily_no2_phot
 
 jj += 1
 
@@ -3314,9 +3496,11 @@ section_labels.append("   O3  Produced")
 copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iO3  ), a_row)
 hourly_new_o3_prod = [e for e in a_row]
 hourly_diagram_values.append(hourly_new_o3_prod)
+table_peakO3_chem[lO3prod] = hourly_new_o3_prod[peakO3_hr]
 
 daily_new_o3_prod = sum(a_row)
 daily_diagram_values.append(daily_new_o3_prod)
+table_daily_chem[lO3prod] = daily_new_o3_prod
 
 jj += 1
 
@@ -3333,9 +3517,11 @@ a_row = [t+p for (t,p) in \
 						zip(hourly_chem_no2_loss, hourly_no2_phot) ]
 hourly_tot_chem_no2_loss = [e for e in a_row ]
 hourly_diagram_values.append(hourly_tot_chem_no2_loss)
+table_peakO3_chem[ltotNO2closs] = hourly_tot_chem_no2_loss[peakO3_hr]
 
 daily_tot_chem_no2_loss = sum(hourly_tot_chem_no2_loss)
 daily_diagram_values.append(daily_tot_chem_no2_loss)
+table_daily_chem[ltotNO2closs] = daily_tot_chem_no2_loss
 
 jj += 1
 
@@ -3375,9 +3561,11 @@ section_labels.append("recreated NO")
 hourly_recreated_no = [ p - n for (p,n) in \
 								zip(hourly_no_prod, hourly_new_no_frm_no2) ]
 hourly_diagram_values.append([e for e in hourly_recreated_no])
+table_peakO3_chem[lrecreatedNO] = hourly_recreated_no[peakO3_hr]
 
 daily_recreated_no = daily_no_prod - daily_no_frm_no2
 daily_diagram_values.append(daily_recreated_no)
+table_daily_chem[lrecreatedNO] = daily_recreated_no
 
 jj += 1
 
@@ -3512,7 +3700,8 @@ hourly_no_pr = [ (r/abs(t)) for (r,t) \
 
 hourly_diagram_values.append([e for e in hourly_no_pr])
 
-daily_diagram_values.append(daily_recreated_no/abs(daily_tot_no_oxid)) 
+t_value = daily_recreated_no/abs(daily_tot_no_oxid)
+daily_diagram_values.append(t_value) 
 
 jj += 1
 
@@ -3526,11 +3715,12 @@ section_labels.append("NO chain length")
 hourly_no_chain = [ r / q for (r,q) \
                       in zip(hourly_recreated_no, hourly_total_new_no)]
 
-daily_no_chain  = daily_recreated_no / daily_total_new_no
-
 hourly_diagram_values.append([e for e in hourly_no_chain])
+table_peakO3_chem[lNOchain] = hourly_no_chain[peakO3_hr]
 
+daily_no_chain  = daily_recreated_no / daily_total_new_no
 daily_diagram_values.append(daily_no_chain)
+table_daily_chem[lNOchain] = daily_no_chain
 
 jj += 1
 
@@ -3565,6 +3755,7 @@ hourly_diagram_values.append([e for e in a_row ])
 t_value = total_species_process_masses[iO3][jInitial]
 daily_total_o3 = t_value
 daily_diagram_values.append(t_value)
+table_daily_chem[lO3_init] = daily_total_o3
 
 jj += 1
 
@@ -3573,22 +3764,32 @@ section_labels.append("  O3 carryover")
 copyhours_phy(species_process_masses, iO3, jCarryOver, a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row ])
+table_peakO3_chem[lO3_init] = hourly_total_o3[peakO3_hr]
 
 t_value = total_species_process_masses[iO3][jCarryOver]
 daily_total_o3 += 0.0
 daily_diagram_values.append(t_value)
+table_daily_chem[lO3_aver] = t_value
 
 jj += 1
 
-#  ... emissions
+#  ... emissions  -- PIG NO + O3....
 section_labels.append("  O3 emissions")
 copyhours_phy(species_process_masses, iO3, jEmission, a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row ])
+table_peakO3_chem[lO3_PIGl] = a_row[peakO3_hr]
+
+# initialize a vector to hold total ozone phy processes
+hourly_tot_phy_ozone_chg = [e for e in a_row ]
 
 t_value = total_species_process_masses[iO3][jEmission]
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+table_daily_chem[lO3_PIGl] = t_value
+
+# initialize a variable to hold total ozone phy processes
+daily_tot_phy_ozone_chg = t_value
 
 jj += 1
 
@@ -3597,10 +3798,14 @@ section_labels.append("  O3 horiz trans")
 copyhours_phy(species_process_masses, iO3, jHor_Trans, a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row ])
+accumulate_row(a_row,hourly_tot_phy_ozone_chg)
+table_peakO3_chem[lO3_Hxpt] = a_row[peakO3_hr]
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+daily_tot_phy_ozone_chg += t_value
+table_daily_chem[lO3_Hxpt] = t_value
 
 jj += 1
 
@@ -3609,10 +3814,14 @@ section_labels.append("  O3 vert  trans")
 copyhours_phy(species_process_masses, iO3, jVer_Trans, a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row ])
+accumulate_row(a_row,hourly_tot_phy_ozone_chg)
+table_peakO3_chem[lO3_Vxpt] = a_row[peakO3_hr]
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+daily_tot_phy_ozone_chg += t_value
+table_daily_chem[lO3_Vxpt] = t_value
 
 jj += 1
 
@@ -3621,15 +3830,43 @@ section_labels.append("  O3 entrain/dil")
 copyhours_phy(species_process_masses, iO3, jEntrain, a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row ])
+accumulate_row(a_row,hourly_tot_phy_ozone_chg)
+table_peakO3_chem[lO3_entr] = a_row[peakO3_hr]
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+daily_tot_phy_ozone_chg += t_value
+table_daily_chem[lO3_entr] = t_value
+
+jj += 1
+
+#  ... depositon
+section_labels.append("  O3 deposition")
+copyhours_phy(species_process_masses, iO3, jDepo, a_row)
+accumulate_row(a_row,hourly_total_o3)
+hourly_diagram_values.append([e for e in a_row ])
+accumulate_row(a_row,hourly_tot_phy_ozone_chg)
+table_peakO3_chem[lO3_depo] = a_row[peakO3_hr]
+
+t_value = total_species_process_masses[iO3][jDepo]
+daily_total_o3 += t_value
+daily_diagram_values.append(t_value)
+daily_tot_phy_ozone_chg += t_value
+table_daily_chem[lO3_depo] = t_value
+
+jj += 1
+
+#   ... Total O3 physical losses...
+section_labels.append("Total O3 phy losses")
+hourly_diagram_values.append([e for e in hourly_tot_phy_ozone_chg])
+
+daily_diagram_values.append(daily_tot_phy_ozone_chg)
 
 jj += 1
 
 #   ...  new o3 from NO2 photolysis...
-section_labels.append("  O3 from NO2+hv")
+section_labels.append("New O3 from NO2+hv")
 hourly_diagram_values.append([e for e in hourly_new_o3_prod])
 accumulate_row(hourly_new_o3_prod,hourly_total_o3)
 
@@ -3643,10 +3880,14 @@ section_labels.append("  O3 + org loss")
 copyhours_net(hourly_net_rxn_masses, i2j(n_OxOrgrad, iO3 ), a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row])
+# initialize a vector to hold total ozone chem processes
+hourly_tot_chem_ozone_chg = [e for e in a_row ]
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+# initialize a variable to hold total ozone chem processes
+daily_tot_chem_ozone_chg = t_value
 
 jj += 1
 
@@ -3655,10 +3896,12 @@ section_labels.append("  O3o + NO titration")
 copyhours_net(hourly_net_rxn_masses, i2j(n_NO2hvO3prod, iO3_o ), a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row])
+accumulate_row(a_row,hourly_tot_chem_ozone_chg)
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+daily_tot_chem_ozone_chg += t_value
 
 jj += 1
 
@@ -3667,10 +3910,12 @@ section_labels.append("  O3 + OH loss")
 copyhours_net(hourly_net_rxn_masses, i2j(n_OHOrgOxid, iO3 ), a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row])
+accumulate_row(a_row,hourly_tot_chem_ozone_chg)
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+daily_tot_chem_ozone_chg += t_value
 
 jj += 1
 
@@ -3679,10 +3924,12 @@ section_labels.append("  O3 + HO2 loss")
 copyhours_net(hourly_net_rxn_masses, i2j(n_HO2toOHrad, iO3 ), a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row])
+accumulate_row(a_row,hourly_tot_chem_ozone_chg)
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+daily_tot_chem_ozone_chg += t_value
 
 jj += 1
 
@@ -3691,22 +3938,22 @@ section_labels.append("  O3 + hv loss")
 copyhours_net(hourly_net_rxn_masses, i2j(n_O3hvrad, iO1D ), a_row)
 accumulate_row(a_row,hourly_total_o3)
 hourly_diagram_values.append([e for e in a_row])
+accumulate_row(a_row,hourly_tot_chem_ozone_chg)
 
 t_value = sum(a_row)
 daily_total_o3 += t_value
 daily_diagram_values.append(t_value)
+daily_tot_chem_ozone_chg += t_value
 
 jj += 1
 
-#  ... depositon
-section_labels.append("  O3 deposition")
-copyhours_phy(species_process_masses, iO3, jDepo, a_row)
-accumulate_row(a_row,hourly_total_o3)
-hourly_diagram_values.append([e for e in a_row ])
+#   ... Total O3 chemical losses...
+section_labels.append("Total O3 chem losses")
+hourly_diagram_values.append([e for e in hourly_tot_chem_ozone_chg])
+table_peakO3_chem[lO3_reac] = hourly_tot_chem_ozone_chg[peakO3_hr]
 
-t_value = total_species_process_masses[iO3][jDepo]
-daily_total_o3 += t_value
-daily_diagram_values.append(t_value)
+daily_diagram_values.append(daily_tot_chem_ozone_chg)
+table_daily_chem[lO3_reac] = daily_tot_chem_ozone_chg
 
 jj += 1
 
@@ -3726,10 +3973,14 @@ jj += 1
 section_labels.append("  O3, final(Tadj)")
 copyhours_phy(species_process_masses, iO3, jFinalTadj, a_row)
 hourly_diagram_values.append([e for e in a_row ])
+table_peakO3_chem[lO3_peak] = a_row[peakO3_hr]
+table_peakO3_chem[lO3_fina] = a_row[peakO3_hr]
 
 t_value = total_species_process_masses[iO3][jFinalTadj]
 daily_total_o3 += 0.0
 daily_diagram_values.append(t_value)
+table_daily_chem[lO3_fina] = t_value
+table_daily_chem[lO3_peak] = a_row[peakO3_hr]
 
 jj += 1
 
@@ -4073,6 +4324,27 @@ for i in range(len(net_rxn_masses)):
 		print >>fout, "%10.4f" % (hourly_net_rxn_masses[t][i]),
 	print >>fout, "%10.4f" % daily_net_rxn_masses[i]
 # finished the whole set of net rxn masses for all hours
+print >>fout
+fout.close()
+
+
+# Output the hourly and total net reactions to file...
+# open the output file...
+net_output_filename = root_output_filename+".ctb"
+fout = open(net_output_filename, 'w')
+
+print >>fout, SCRIPT_ID_STRING
+print >>fout, __version__
+print >>fout
+print >>fout, "Daily and Peak O3 Hour Chemical PA Parameters Table"
+print >>fout
+print >>fout, "IRR file doc line was"
+print >>fout, irrfile_docline
+print >>fout
+print >>fout, "PA Parameter        \t   Daily\t  Pk hr(%02d)" % hour_number[peakO3_hr]
+for l in range(num_l_chem_tab):
+	print >>fout, "%-20s\t%8.1f\t   %8.1f"  % \
+			(ChemTab_Names[l], table_daily_chem[l], table_peakO3_chem[l])
 print >>fout
 fout.close()
 
