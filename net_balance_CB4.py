@@ -5,7 +5,7 @@ Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
 
 net_balance.py [options] EXTFILE.EXT OUTFILE_ROOT_NAME
 
-This version is hard-coded for CB4 Mechanism in CAMx
+This version is hard-coded for CB4 Mechanism in CAMx format
 
 use -h or --help for details on options
 
@@ -70,14 +70,31 @@ if options.indir :
 	inpath = os.path.join(options.indir,inpath)
 if options.outdir :
 	outpath = os.path.join(options.outdir,outpath)
+# convert from relative path to absolute path
 input_filename = os.path.abspath(inpath)
-given_filename = os.path.abspath(outpath)
-(root_output_filename, oldext) = os.path.splitext(given_filename)
 
 # requires a valid input file
 if not os.path.exists(input_filename):
 	err_msg = "Input file '%s' does not exist" % input_filename
 	parser.error(err_msg)
+
+# convert the relative output path into an absolute one
+#  and remove any file ext
+given_filename = os.path.abspath(outpath)
+(root_output_filename, oldext) = os.path.splitext(given_filename)
+
+# create a regular expression to help parse the input filename
+split_on_dot_re = re.compile('\.')
+
+# parse inpath into yymmdd, pa_domain, timeinterval
+# used for labeling output
+#   inpath may look like ../inout/filename.ext
+just_dotted_filename = os.path.split(input_filename)[1]
+dotted_parts = split_on_dot_re.split(just_dotted_filename)
+yymmdd = dotted_parts[0][2:]
+padomain = dotted_parts[-3]
+timeinterval = dotted_parts[-2]
+
 
 
 # document all these options...
@@ -102,7 +119,7 @@ if options.verbose:
 time_re  = re.compile('Time =[0-9]{6}', re.IGNORECASE)
 irr_re   = re.compile('\{\s*\d+\}\s+\d+', re.IGNORECASE)
 ipr_re   = re.compile('"\w+\s*"\s*\d+\s*', re.IGNORECASE)
-split_re = re.compile('[ ]+')
+split_on_blanks_re = re.compile('[ ]+')
 
 
 
@@ -138,7 +155,7 @@ def get_irr_data(f):
 	while line[0] != ';' :
 		line = f.readline()
 		if irr_re.match(line) != None:    # if this is a { n} n.nnnn line ...
-			ir_value = float(split_re.split(line.replace('{','').replace('}','').strip())[1])
+			ir_value = float(split_on_blanks_re.split(line.replace('{','').replace('}','').strip())[1])
 			ir_rates.append(ir_value)
 	
 	# read in the ! Species      Initial conc. ... header
@@ -150,7 +167,7 @@ def get_irr_data(f):
 	line = f.readline()
 	while line[0] != ';' :
 		if ipr_re.match(line) != None:
-			ip_set = split_re.split(line[11:-1].strip())
+			ip_set = split_on_blanks_re.split(line[11:-1].strip())
 			ip_values = [ float(v) for v in ip_set ]
 			ip_rates.append(ip_values)
 		line = f.readline()
@@ -424,12 +441,12 @@ kVOCm2NOx_aver = z; z += 1
 num_k_phy_tab = z
 
 PhyTab_Names = [
- 'NOx initial', 'NOx average', 'NOy average', 'NOx emissions', 
- 'NOy H transport',  'NOy V transport', 'NOy entrainment', 'NOy deposition', 
- 'NOx Final', 'NOy Final', 
- 'VOCm initial', 'VOCm average', 'VOCC average', 'VOCm emissions', 
- 'VOCm H transport',  'VOCm V transport', 'VOCm entrainment', 'VOCm deposition', 
- 'VOCm Final', 'VOCC Final']
+ 'NOx, initial', 'NOx, average', 'NOy, average', 'NOx, emissions', 
+ 'NOy, H transport',  'NOy, V transport', 'NOy, entrainment', 'NOy, deposition', 
+ 'NOx, Final', 'NOy, Final', 
+ 'VOCm, initial', 'VOCm, average', 'VOCC, average', 'VOCm, emissions', 
+ 'VOCm, H transport',  'VOCm, V transport', 'VOCm, entrainment', 'VOCm, deposition', 
+ 'VOCm, Final', 'VOCC, Final', 'VOCm/NOx, emiss', 'VOCm/NOx, aver']
 
 
 # integer indexing for output daily_chem_table indexing
@@ -474,14 +491,14 @@ lO3_fina = z; z += 1 # temperature adjusted
 num_l_chem_tab = z
 
 ChemTab_Names = [
- '  org new OH', 'inorg new OH', 'total new OH', '% org new OH', 
- 'OH chain length',  'total OH reacted', '% OH with NO2', 'total NO2 reacted', 
- '% OH with CO', 'total CO reacted', '% OH with VOC', 'total VOC reacted', 
- 'NO2 per VOC+CO_r', 'total NO2 produced', 
- 'total new NO2', 'total NO2 available', 'NO2 physical losses', 'NO2 chemical losses', 
- 'NO2 termination loss',  'NO2 photolysis', 'recreated NO', 'NO chain length', 
- 'O3 produced', 'O3 inital', 'O3 average', 'O3 peak', 'O3 PIG loss', 'O3 H transport',
- 'O3 V transport', 'O3 entrainment', 'O3 deposition', 'O3 reacted', 'O3 final' ]
+ 'new OH, org', 'new OH, inorg', 'new OH, total', 'new OH, % org', 
+ 'OH chain length',  'OH, reacted', 'OH_r, % with NO2', 'NO2_r, with OH', 
+ 'OH_r, % with CO', 'CO_r, with OH', 'OH_r, % with VOC', 'VOC_r, with OH', 
+ 'NO2 per VOC_r+CO_r', 'NO2, produced', 
+ 'NO2, new', 'NO2, available', 'NO2, physical losses', 'NO2, chemical losses', 
+ 'NO2, terminal losses',  'NO2, photolysis', 'NO, recreated ', 'NO, chain length', 
+ 'O3, produced', 'O3, inital', 'O3, average', 'O3, peak', 'O3, PIG loss', 'O3, H transport',
+ 'O3, V transport', 'O3, entrainment', 'O3, deposition', 'O3, reacted', 'O3, final' ]
 
 
 
@@ -3975,6 +3992,7 @@ copyhours_phy(species_process_masses, iO3, jFinalTadj, a_row)
 hourly_diagram_values.append([e for e in a_row ])
 table_peakO3_chem[lO3_peak] = a_row[peakO3_hr]
 table_peakO3_chem[lO3_fina] = a_row[peakO3_hr]
+table_peakO3_chem[lO3_aver] = (table_peakO3_chem[lO3_init] + a_row[peakO3_hr])/2
 
 t_value = total_species_process_masses[iO3][jFinalTadj]
 daily_total_o3 += 0.0
@@ -3999,6 +4017,113 @@ num_rows_in_section = jj - this_jstart
 jstart_next_diagram_row  = jj
 
 
+# @@@@@@@@@ P H Y S I C A L  C O N D I T I O N S  T A B L E @@@@@@@@@@@@
+
+# select out of the species_process_masses array the critical
+#   data for NOx, NOy, VOCm, VOCC and put in ordered table.
+
+#-------------------------------------------------------
+### The Table Section for ** NOx, NOy **
+
+table_peakO3_phy[kNOx_init] = \
+						species_process_masses[iNOx][peakO3_hr][jCarryOver]
+table_daily_phy[kNOx_init]  = total_species_process_masses[iNOx][jInitial]
+
+table_peakO3_phy[kNOx_aver] = \
+						species_process_masses[iNOx][peakO3_hr][jCarryOver]
+table_daily_phy[kNOx_aver]  = total_species_process_masses[iNOx][jCarryOver]
+
+table_peakO3_phy[kNOy_aver] = \
+						species_process_masses[iNOy][peakO3_hr][jCarryOver]
+table_daily_phy[kNOy_aver]  = total_species_process_masses[iNOy][jCarryOver]
+
+table_peakO3_phy[kNOx_emis] = \
+						species_process_masses[iNOx][peakO3_hr][jEmission]
+table_daily_phy[kNOx_emis]  = total_species_process_masses[iNOx][jEmission]
+
+table_peakO3_phy[kNOy_Hxpt] = \
+						species_process_masses[iNOy][peakO3_hr][jHor_Trans]
+table_daily_phy[kNOy_Hxpt]  = total_species_process_masses[iNOy][jHor_Trans]
+
+table_peakO3_phy[kNOy_Vxpt] = \
+						species_process_masses[iNOy][peakO3_hr][jVer_Trans]
+table_daily_phy[kNOy_Vxpt]  = total_species_process_masses[iNOy][jVer_Trans]
+
+table_peakO3_phy[kNOy_Vxpt] = \
+						species_process_masses[iNOy][peakO3_hr][jVer_Trans]
+table_daily_phy[kNOy_Vxpt]  = total_species_process_masses[iNOy][jVer_Trans]
+
+table_peakO3_phy[kNOy_entr] = \
+						species_process_masses[iNOy][peakO3_hr][jEntrain]
+table_daily_phy[kNOy_entr]  = total_species_process_masses[iNOy][jEntrain]
+
+table_peakO3_phy[kNOy_depo] = \
+						species_process_masses[iNOy][peakO3_hr][jDepo]
+table_daily_phy[kNOy_depo]  = total_species_process_masses[iNOy][jDepo]
+
+table_peakO3_phy[kNOx_fina] = \
+						species_process_masses[iNOx][peakO3_hr][jFinalTadj]
+table_daily_phy[kNOx_fina]  = total_species_process_masses[iNOx][jFinalTadj]
+
+table_peakO3_phy[kNOy_fina] = \
+						species_process_masses[iNOy][peakO3_hr][jFinalTadj]
+table_daily_phy[kNOy_fina]  = total_species_process_masses[iNOy][jFinalTadj]
+
+
+#-------------------------------------------------------
+### The Table Section for ** VOCm, VOCC **
+
+table_peakO3_phy[kVOCm_init] = \
+						species_process_masses[iVOCm][peakO3_hr][jCarryOver]
+table_daily_phy[kVOCm_init]  = total_species_process_masses[iVOCm][jInitial]
+
+table_peakO3_phy[kVOCm_aver] = \
+						species_process_masses[iVOCm][peakO3_hr][jCarryOver]
+table_daily_phy[kVOCm_aver]  = total_species_process_masses[iVOCm][jCarryOver]
+
+table_peakO3_phy[kVOCC_aver] = \
+						species_process_masses[iVOCC][peakO3_hr][jCarryOver]
+table_daily_phy[kVOCC_aver]  = total_species_process_masses[iVOCC][jCarryOver]
+
+table_peakO3_phy[kVOCm_emis] = \
+						species_process_masses[iVOCm][peakO3_hr][jEmission]
+table_daily_phy[kVOCm_emis]  = total_species_process_masses[iVOCm][jEmission]
+
+table_peakO3_phy[kVOCm_Hxpt] = \
+						species_process_masses[iVOCm][peakO3_hr][jHor_Trans]
+table_daily_phy[kVOCm_Hxpt]  = total_species_process_masses[iVOCm][jHor_Trans]
+
+table_peakO3_phy[kVOCm_Vxpt] = \
+						species_process_masses[iVOCm][peakO3_hr][jVer_Trans]
+table_daily_phy[kVOCm_Vxpt]  = total_species_process_masses[iVOCm][jVer_Trans]
+
+table_peakO3_phy[kVOCm_entr] = \
+						species_process_masses[iVOCm][peakO3_hr][jEntrain]
+table_daily_phy[kVOCm_entr]  = total_species_process_masses[iVOCm][jEntrain]
+
+table_peakO3_phy[kVOCm_depo] = \
+						species_process_masses[iVOCm][peakO3_hr][jDepo]
+table_daily_phy[kVOCm_depo]  = total_species_process_masses[iVOCm][jDepo]
+
+table_peakO3_phy[kVOCm_fina] = \
+						species_process_masses[iVOCm][peakO3_hr][jFinalTadj]
+table_daily_phy[kVOCm_fina]  = total_species_process_masses[iVOCm][jFinalTadj]
+
+table_peakO3_phy[kVOCC_fina] = \
+						species_process_masses[iVOCC][peakO3_hr][jFinalTadj]
+table_daily_phy[kVOCC_fina]  = total_species_process_masses[iVOCC][jFinalTadj]
+
+table_peakO3_phy[kVOCm2NOx_emis] = \
+						table_peakO3_phy[kVOCm_emis] / table_peakO3_phy[kNOx_emis]
+table_daily_phy[kVOCm2NOx_emis]  = \
+						table_daily_phy[kVOCm_emis] / table_daily_phy[kNOx_emis]
+
+table_peakO3_phy[kVOCm2NOx_aver] = \
+						table_peakO3_phy[kVOCm_aver] / table_peakO3_phy[kNOx_aver]
+table_daily_phy[kVOCm2NOx_aver]  = \
+						table_daily_phy[kVOCm_aver] / table_daily_phy[kNOx_aver]
+
+
 
 
 ## >>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -4019,6 +4144,11 @@ print >>fout, "Diagram Section Summaries"
 print >>fout
 print >>fout, "IRR file doc line was"
 print >>fout, irrfile_docline
+print >>fout
+print >>fout, "Input  filename was"
+print >>fout, inpath
+print >>fout, "Output filename was"
+print >>fout, outpath
 print >>fout
 
 kk = 0
@@ -4061,6 +4191,11 @@ print >>fout, "Physical Processes By Species"
 print >>fout
 print >>fout, "IRR file doc line was"
 print >>fout, irrfile_docline
+print >>fout
+print >>fout, "Input  filename was"
+print >>fout, inpath
+print >>fout, "Output filename was"
+print >>fout, outpath
 print >>fout
 
 print >>fout, "%-21s" % "Ending Hour",
@@ -4152,6 +4287,11 @@ print >>fout
 print >>fout, "IRR file doc line was"
 print >>fout, irrfile_docline
 print >>fout
+print >>fout, "Input  filename was"
+print >>fout, inpath
+print >>fout, "Output filename was"
+print >>fout, outpath
+print >>fout
 
 print >>fout, "%-21s" % "Ending Hour",
 for t in hour_number:
@@ -4163,9 +4303,9 @@ print >>fout, "  Species"
 print >>fout
 for p in range(num_j_processes):
 	print  >>fout, "%-21s " % Proc_Names[p]
-	if p in [jInitial, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
+	if p in [jInitial, jCarryOver, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
 		hour_sum = [0.0]*(num_hrs+1)
-		if p in [jInitial, jFinal]:
+		if p in [jInitial, jCarryOver, jFinal]:
 			print >>fout, " %-20s " % "Concs"
 		else:
 			print >>fout, " %-20s " % "Gains"
@@ -4227,7 +4367,7 @@ print >>fout, "  Species"
 print >>fout
 for p in range(num_j_processes):
 	print  >>fout, "%-21s " % Proc_Names[p]
-	if p in [jInitial, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
+	if p in [jInitial, jCarryOver, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
 		hour_sum = [0.0]*(num_hrs+1)
 		if p in [jInitial, jFinal]:
 			print >>fout, " %-20s " % "Concs"
@@ -4296,6 +4436,11 @@ print >>fout
 print >>fout, "IRR file doc line was"
 print >>fout, irrfile_docline
 print >>fout
+print >>fout, "Input  filename was"
+print >>fout, inpath
+print >>fout, "Output filename was"
+print >>fout, outpath
+print >>fout
 
 kk = 0
 print >>fout, "%-21s" % "Ending Hour",
@@ -4328,7 +4473,7 @@ print >>fout
 fout.close()
 
 
-# Output the hourly and total net reactions to file...
+# Output the daily and peak O3 hr chemical PA parameters to file...
 # open the output file...
 net_output_filename = root_output_filename+".ctb"
 fout = open(net_output_filename, 'w')
@@ -4341,10 +4486,46 @@ print >>fout
 print >>fout, "IRR file doc line was"
 print >>fout, irrfile_docline
 print >>fout
-print >>fout, "PA Parameter        \t   Daily\t  Pk hr(%02d)" % hour_number[peakO3_hr]
+print >>fout, "Input  filename was"
+print >>fout, inpath
+print >>fout, "Output filename was"
+print >>fout, outpath
+print >>fout
+print >>fout, "                    \t    %s\t    %s" % (padomain, padomain)
+print >>fout, "                    \t  %s\t  %s" % (yymmdd, yymmdd)
+print >>fout, "PA Parameter        \t   %s\t   %02d%02dh" % (timeinterval, \
+							hour_number[peakO3_hr-1], hour_number[peakO3_hr])
 for l in range(num_l_chem_tab):
-	print >>fout, "%-20s\t%8.1f\t   %8.1f"  % \
+	print >>fout, "%-20s\t%8.1f\t%8.1f"  % \
 			(ChemTab_Names[l], table_daily_chem[l], table_peakO3_chem[l])
+print >>fout
+fout.close()
+
+# Output the daily and peak O3 hr physical PA parameters to file...
+# open the output file...
+net_output_filename = root_output_filename+".ptb"
+fout = open(net_output_filename, 'w')
+
+print >>fout, SCRIPT_ID_STRING
+print >>fout, __version__
+print >>fout
+print >>fout, "Daily and Peak O3 Hour Physical PA Parameters Table"
+print >>fout
+print >>fout, "IRR file doc line was"
+print >>fout, irrfile_docline
+print >>fout
+print >>fout, "Input  filename was"
+print >>fout, inpath
+print >>fout, "Output filename was"
+print >>fout, outpath
+print >>fout
+print >>fout, "                    \t    %s\t    %s" % (padomain, padomain)
+print >>fout, "                    \t  %s\t  %s" % (yymmdd, yymmdd)
+print >>fout, "PA Parameter        \t   %s\t   %02d%02dh" % (timeinterval, \
+							hour_number[peakO3_hr-1], hour_number[peakO3_hr])
+for k in range(num_k_phy_tab):
+	print >>fout, "%-20s\t%8.1f\t%8.1f"  % \
+			(PhyTab_Names[k], table_daily_phy[k], table_peakO3_phy[k])
 print >>fout
 fout.close()
 
