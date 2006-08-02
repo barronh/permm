@@ -1,7 +1,7 @@
 #! /bin/sh
 
-python net_balance_CB4.py  ../inout/X420U.000825.b1b.TQ.std.bayland.cycle.8.18.ext \
-  ../inout/Bayland_8h_000825_0818h
+python net_balance_CB4.py  ../inout/20000825.b1b.psito2n2.BAYP.0818h.ext \
+  ../inout/20000825.b1b.psito2n2.BAYP.0818h.txt
 
 
 

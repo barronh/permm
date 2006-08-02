@@ -5,17 +5,31 @@
 ## $LastChangedBy: jeffries $
 
 
-python net_balance_CB4.py  ../inout/X420U.000830.b1b.TQ.std.clinton.cycle.8.18.ext \
-  ../inout/Clinton_8h_000830_0818h.txt
+python net_balance_CB4.py  ../inout/20000825.b1b.psito2n2.BAYP.0818h.ext \
+  ../inout/20000825.b1b.psito2n2.BAYP.0818h.txt
 
-python net_balance_CB4.py  ../inout/X420U.000825.b1b.TQ.std.bayland.cycle.8.18.ext \
-  ../inout/Bayland_8h_000825_0818h.txt
+python net_balance_CB4.py  ../inout/20000825.b1b.psito2n2.CHOU.0818h.ext \
+  ../inout/20000825.b1b.psito2n2.CHOU.0818h.txt
 
-python net_balance_CB4.py  ../inout/X420U.000825.b1b.TQ.std.HALC.cycle.8.18.ext \
-  ../inout/HALC_8h_000825_0818h.txt
+python net_balance_CB4.py  ../inout/20000825.b1b.psito2n2.HALC.0818h.ext \
+  ../inout/20000825.b1b.psito2n2.HALC.0818h.txt
 
-python net_balance_CB4.py  ../inout/X420U.000830.b1b.TQ.std.HALC.cycle.8.18.ext \
-  ../inout/HALC_8h_000830_0818h.txt
+python net_balance_CB4.py  ../inout/20000825.b1b.psito2n2.HCQA.0818h.ext \
+  ../inout/20000825.b1b.psito2n2.HCQA.0818h.txt
+
+python net_balance_CB4.py  ../inout/20000830.b1b.psito2n2.C35C.0818h.ext \
+  ../inout/20000830.b1b.psito2n2.C35C.0818h.txt
+
+python net_balance_CB4.py  ../inout/20000830.b1b.psito2n2.CHOU.0818h.ext \
+  ../inout/20000830.b1b.psito2n2.CHOU.0818h.txt
+
+python net_balance_CB4.py  ../inout/20000830.b1b.psito2n2.HALC.0818h.ext \
+  ../inout/20000830.b1b.psito2n2.HALC.0818h.txt
   
-python net_balance_CB4.py  ../inout/X420U.000830.b1b.TQ.std.DRPK.cycle.8.18.ext \
-  ../inout/DRPK_8h_000830_0818h.txt  
+python net_balance_CB4.py  ../inout/20000830.b1b.psito2n2.DRPK.0818h.ext \
+  ../inout/20000830.b1b.psito2n2.DRPK.0818h.txt  
+
+python net_balance_CB4.py  ../inout/20000831.b1b.psito2n2.CHOU.0818h.ext \
+  ../inout/20000831.b1b.psito2n2.CHOU.0818h.txt
+
+

@@ -6,7 +6,6 @@
 # Fix names of  *.ext files in
 #   each ${subdir}/pypa_v2 directory of the list of top directories
 #   given on the cmd line..
-#     In this case, remove the filename part 'hourly'.
 
 # Arguments Needed:
 #   at least one "top level" dir having subdirs with *.ext files
@@ -15,10 +14,10 @@
 # expects an ENVIRONMENT Variable 'NET_BAL_HOME' to point to location
 #   of a 'bin' directory where 'net_balance_CB4.py' script lives.
 
-echo "SCRIPT::FixAllNetBalanceExtNames.sh
-      --Rename all *.ext in subdirectories
-        in given top level directories
-      ++ Version 1.0, July 15, 2006, Jeffries"
+echo "SCRIPT::FixAllNetBalanceExtNames.sh"
+echo "--Rename all *.ext in subdirectories"
+echo "   in given top level directories"
+echo "++ Version 1.0, July 15, 2006, Jeffries"
 echo
 
 if [ $# -lt 1 ]
