@@ -262,7 +262,8 @@ num_pa_spc = z
 # only the first 23 species (zp) are included in the physical processes...
 num_phy_proc_spc = zp
 
-# add some 'aggregate' species to processes using same slots...
+# add some 'aggregate' species to processes 
+#                     using same slots in different vectors...
 iNOx  = iCH4
 iNOy  = iO
 iOx   = iO1D
@@ -298,11 +299,11 @@ ox_spc   = [ iO3, iNO2, iPAN, iN2O5, iPNA, iHNO3 ]
 voc_comp_spc = [ iALD2, iFORM, iXYL, iTOL,
                  iISOP, iOLE, iETH, iETOH, iMEOH, iPAR ] 
 
-num_composition_spc = len(voc_comp_spc)+1
+num_composition_spc = len(voc_comp_spc)
 
 splt_xport_spc = [ iNO, iNO2, iO3, iNOx, iNOy, iVOCm, iVOCC ]
 
-num_splt_xport_spc = len(splt_xport_spc)+1
+num_splt_xport_spc = len(splt_xport_spc)
 
 k_OH_spc = [ iOLE, iPAR, iTOL, iXYL, iFORM, iALD2, 
              iETH, iCRES, iMGLY, iISOP, iMEOH, iETOH ]
@@ -459,10 +460,10 @@ lfracorgOH = z; z += 1
 lOHchain   = z; z += 1
 ltotOHr    = z; z += 1
 lfracOHNO2 = z; z += 1
-ltotNO2r   = z; z += 1
 lfracOHCO  = z; z += 1
-ltotCOr    = z; z += 1
 lfracOHVOC = z; z += 1
+ltotNO2r   = z; z += 1
+ltotCOr    = z; z += 1
 ltotVOCr   = z; z += 1
 lNO2VOCr   = z; z += 1
 ltotNO2p   = z; z += 1
@@ -492,11 +493,12 @@ num_l_chem_tab = z
 
 ChemTab_Names = [
  'new OH, org', 'new OH, inorg', 'new OH, total', 'new OH, % org', 
- 'OH chain length',  'OH, reacted', 'OH_r, % with NO2', 'NO2_r, with OH', 
- 'OH_r, % with CO', 'CO_r, with OH', 'OH_r, % with VOC', 'VOC_r, with OH', 
+ 'OH chain length',  'OH, reacted', 
+ 'OH_r, % with NO2',  'OH_r, % with CO', 'OH_r, % with VOC', 
+ 'OH_r, with NO2', 'OH_r, with CO', 'OH_r, with VOC', 
  'NO2 per VOC_r+CO_r', 'NO2, produced', 
  'NO2, new', 'NO2, available', 'NO2, physical losses', 'NO2, chemical losses', 
- 'NO2, terminal losses',  'NO2, photolysis', 'NO, recreated ', 'NO, chain length', 
+ 'NO2, product losses',  'NO2, photolysis', 'NO, recreated ', 'NO, chain length', 
  'O3, produced', 'O3, inital', 'O3, average', 'O3, peak', 'O3, PIG loss', 'O3, H transport',
  'O3, V transport', 'O3, entrainment', 'O3, deposition', 'O3, reacted', 'O3, final' ]
 
@@ -4305,7 +4307,7 @@ for p in range(num_j_processes):
 	print  >>fout, "%-21s " % Proc_Names[p]
 	if p in [jInitial, jCarryOver, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
 		hour_sum = [0.0]*(num_hrs+1)
-		if p in [jInitial, jCarryOver, jFinal]:
+		if p in [jInitial, jCarryOver, jEmission, jFinal]:
 			print >>fout, " %-20s " % "Concs"
 		else:
 			print >>fout, " %-20s " % "Gains"
@@ -4320,12 +4322,14 @@ for p in range(num_j_processes):
 					daily_total += c
 				else:
 					print >>fout, "%10.4f" % (0.0),
-			if p in [jInitial, jFinal]:
+			if p in [jInitial, jCarryOver, jFinal]:
 				print >>fout, "%10.4f" % total_species_process_masses[s][p]
 				if p == jInitial :
 					hour_sum[-1] = hour_sum[0]
-				else:
+				elif p == jFinal :
 					hour_sum[-1] = hour_sum[-2]
+				elif p == jCarryOver :
+					hour_sum[-1] += daily_total/num_hrs
 			else:
 				print >>fout, "%10.4f" % daily_total
 				hour_sum[-1] += daily_total
@@ -4369,7 +4373,7 @@ for p in range(num_j_processes):
 	print  >>fout, "%-21s " % Proc_Names[p]
 	if p in [jInitial, jCarryOver, jEmission, jChemistry, jHor_Trans, jVer_Trans, jEntrain, jFinal]:
 		hour_sum = [0.0]*(num_hrs+1)
-		if p in [jInitial, jFinal]:
+		if p in [jInitial, jCarryOver, jEmission, jFinal]:
 			print >>fout, " %-20s " % "Concs"
 		else:
 			print >>fout, " %-20s " % "Gains"
@@ -4384,13 +4388,15 @@ for p in range(num_j_processes):
 					daily_total += c
 				else:
 					print >>fout, "%10.4f" % (0.0),
-			if p in [jInitial, jFinal]:
+			if p in [jInitial, jCarryOver, jFinal]:
 				c = VOC_carb_num[s]*total_species_process_masses[s][p]
 				print >>fout, "%10.4f" % (c)
 				if p == jInitial :
 					hour_sum[-1] = hour_sum[0]
-				else:
+				elif p == jFinal :
 					hour_sum[-1] = hour_sum[-2]
+				elif p == jCarryOver :
+					hour_sum[-1] += daily_total/num_hrs
 			else:
 				print >>fout, "%10.4f" % daily_total
 				hour_sum[-1] += daily_total
@@ -4415,7 +4421,7 @@ for p in range(num_j_processes):
 					print >>fout, "%10.4f" % (0.0),
 			print >>fout, "%10.4f" % daily_total
 			hour_sum[-1] += daily_total
-		print  >>fout, "  %-19s" % "VOCm",
+		print  >>fout, "  %-19s" % "VOCC",
 		for t in range(num_hrs):
 			print >>fout, "%10.4f" % (hour_sum[t]),
 		print >>fout, "%10.4f" % hour_sum[-1]
