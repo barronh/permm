@@ -9,8 +9,8 @@
 # Arguments Needed:
 #   -p outfilename prefix, eg, 'b1b' or 'emis2', default = ''
 #   -t 'ctb' or 'ptb';   default is 'ctb'
-#   -c n : select which column of *.ctb to cut; default = 2
-#   -l m : number of tail lines to keep in each table file; default = 37
+#   -c n : select which column of *.ctb to cut; default = 2 == daily 3 == hourly
+#   -l m : number of tail lines to keep in each table file; default = 37 = daily
 #   -o outputpath : path of output file; default = $pwd
 
 #   at least one "top level" dir having subdirs with *.ctb files
@@ -124,29 +124,33 @@ do
 			tblist=$(ls *.${xtb})
 			for tb in $tblist
 				do
+				 # create a column of parameter names and paste into output file
 				 if [ $firsttime -eq 0 ]
 				  then
-				   tail -n ${tlines} $tb | cut -f 1 - > ${outputpath}param.txt
-				   paste ${outputpath}param.txt > ${outputpath}${prefix}all${xtb}${column}.txt
+				   tail -n ${tlines} $tb | cut -f 1 - > ${outputpath}${prefix}all${xtb}${column}.txt
 				   firsttime=1
 				   echo "firsttime"
 				 fi
 				 ls $tb
 				 tail -n ${tlines} $tb | cut -f $column - > ${outputpath}colx.txt
 				 paste ${outputpath}${prefix}all${xtb}${column}.txt ${outputpath}colx.txt > ${outputpath}temp.txt
-				 mv -f ${outputpath}temp.txt ${outputpath}${prefix}all${xtb}${column}.txt && rm -f ${outputpath}colx.txt
+				 mv -f ${outputpath}temp.txt  ${outputpath}${prefix}all${xtb}${column}.txt
+				 rm -f ${outputpath}colx.txt
 				done
 			popd  1>/dev/null
-			echo
 		fi
 	done
-	rm -f ${outputpath}param.txt
-	
 	echo "Finished All Subdirs in ${topdir}"
 	
 	popd  1>/dev/null
 	fi
 done
+# add a first line to file that gives the files full name to id file on import
+echo "${prefix}all${xtb}${column}.txt"  > ${outputpath}head.txt
+cat  ${outputpath}head.txt  ${outputpath}${prefix}all${xtb}${column}.txt > ${outputpath}temp.txt
+mv -f ${outputpath}temp.txt   ${outputpath}${prefix}all${xtb}${column}.txt
+rm -f ${outputpath}head.txt
+echo
 
 echo "Finished All Top Directories"
 
