@@ -127,7 +127,13 @@ do
 				 # create a column of parameter names and paste into output file
 				 if [ $firsttime -eq 0 ]
 				  then
+<<<<<<< .mine
+				   tail -n ${tlines} $tb | cut -f 1 - > ${outputpath}col1.txt
+				   paste ${outputpath}col1.txt > ${outputpath}${prefix}all${xtb}${column}.txt
+				   rm -f ${outputpath}col1.txt
+=======
 				   tail -n ${tlines} $tb | cut -f 1 - > ${outputpath}${prefix}all${xtb}${column}.txt
+>>>>>>> .r122
 				   firsttime=1
 				   echo "firsttime"
 				 fi
@@ -138,8 +144,22 @@ do
 				 rm -f ${outputpath}colx.txt
 				done
 			popd  1>/dev/null
+<<<<<<< .mine
+			# add a first line to file that gives the files full name to id file on import
+			echo "${prefix}all${xtb}${column}.txt"  > ${outputpath}head.txt
+			cat  ${outputpath}head.txt  ${outputpath}${prefix}all${xtb}${column}.txt > ${outputpath}temp.txt
+			mv -f ${outputpath}temp.txt   ${outputpath}${prefix}all${xtb}${column}.txt
+			rm -f ${outputpath}head.txt
+			echo
+=======
+>>>>>>> .r122
 		fi
 	done
+<<<<<<< .mine
+	rm -f ${outputpath}col1.txt
+	
+=======
+>>>>>>> .r122
 	echo "Finished All Subdirs in ${topdir}"
 	
 	popd  1>/dev/null
