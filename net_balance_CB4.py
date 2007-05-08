@@ -1657,8 +1657,8 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[94]
 	
 	#   ... the new radical products
-	net_rxn_masses[i2j(kk,iHO2 )] =  ir[41]+0.85*ir[94]-0.2*ir[74]
-	net_rxn_masses[i2j(kk,iC2O3)] =  ir[44]+0.25*ir[75]
+	net_rxn_masses[i2j(kk,iHO2 )] =  ir[41]+0.85*ir[94]-0.2*ir[78]
+	net_rxn_masses[i2j(kk,iC2O3)] =  ir[44]+0.075*ir[94]
 	net_rxn_masses[i2j(kk,iXO2 )] =  0.91*ir[59]+0.075*ir[94]
 	net_rxn_masses[i2j(kk,ixHO2)] =  0.80*ir[78]+0.075*ir[94]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.09*ir[59]
