@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.3
+#!/usr/bin/env python
 __doc__ = \
 """
 Make Files of Net Reactions and Chemical Parameters from IRR/IPR Data
@@ -30,7 +30,7 @@ from optparse import OptionParser
 
 SCRIPT_ID_STRING = "Net_Balance_CB4.py " + ChangeDate[18:-2]
 
-__version__ = "Version 1.5, (R%s), last changed by %s" % (RevisionNum[22:-2], ChangedBy[16:-2])
+__version__ = "Version 1.5.1, (R%s), last changed by %s" % (RevisionNum[22:-2], ChangedBy[16:-2])
 
 
 
@@ -1521,8 +1521,7 @@ while ( time > 0 ) :
 	
 	# reactant losses in HONO +hv...
 	#   ... the NO, NO2 losses
-	net_rxn_masses[i2j(kk,iNO  )] = -ir[21]-ir[22]-ir[59]-ir[78]-ir[94]\
-										+ir[23]+ir[25]
+	net_rxn_masses[i2j(kk,iNO  )] = -ir[21]-ir[22]+ir[23]+ir[25]
 	net_rxn_masses[i2j(kk,iNO2 )] = -ir[21]+ir[24]+ir[25]
 		
 	#   ... the HONO products
@@ -1614,10 +1613,10 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iC2O3)] =  ir[42]+0.25*ir[75]+0.62*ir[71]+0.2*ir[77]\
 										+0.114*ir[93]
 	net_rxn_masses[i2j(kk,iXO2 )] =  0.28*ir[56]+0.7*ir[60]+0.25*ir[75]\
-										+0.22*ir[58]+0.03*ir[71]+0.066*ir[77]\
+										+0.22*ir[58]+0.03*ir[71]+0.20*ir[77]\
 										+0.064*ir[93]
 	net_rxn_masses[i2j(kk,ixHO2)] =  0.28*ir[56]+0.7*ir[60]+0.25*ir[75]\
-										+0.22*ir[58]+0.03*ir[71]+0.066*ir[77]\
+										+0.22*ir[58]+0.03*ir[71]+0.064*ir[77]\
 										+0.066*ir[93]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.02*ir[56]
 	
@@ -1658,12 +1657,12 @@ while ( time > 0 ) :
 	net_rxn_masses[i2j(kk,iISPD)] = -ir[94]
 	
 	#   ... the new radical products
-	net_rxn_masses[i2j(kk,iHO2 )] =  ir[41]+0.725*ir[94]
-	net_rxn_masses[i2j(kk,iC2O3)] =  ir[44]+0.75*ir[75]
-	net_rxn_masses[i2j(kk,iXO2 )] =  0.91*ir[59]+ir[78]+0.075*ir[94]
-	net_rxn_masses[i2j(kk,ixHO2)] =  0.08*ir[78]+0.075*ir[94]
+	net_rxn_masses[i2j(kk,iHO2 )] =  ir[41]+0.85*ir[94]-0.2*ir[74]
+	net_rxn_masses[i2j(kk,iC2O3)] =  ir[44]+0.25*ir[75]
+	net_rxn_masses[i2j(kk,iXO2 )] =  0.91*ir[59]+0.075*ir[94]
+	net_rxn_masses[i2j(kk,ixHO2)] =  0.80*ir[78]+0.075*ir[94]
 	net_rxn_masses[i2j(kk,iXO2N)] =  0.09*ir[59]
-	net_rxn_masses[i2j(kk,iHNO3)] =  ir[41]+ir[44]+ir[94]
+	net_rxn_masses[i2j(kk,iHNO3)] =  ir[41]+ir[44]+0.15*ir[94]
 	net_rxn_masses[i2j(kk,iNO2 )] =  ir[59]+0.2*ir[78]
 	net_rxn_masses[i2j(kk,iNTR )] =  0.80*ir[78]+0.85*ir[94]
 	
@@ -3675,7 +3674,7 @@ accumulate_row(a_row,hourly_total_new_no)
 hourly_diagram_values.append([e for e in a_row ])
 
 t_value = sum(a_row)
-daily_total_new_no += abs(t_value)
+daily_total_new_no += t_value
 daily_diagram_values.append(t_value)
 
 jj += 1
@@ -3714,7 +3713,7 @@ jj += 1
 #   gets recreated after NO2 photolysis.  
 #   That is, ( recreated NO / tot NO oxidized )
 section_labels.append("NO P_n")
-hourly_no_pr = [ (r/abs(t)) for (r,t) \
+hourly_no_pr = [ (r/(t)) for (r,t) \
                       in zip(hourly_recreated_no, hourly_tot_no_oxid)] 
 
 hourly_diagram_values.append([e for e in hourly_no_pr])
