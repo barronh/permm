@@ -1375,7 +1375,7 @@ if options.verbose:
 ## big loop repeated for each time in file...
 ##
 first_time = -1
-while ( time > 0 ) :
+while ( time >= 0 ) :
 	if options.verbose:
 		print "Time %2d  hours" % time
 	if len(ir) != num_cb4_rxn:
