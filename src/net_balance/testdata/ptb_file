@@ -1,0 +1,39 @@
+Net_Balance_CB4.py 2006-08-09 16:56:38 -0400 (Wed, 09 Aug 2006)
+Version 1.5, (R121), last changed by svnjeffries
+
+Daily and Peak O3 Hour Physical PA Parameters Table
+
+IRR file doc line was
+/Volumes/analysis/AQM/2000_08_hg/uh1TCEQtke/b1b.psito2n2.FORMeqFLVOC/camx420/camx420_pa_cb4.20000825.hgb8h.b1b.psito2n2.FORMeqFLVOC.TCEQuh1_eta_tke.ipr
+
+Input  filename was
+O3PEAK.xml.ext.mrg
+Output filename was
+O3PEAK.net_balance
+
+                    	    xml	    xml
+                    	  PEAK	  PEAK
+PA Parameter        	   ext	   1112h
+NOx, initial        	    59.6	    26.9
+NOx, average        	    30.9	    26.9
+NOy, average        	    40.8	    44.2
+NOx, emissions      	   276.5	     7.2
+NOy, H transport    	   -57.6	   -10.7
+NOy, V transport    	  -181.5	    -0.1
+NOy, entrainment    	   -60.8	     1.4
+NOy, deposition     	   -29.1	    -2.2
+NOx, Final          	     9.8	    17.1
+NOy, Final          	    12.5	    39.4
+VOCm, initial       	   228.5	   146.9
+VOCm, average       	   153.0	   146.9
+VOCC, average       	   201.2	   189.6
+VOCm, emissions     	  1069.1	    23.5
+VOCm, H transport   	  -268.8	   -42.0
+VOCm, V transport   	  -664.4	    -0.8
+VOCm, entrainment   	  -249.6	    10.1
+VOCm, deposition    	    -6.6	    -0.2
+VOCm, Final         	    29.8	   121.7
+VOCC, Final         	    38.2	   150.9
+VOCm/NOx, emiss     	     3.9	     3.2
+VOCm/NOx, aver      	     5.0	     5.5
+

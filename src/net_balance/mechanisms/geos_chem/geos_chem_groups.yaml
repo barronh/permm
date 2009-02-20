@@ -1,0 +1,44 @@
+
+species_group_list:
+    - [NOx,   NO + NO2 + NO3 + N2O5 + HNO2 + HNO4 + N2O]
+    - [AMON, NH2 + NH3]
+    - [PANS,  GLPAN + GPAN + ISN2 + PAN + PMN + PPN + R4N2]
+    - [RNO3,  ISNO3 + MNO3]
+    - [NOz,   HNO3 + PANS]
+    - [NOy,   NOx + NOz]    
+
+    - [NOxN,   NO + NO2 + NO3 + 2*N2O5 + HNO2 + HNO4 + 2*N2O]
+    - [NOyN,   NOxN + NOz]
+
+
+    - [NOxN,   NO + NO2 + NO3 + 2*N2O5 + HNO2 + HNO4]
+    - [NOyN,   NOxN + NOz]
+
+    - [NMHC,  ACET + ACTA + ALD2 + ALK4 + C2H6 + C3H8 + CH2O + EOH + GLYX + HAC + HCOOH + ISOP + MACR + MAP + MEK + MGLY + MOH + MVK + PRPE + RCOOH + ROH]
+    - [VOC,   ]
+    - [ALD,  CH2O + GLYC + IALD + MACR + RCHO]
+
+    - [RO2,   A3O2 + ATO2 + B3O2 + ETO2 + GCO3 + GLCO3 + IAO2 + INO2 + ISN1 + KO2 + MAN2 + MAO3 + MCO3 + MO2 + MRO2 + MVN2 + O2CH2OH + PO2 + PRN1 + R4N1 + R4O2 + RCO3 + RIO1 + RIO2 + VRO2]
+    - [PEROXIDES, ETP + GLP + GP + H2O2 + IAP + INPN + ISNP + MAOP + MP + MRP + PP + PRPN + R4P + RA3P + RB3P + RIP + RP + VRP]
+    - [HOx,  OH + HO2]
+
+    - [Radical,   NH2 + O + O1D]
+
+    - [Ox,   O3 + O + O1D + NO2 + 2*NO3 + 3*N2O5 + HNO3 + 2*PNA]
+    - [Oy,   Ox + RNO3 + PANS]
+    
+    - [NO2_IMMEDIATES,  NO2 + O3 + O + NO3 + N2O5 + NO + O1D]
+
+    - [VOC_CO,  VOC + CO]
+    - [VOC_CO_NO2,  VOC_CO  +  NO2 ]
+    - [VOCm,  VOC]
+    - [HC,   NMHC + CH4]
+    - [NMHC_NO2,   NMHC + NO2]
+    - [HC_NO2,   HC + NO2]
+    - [NMHC_CO,   NMHC + CO]
+    - [HC_CO,   HC + CO]
+    - [NMHC_CO_NO2, NMHC_NO2 + CO]
+    - [HC_CO_NO2, HC_NO2 + CO]
+    - [RO2_NO2,   RO2 + NO2]    
+    - [ROx,  HOx + RO2]
+    

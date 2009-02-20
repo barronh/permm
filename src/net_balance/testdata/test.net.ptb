@@ -1,0 +1,23 @@
+NOx     , initial        	    38.6	     8.3
+NOx     , average        	    10.9	     6.7
+NOy     , average        	    16.3	    14.1
+NOx     , Emissions      	    51.7	     4.9
+NOy     , H_Trans        	   -45.8	    -9.3
+NOy     , V_Trans        	   -10.3	    -1.9
+NOy     , Entrain        	   -23.1	     3.8
+NOy     , Deposit        	    -6.4	    -0.9
+NOx     , Final          	     4.2	     5.2
+NOy     , Final          	     6.2	    10.2
+VOCm    , initial        	   157.9	    72.4
+VOCm    , average        	    65.0	    64.1
+VOCC    , average        	    84.8	    83.5
+VOCm    , Emissions      	   178.9	    15.3
+VOCm    , H_Trans        	  -164.0	   -36.0
+VOCm    , V_Trans        	   -39.4	    -7.0
+VOCm    , Entrain        	   -88.8	    15.2
+VOCm    , Deposit        	    -0.6	    -0.1
+VOCm    , Final          	    28.9	    55.8
+VOCC    , Final          	    34.6	    64.0
+VOCm/NOx, Emissions      	     2.6	     3.1
+VOCm/NOx, average        	     7.3	     9.5
+
