@@ -16,10 +16,10 @@ if __name__ != '__main__':
     from PtbMaker import PtbTable
     from IRRTable import IRRTable
     import mechanisms
+    import getmech
     from getmech import get_pure_mech, get_prepared_mech
     get_mech = get_pure_mech
 else:
-    from net_yaml import *
     from optparse import OptionParser
     parser = OptionParser()
     parser.set_usage("Usage: %prog [-c cb05_camx|cbiv_camx] [mrgfile]")
@@ -45,13 +45,14 @@ else:
     else:
         mrg_data_path=args[0]
 
-    from net_yaml.mechanisms.cb05_camx.mechprep import cb05_camx_prep as mech_prep
-    from net_yaml.mechanisms.getmech import get_prepared_mech, get_pure_mech
+    from net_balance import mechanisms, netcdf, getmech
+    mech_prep = mechanisms.cb05_camx.mechprep.cb05_camx_prep
+    get_prepared_mech = getmech.get_prepared_mech
+    get_pure_mech = getmech.get_pure_mech
     
-    #mech_yaml_path = '/Users/barronh/Development/net_yaml/mechanisms/cb05_camx/cb05_camx.yaml'
     mech = get_prepared_mech(options.mechanism)
     if mrg_data_path is not None:
-        from net_yaml.netcdf import NetCDFFile
+        NetCDFFile = netcdf.NetCDFFile
         mrg_file = NetCDFFile(mrg_data_path,'rs')
         mech.set_mrg(mrg_file)
         

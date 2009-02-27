@@ -1,8 +1,8 @@
 __all__ = ['cb05_cmaq_prep']
 
 def cb05_cmaq_prep(mech_object):
-    from net_yaml.Mechanism import Mechanism
-    from net_yaml.SpeciesGroup import Species
+    from ...Mechanism import Mechanism
+    from ...SpeciesGroup import Species
     from pynetcdf import NetCDFFile
 
     globals().update(mech_object.species_dict)
