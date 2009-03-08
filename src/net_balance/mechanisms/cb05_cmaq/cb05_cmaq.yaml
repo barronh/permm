@@ -338,6 +338,8 @@ species_group_list:
     - [HOx,  OH+HO2]
     
     - [ROx,  HOx+MEO2+HCO3+C2O3+CXO3+ROR+TO2]
+
+    - [ACYL_RAD, C2O3+CXO3]
     
 process_group_list:
   Initial        : INIT

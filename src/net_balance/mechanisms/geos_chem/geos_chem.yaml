@@ -391,6 +391,7 @@ reaction_list:
 species_group_list:
     - [NOx,   NO + NO2 + NO3 + N2O5 + HNO2 + HNO4 + N2O]
     - [PANS,  GLPAN + GPAN + PAN + PMN + PPN]
+    - [ACYL_RAD, RCO3+MCO3+GCO3+MAO3+GLCO3]
     - [RNO3,  ISN2 + ISNO3 + MNO3 + R4N2]
     - [NOz,   HNO3 + PANS + RNO3]
     - [NOy,   NOx + NOz]    
