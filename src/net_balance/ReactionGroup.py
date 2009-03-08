@@ -186,11 +186,11 @@ class Reaction(AttrDict):
             stoic = []
             for spc in species:
                 if self.has_key(spc):
-                    stoic.append(self[spc]+y.get(spc, 0.))
+                    self_stoic = self[spc]
+                    stoic.append(self_stoic+y.get(spc, Stoic(0., self_stoic.role)))
                 else:
-                    stoic.append(y[spc]+self.get(spc, 0.))
-
-            stoic = [Stoic(s, 'u') for s in stoic]
+                    y_stoic = y[spc]
+                    stoic.append(y_stoic+self.get(spc, Stoic(0., y_stoic.role)))
     
             reaction_type = ('u',self.reaction_type)[self.reaction_type == y.reaction_type]
             
@@ -212,11 +212,11 @@ class Reaction(AttrDict):
         is_number = isinstance(irrs, (int, long, float))
         
         if is_array:
-            result = ReactionArray([irr*self for irr in irrs], dtype = Reaction)
+            result = ReactionArray([self*irr for irr in irrs], dtype = Reaction)
         else:
-            stoic = [irrs*float(self.get(k, 0)) for k in self.species()]
+            stoic = [self.get(k, 0)*irrs for k in self.species()]
             
-            stoic = [Stoic(s, 'u') for s in stoic]
+            stoic = [Stoic(s, s.role) for s in stoic]
                 
             kwds = dict(zip(self.species(),stoic))
             

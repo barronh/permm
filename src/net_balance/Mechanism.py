@@ -5,7 +5,8 @@ import yaml
 import re
 import sys
 from numpy import dtype, \
-                  array
+                  array, \
+                  ndarray
 from warnings import warn
 from SpeciesGroup import Species
 from ProcessGroup import Process
@@ -172,7 +173,11 @@ class Mechanism(object):
         
     def set_irr(self,irr, ReactionNames):
         irr_type = dtype(dict(names = ReactionNames, formats = 'f'*len(ReactionNames)))
-        self.irr = array(irr).view(dtype = irr_type).squeeze()
+        class irr_array(ndarray):
+            pass
+            
+        self.irr = array(irr).view(dtype = irr_type).squeeze().view(type = irr_array)
+        self.irr.units = irr.units
         self.nreaction_dict = AttrDict()
         for rxn_name, rxn in self.reaction_dict.iteritems():
             self.nreaction_dict[rxn_name] = rxn * self.irr[rxn_name]
@@ -192,7 +197,8 @@ class Mechanism(object):
             self.process_dict[prc_name].name = prc_name
             
         self.ipr = IPR(array(ipr), species, processes)
-
+        self.ipr.units = ipr.units
+        
         def pa_dict(item):
             if self.process_dict.has_key(item):
                 return self.ipr[self.process_dict[item]]
