@@ -181,16 +181,14 @@ class Reaction(AttrDict):
 
     def __add__(self,y):
         if isinstance(y,Reaction):
-            species = list(set(self.species()+y.species()))
+            species = set(self.species()+y.species())
     
             stoic = []
             for spc in species:
-                if self.has_key(spc):
-                    self_stoic = self[spc]
-                    stoic.append(self_stoic+y.get(spc, Stoic(0., self_stoic.role)))
-                else:
-                    y_stoic = y[spc]
-                    stoic.append(y_stoic+self.get(spc, Stoic(0., y_stoic.role)))
+                try:
+                    stoic.append(self[spc]+y.get(spc, 0))
+                except:
+                    stoic.append(y[spc]+0)
     
             reaction_type = ('u',self.reaction_type)[self.reaction_type == y.reaction_type]
             
