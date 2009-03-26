@@ -166,12 +166,12 @@ class Mechanism(object):
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.nreaction_dict[rxn].sum() * factor
         
-    def set_mrg(self,mrg):
+    def set_mrg(self,mrg, use_net_rxns = True):
         self.mrg = mrg
         self.set_irr(mrg.variables['IRR'], mrg.Reactions.split())
         self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
         
-    def set_irr(self,irr, ReactionNames):
+    def set_irr(self,irr, ReactionNames, use_net_rxns = True):
         irr_type = dtype(dict(names = ReactionNames, formats = 'f'*len(ReactionNames)))
         class irr_array(ndarray):
             pass
@@ -184,8 +184,9 @@ class Mechanism(object):
 
         self.__reaction_data = self.nreaction_dict
         
-        for nrxn_name, nrxn in self.net_reaction_dict.iteritems():
-            self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.nreaction_dict)
+        if use_net_rxns:
+            for nrxn_name, nrxn in self.net_reaction_dict.iteritems():
+                self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.nreaction_dict)
         
     def set_ipr(self,ipr, species, processes):
         self.process_dict={}
