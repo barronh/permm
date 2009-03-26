@@ -67,7 +67,7 @@ def ReactionFromString(rxn_str):
     
     reaction_re = re.compile("(?P<reactants>.*)=(?P<rxn_type>[kj])[>]\s*(?P<products>.*)")
 
-    species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d(\.(\d{1,3}(E\d{2})?)?)?)\*)?(?P<name>[xyA-Z]\w+)(?:[ +=]|$)+",re.M)
+    species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d(\.(\d{1,3}(E\d{2})?)?)?)\*)?(?P<name>[xyA-Z]\w*)(?:[ +=]|$)+",re.M)
     
     reaction_match = reaction_re.match(rxn_str)
     if reaction_match is None:
@@ -259,7 +259,7 @@ class Reaction(AttrDict):
         return [self[k] for k in self.species()]
         
     def reactants(self):
-        result = [k for k in self.species() if self[k].role == 'r']
+        result = [k for k in self.species() if self[k].role == 'r' or (self[k] == 0 and self[k].role == 'u')]
         result += [spc for spc in self.unspecified() if self[spc] < 0]
         
         return result
