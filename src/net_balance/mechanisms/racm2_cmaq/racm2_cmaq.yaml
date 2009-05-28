@@ -1,0 +1,470 @@
+---
+species_list:
+    - 'ACD'
+    - 'ACE'
+    - 'ACO3'
+    - 'ACT'
+    - 'ACTP'
+    - 'ADCN'
+    - 'ADDC'
+    - 'ALD'
+    - 'API'
+    - 'APIP'
+    - 'BAL1'
+    - 'BAL2'
+    - 'BALD'
+    - 'BALP'
+    - 'BEN'
+    - 'BENP'
+    - 'CH4'
+    - 'CHO'
+    - 'CO'
+    - 'CO2'
+    - 'CSL'
+    - 'DCB1'
+    - 'DCB2'
+    - 'DCB3'
+    - 'DIEN'
+    - 'EOH'
+    - 'EPX'
+    - 'ETE'
+    - 'ETEG'
+    - 'ETEP'
+    - 'ETH'
+    - 'ETHP'
+    - 'GLY'
+    - 'H2'
+    - 'H2O'
+    - 'H2O2'
+    - 'HACE'
+    - 'HC3'
+    - 'HC3P'
+    - 'HC5'
+    - 'HC5P'
+    - 'HC8'
+    - 'HC8P'
+    - 'HCHO'
+    - 'HKET'
+    - 'HNO3'
+    - 'HNO4'
+    - 'HO'
+    - 'HO2'
+    - 'HONO'
+    - 'ISHP'
+    - 'ISO'
+    - 'ISON'
+    - 'ISOP'
+    - 'KET'
+    - 'KETP'
+    - 'LIM'
+    - 'LIMP'
+    - 'MACP'
+    - 'MACR'
+    - 'MAHP'
+    - 'MCT'
+    - 'MCTO'
+    - 'MCTP'
+    - 'MEK'
+    - 'MEKP'
+    - 'MGLY'
+    - 'MO2'
+    - 'MOH'
+    - 'MPAN'
+    - 'MVK'
+    - 'MVKP'
+    - 'N2'
+    - 'N2O5'
+    - 'NALD'
+    - 'NO'
+    - 'NO2'
+    - 'NO3'
+    - 'O1D'
+    - 'O2'
+    - 'O3'
+    - 'O3P'
+    - 'OLI'
+    - 'OLIP'
+    - 'OLND'
+    - 'OLNN'
+    - 'OLT'
+    - 'OLTP'
+    - 'ONIT'
+    - 'OP1'
+    - 'OP2'
+    - 'ORA1'
+    - 'ORA2'
+    - 'PAA'
+    - 'PAN'
+    - 'PER1'
+    - 'PER2'
+    - 'PHEN'
+    - 'PPN'
+    - 'RCO3'
+    - 'ROH'
+    - 'SO2'
+    - 'SULF'
+    - 'TLP1'
+    - 'TOL'
+    - 'TOLP'
+    - 'TR2'
+    - 'UALD'
+    - 'UALP'
+    - 'XO2'
+    - 'XY2'
+    - 'XYL'
+    - 'XYL1'
+    - 'XYLP'
+    - 'XYO'
+    - 'XYO2'
+    - 'XYOP'
+
+reaction_list:
+    IRR_001: NO2 =j> O3P + NO 
+    IRR_002: O3 =j> O1D + O2 
+    IRR_003: O3 =j> O3P + O2 
+    IRR_004: HONO =j> HO + NO 
+    IRR_005: HNO3 =j> HO + NO2 
+    IRR_006: HNO4 =j> 0.80*HO2 + 0.80*NO2 + 0.20*HO + 0.20*NO3 
+    IRR_007: NO3 =j> NO + O2 
+    IRR_008: NO3 =j> NO2 + O3P 
+    IRR_009: H2O2 =j> HO + HO 
+    IRR_010: HCHO =j> H2 + CO 
+    IRR_011: HCHO =j> HO2 + HO2 + CO 
+    IRR_012: ACD =j> MO2 + HO2 + CO 
+    IRR_013: ALD =j> ETHP + HO2 + CO 
+    IRR_014: ACT =j> ACO3 + MO2 
+    IRR_015: MEK =j> ACO3 + 0.50*ETHP + 0.50*MO2 
+    IRR_016: KET =j> ACO3 + ETHP 
+    IRR_017: HKET =j> ACO3 + HCHO + HO2 
+    IRR_018: MACR =j> 0.66*HO2 + 0.33*MACP + 0.67*CO + 0.67*HCHO + 0.67*ACO3 + 0.34*HO + 0.34*XO2 
+    IRR_019: MVK =j> 0.7*UALD + 0.7*CO + 0.3*MO2 + 0.3*MACP 
+    IRR_020: UALD =j> 1.22*CO + .434*ALD + 0.35*HCHO + .216*KET + 1.22*HO2 + .784*ACO3
+    IRR_021: GLY =j> 2.00*HO2 + 2.00*CO 
+    IRR_022: GLY =j> 1.00*H2 + 2.00*CO 
+    IRR_023: GLY =j> 1.00*HCHO + 1.00*CO 
+    IRR_024: MGLY =j> ACO3 + HO2 + CO 
+    IRR_025: DCB1 =j> 2.0*XO2 + 1.5*HO2 + 0.5*ACO3 + CO + 0.5*GLY + 0.5*MGLY
+    IRR_026: DCB2 =j> 2.0*XO2 + 1.5*HO2 + 0.5*ACO3 + CO + 0.5*GLY + 0.5*MGLY
+    IRR_027: DCB3 =j> ACO3 + HO2 + CO + OLIP
+    IRR_028: BALD =j> CHO + HO2 + CO
+    IRR_029: OP1 =j> HCHO + HO2 + HO 
+    IRR_030: OP2 =j> ALD + HO2 + HO 
+    IRR_031: PAA =j> MO2 + HO 
+    IRR_032: ONIT =j> 0.20*ALD + 0.80*KET + HO2 + NO2 
+    IRR_033: PAN =j> ACO3 + NO2 + DUMMY
+    IRR_034: PAN =j> MO2 + CO2 + NO3
+    IRR_035: O3P + O2 =k> O3 
+    IRR_036: O3P + O3 =k> DUMMY 2.0*O2 
+    IRR_037: O1D + N2 =k> O3P + DUMMY + N2 
+    IRR_038: O1D + O2 =k> O3P + O2 
+    IRR_039: O1D + H2O =k> HO + HO 
+    IRR_040: O3 + HO =k> HO2 + O2 
+    IRR_041: O3 + HO2 =k> HO + 2.*O2 
+    IRR_042: HO + HO2 =k> DUMMY H2O + O2 
+    IRR_043: H2O2 + HO =k> HO2 + H2O 
+    IRR_044: HO2 + HO2 =k> H2O2 + DUMMY + O2 
+    IRR_045: HO2 + HO2 + H2O =k> H2O2 + H2O + O2 
+    IRR_046: O3P + NO =k> NO2 
+    IRR_047: O3P + NO2 =k> NO + O2 
+    IRR_048: O3P + NO2 =k> NO3 
+    IRR_049: HO + NO =k> HONO 
+    IRR_050: HO + NO2 =k> HNO3 
+    IRR_051: HO + NO3 =k> NO2 + HO2 
+    IRR_052: HO2 + NO =k> NO2 + HO 
+    IRR_053: HO2 + NO2 =k> HNO4 
+    IRR_054: HNO4 =k> HO2 + NO2 
+    IRR_055: HO2 + NO3 =k> 0.3*HNO3 + 0.7*NO2 + 0.7*HO 
+    IRR_056: HO + HONO =k> H2O + NO2 
+    IRR_057: HO + HNO3 =k> NO3 + H2O 
+    IRR_058: HO + HNO4 =k> NO2 + H2O + O2 
+    IRR_059: O3 + NO =k> NO2 + O2 
+    IRR_060: O3 + NO2 =k> NO3 + O2 
+    IRR_061: NO + NO + O2 =k> + NO2 + NO2 
+    IRR_062: NO3 + NO =k> NO2 + NO2 
+    IRR_063: NO3 + NO2 =k> NO + NO2 + O2 
+    IRR_064: NO3 + NO2 =k> N2O5 
+    IRR_065: N2O5 =k> NO2 + NO3 
+    IRR_066: N2O5 + H2O =k> HNO3 + HNO3 
+    IRR_067: NO3 + NO3 =k> NO2 + NO2 + O2 
+    IRR_068: HO + H2 =k> H2O + HO2 
+    IRR_069: HO + SO2 =k> SULF + HO2 
+    IRR_070: CO + HO =k> HO2 + CO2 
+    IRR_071: CH4 + HO =k> MO2 + H2O 
+    IRR_072: ETH + HO =k> ETHP + H2O 
+    IRR_073: MOH + HO =k> HO2 + HCHO 
+    IRR_074: EOH + HO =k> HO2 + ACD 
+    IRR_075: ROH + HO =k> .719*ALD + .184*ACD + HO2 
+    IRR_076: ACE + HO =k> .350*ORA1 + .350*CO + .650*GLY + .650*HO + .350*HO2 
+    IRR_077: HC3 + HO =k> HC3P 
+    IRR_078: HC5 + HO =k> HC5P + H2O 
+    IRR_079: HC8 + HO =k> .951*HC8P + .025*ALD + .024*HKET + .049*HO2 + H2O 
+    IRR_080: ETE + HO =k> ETEP 
+    IRR_081: OLT + HO =k> OLTP 
+    IRR_082: OLI + HO =k> OLIP 
+    IRR_083: DIEN + HO =k> OLIP 
+    IRR_084: ISO + HO =k> ISOP 
+    IRR_085: API + HO =k> APIP 
+    IRR_086: LIM + HO =k> LIMP 
+    IRR_087: ISHP + HO =k> MACR + HO 
+    IRR_088: ISON + HO =k> NALD + HACE 
+    IRR_089: MAHP + HO =k> MACP 
+    IRR_090: HACE + HO =k> MGLY + HO2 
+    IRR_091: NALD + HO =k> HCHO + NO2 + CO 
+    IRR_092: ETEG + HO =k> ALD + HO2 
+    IRR_093: BEN + HO =k> .352*BENP + .118*UALD + .530*PHEN + .648*HO2 
+    IRR_094: TOL + HO =k> .060*TLP1 + .890*TR2 + .050*CSL + .050*HO2 
+    IRR_095: TLP1 + NO =k> 1.00*NO2 + 1.00*BALD 
+    IRR_096: TR2 =k> .280*DCB2 + .280*EPX + .010*CSL + .280*TOLP + .150*PER1 + .290*HO2 + .280*HO 
+    IRR_097: TOLP =k> .490*DCB2 + .010*HO2 + .010*CSL + .490*HO + .500*PER1 
+    IRR_098: TOLP + NO =k> 0.95*DCB2 + 0.95*NO2 + 0.95*HO2 + .050*ONIT 
+    IRR_099: PER1 + NO =k> 0.95*DCB1 + 0.95*NO2 + 0.95*MGLY + 0.95*HO2 + .050*ONIT 
+    IRR_100: XYO + HO =k> .060*XYL1 + .890*XYO2 + .050*CSL + .050*HO2 
+    IRR_101: XYL + HO =k> .060*XYL1 + .890*XY2 + .050*CSL + .050*HO2 
+    IRR_102: XYL1 + NO =k> 1.00*NO2 + 1.00*BALD 
+    IRR_103: XY2 =k> .224*DCB2 + .840*EPX + .010*CSL + .308*XYLP + .150*PER2 + .308*HO2 + .308*HO 
+    IRR_104: XYO2 =k> .224*DCB2 + .840*EPX + .010*CSL + .308*XYOP + .150*PER2 + .308*HO2 + .308*HO 
+    IRR_105: XYLP =k> .490*DCB2 + .010*HO2 + .010*CSL + .490*HO + .500*PER2 
+    IRR_106: XYOP =k> .490*DCB2 + .010*HO2 + .010*CSL + .490*HO + .500*PER2 
+    IRR_107: XYLP + NO =k> 0.95*DCB2 + 0.95*NO2 + 0.95*HO2 + .050*ONIT 
+    IRR_108: PER2 + NO =k> 0.95*DCB1 + 0.95*NO2 + 0.95*MGLY + 0.95*HO2 + .050*ONIT + 1.95*DCB3 
+    IRR_109: BALD + HO =k> BALP + H2O 
+    IRR_110: BALP + NO =k> BAL1 + NO2 
+    IRR_111: BAL1 + NO =k> BAL2 + NO2 
+    IRR_112: BAL2 + NO2 =k> ONIT 
+    IRR_113: PHEN + HO =k> 0.07*CHO + 0.20*ADDC + 0.73*MCT + 0.73*HO2 
+    IRR_114: CSL + HO =k> 0.07*CHO + 0.20*ADDC + 0.73*MCT + 0.73*HO2 
+    IRR_115: MCT + HO =k> MCTO 
+    IRR_116: MCT + NO3 =k> MCTO + HNO3 
+    IRR_117: MCTO + O3 =k> MCTP 
+    IRR_118: MCTO + NO2 =k> ONIT 
+    IRR_119: MCTP + NO =k> MCTO + NO2 
+    IRR_120: MCTP + MO2 =k> HCHO + HO2 + MCTO 
+    IRR_121: MCTP + ACO3 =k> MO2 + HO2 + MCTO 
+    IRR_122: MCTP + HO2 =k> OP2 
+    IRR_123: MCTP + NO3 =k> MCTO + NO2 
+    IRR_124: HCHO + HO =k> HO2 + CO + H2O 
+    IRR_125: ACD + HO =k> ACO3 + H2O 
+    IRR_126: ALD + HO =k> RCO3 + H2O 
+    IRR_127: ACT + HO =k> ACTP + H2O 
+    IRR_128: MEK + HO =k> MEKP + H2O 
+    IRR_129: KET + HO =k> KETP + H2O 
+    IRR_130: HKET + HO =k> HO2 + MGLY + H2O 
+    IRR_131: GLY + HO =k> HO2 + 2.0*CO + H2O 
+    IRR_132: MGLY + HO =k> ACO3 + CO + H2O 
+    IRR_133: MACR + HO =k> 1.0*MACP 
+    IRR_134: MVK + HO =k> MVKP 
+    IRR_135: UALD + HO =k> .313*ACO3 + .687*UALP 
+    IRR_136: EPX + HO =k> XO2 + HO2 + ALD + CO 
+    IRR_137: DCB2 + HO =k> XO2 + ACO3 + ALD 
+    IRR_138: DCB1 + HO =k> XO2 + ACO3 + ALD 
+    IRR_139: DCB3 + HO =k> ACO3 + CO + H2O 
+    IRR_140: OP1 + HO =k> .65*MO2 + .35*HCHO + 0.35*HO 
+    IRR_141: OP2 + HO =k> 0.44*HC3P + 0.08*ALD + 0.49*HO + 0.07*XO2 + 0.41*KET 
+    IRR_142: PAA + HO =k> 0.65*ACO3 + 0.35*HO + 0.35*HCHO + 0.35*XO2 
+    IRR_143: PAN + HO =k> HCHO + NO3 + XO2 + H2O 
+    IRR_144: PPN + HO =k> HCHO + NO3 + XO2 + H2O 
+    IRR_145: MPAN + HO =k> 1.00*HACE + 1.00*NO2 
+    IRR_146: ONIT + HO =k> HC3P + NO2 + H2O 
+    IRR_147: ORA1 + HO =k> HO2 + CO2 
+    IRR_148: ORA2 + HO =k> 0.64*MO2 + 0.64*CO2 + 0.36*ORAP 
+    IRR_149: HCHO + NO3 =k> HO2 + HNO3 + CO 
+    IRR_150: ACD + NO3 =k> ACO3 + HNO3 
+    IRR_151: ALD + NO3 =k> RCO3 + HNO3 
+    IRR_152: GLY + NO3 =k> HNO3 + HO2 + 2.0*CO 
+    IRR_153: MGLY + NO3 =k> HNO3 + ACO3 + CO 
+    IRR_154: EPX + NO3 =k> 1.50*HO2 + 0.50*HO + 1.50*CO + GLY + 0.50*CO2 + 0.50*NO2 + 0.50*HNO3 
+    IRR_155: PHEN + NO3 =k> 0.5*HNO3 + 0.4*CHO + 0.5*ADCN + 0.1*ADDC 
+    IRR_156: CSL + NO3 =k> 0.5*HNO3 + 0.4*CHO + 0.5*ADCN + 0.1*ADDC 
+    IRR_157: ADCN + NO =k> GLY + 2.00*NO2 + OP2 
+    IRR_158: ADCN + NO3 =k> OP2 + GLY + 2.0*NO2 
+    IRR_159: ADCN + MO2 =k> HCHO + HO2 + 0.7*OP2 + 0.7*GLY + 0.7*NO2 + 0.3*ONIT 
+    IRR_160: ADCN + ACO3 =k> MO2 + HO2 + 0.7*OP2 + 0.7*GLY + 0.7*NO2 + 0.3*ONIT 
+    IRR_161: ADCN + HO2 =k> OP2 
+    IRR_162: ETE + NO3 =k> 0.80*OLNN + 0.20*OLND 
+    IRR_163: OLT + NO3 =k> 0.43*OLNN + 0.57*OLND 
+    IRR_164: OLI + NO3 =k> 0.11*OLNN + 0.89*OLND 
+    IRR_165: DIEN + NO3 =k> 0.90*OLNN + 0.10*OLND + 0.90*MACR 
+    IRR_166: ISO + NO3 =k> 1.00*ISON 
+    IRR_167: MACR + NO3 =k> 0.5*MACP + 0.5*HNO3 + 0.5*CO + 0.5*HO2 + 0.5*ONIT + 0.5*XO2 
+    IRR_168: UALD + NO3 =k> .668*CO + .332*HCHO + .332*ALD + ONIT + HO2 + XO2 
+    IRR_169: API + NO3 =k> 0.10*OLNN + 0.90*OLND 
+    IRR_170: LIM + NO3 =k> 0.13*OLNN + 0.87*OLND 
+    IRR_171: MPAN + NO3 =k> 1.00*MACP + 1.00*NO2 
+    IRR_172: ETE + O3 =k> HCHO + 0.43*CO + 0.37*ORA1 + 0.26*HO2 + 0.13*H2 + 0.12*HO 
+    IRR_173: OLT + O3 =k> 0.64*HCHO + 0.44*ALD + 0.37*CO + 0.14*ORA1 + 0.10*ORA2 + 0.25*HO2 + 0.40*HO + 0.03*KET + 0.03*KETP + 0.06*CH4 + 0.05*H2 + 0.03*ETH + .006*H2O2 + 0.19*MO2 + 0.10*ETHP 
+    IRR_174: OLI + O3 =k> 0.02*HCHO + 0.99*ALD + 0.16*KET + 0.30*CO + .011*H2O2 + 0.14*ORA2 + 0.07*CH4 + 0.22*HO2 + 0.63*HO + 0.23*MO2 + 0.12*KETP + 0.06*ETH + 0.18*ETHP 
+    IRR_175: DIEN + O3 =k> 0.90*HCHO + 0.39*MACR + 0.36*CO + 0.15*ORA1 + 0.09*O3P + 0.30*HO2 + 0.35*OLT + 0.28*HO + 0.05*H2 + 0.15*ACO3 + 0.03*MO2 + 0.02*KETP + 0.13*XO2 + .001*H2O2 
+    IRR_176: ISO + O3 =k> 0.58*HCHO + .461*MACR + .189*MVK + 0.28*ORA1 + 0.25*HO + 0.25*HO2 + 0.14*CO + 0.1*ACO3 + 0.08*MO2 + 0.09*H2O2 + 0.1*MACP 
+    IRR_177: MACR + O3 =k> 0.10*ACO3 + 0.90*MGLY + 0.32*HO2 + 0.22*CO + 0.19*HO + 0.45*ORA1 
+    IRR_178: MVK + O3 =k> 0.67*ORA1 + 0.11*HO + 0.11*HO2 + 0.11*CO + 0.17*CO2 + 0.95*MGLY + 0.05*HCHO + 0.05*HO + 0.05*XO2 + 0.05*HCHO + 0.05*ACO3 
+    IRR_179: UALD + O3 =k> .476*HO + .072*HO2 + .168*MO2 + .237*ACO3 + 0.1*XO2 + .243*CO + .218*HCHO + .062*ALD + .278*KET + .031*GLY + .653*MGLY + .044*ORA1 
+    IRR_180: API + O3 =k> 0.65*ALD + 0.53*KET + 0.14*CO + 0.20*ETHP + 0.42*KETP + 0.85*HO + 0.10*HO2 + 0.02*H2O2 
+    IRR_181: LIM + O3 =k> 0.04*HCHO + 0.46*OLT + 0.14*CO + 0.16*ETHP + 0.42*KETP + 0.85*HO + 0.10*HO2 + 0.02*H2O2 + 0.79*MACR + 0.01*ORA1 + 0.07*ORA2 
+    IRR_182: EPX + O3 =k> 1.5*HO2 + 0.5*HO + 1.5*CO + 0.5*CO2 + GLY 
+    IRR_183: DCB3 + O3 =k> 1.0*HO2 + 0.5*HO + 1.5*CO + 0.5*CO2 + 0.25*ORA1 + 0.25*ORA2 + 0.11*PAA + 2.48*MGLY 
+    IRR_184: CHO + NO2 =k> ONIT 
+    IRR_185: ACO3 + NO2 =k> PAN 
+    IRR_186: RCO3 + NO2 =k> PPN 
+    IRR_187: PAN =k> ACO3 + NO2
+    IRR_188: PPN =k> RCO3 + NO2 
+    IRR_189: MACP + NO2 =k> MPAN 
+    IRR_190: MPAN =k> MACP + NO2 
+    IRR_191: MO2 + NO =k> HCHO + HO2 + NO2 
+    IRR_192: ETHP + NO =k> ACD + HO2 + NO2 
+    IRR_193: HC3P + NO =k> .047*HCHO + .233*ALD + .623*ACT + .063*GLY + .742*HO2 + .150*MO2 + .048*ETHP + .048*XO2 + .059*ONIT + .941*NO2 
+    IRR_194: HC5P + NO =k> .021*HCHO + .211*ALD + .500*KET + .599*HO2 + .031*MO2 + .245*ETHP + .334*XO2 + .124*ONIT + .876*NO2 + .122*MEK + .100*ACT 
+    IRR_195: HC8P + NO =k> .150*ALD + .642*KET + .133*ETHP + .261*ONIT + .739*NO2 + .606*HO2 + .416*XO2 
+    IRR_196: ETEP + NO =k> 1.6*HCHO + HO2 + NO2 + 0.2*ALD 
+    IRR_197: OLTP + NO =k> 0.94*ALD + HCHO + HO2 + NO2 + 0.06*KET 
+    IRR_198: OLIP + NO =k> HO2 + 1.71*ALD + 0.29*KET + NO2 
+    IRR_199: ISOP + NO =k> .046*ISON + .954*NO2 + .954*HO2 + 1.00*HCHO + .418*MACR + .582*MVK 
+    IRR_200: MACP + NO =k> NO2 + 0.25*ACO3 + 0.25*HACE + 0.25*CO + 0.75*HCHO + 0.50*MGLY + 0.75*HO2 
+    IRR_201: MVKP + NO =k> NO2 + 0.7*ALD + 0.7*XO2 + 0.7*ACO3 + 0.3*HCHO + 0.3*MGLY + 0.3*HO2 
+    IRR_202: MEKP + NO =k> 0.67*DCB1 + 0.67*HO2 + 0.33*HCHO + NO2 
+    IRR_203: UALP + NO =k> NO2 + HO2 + 0.61*CO + 0.27*ALD + 0.03*HCHO + 0.18*GLY + 0.21*MGLY + 0.7*KET 
+    IRR_204: APIP + NO =k> 0.82*HO2 + 0.43*ALD + 0.82*NO2 + 0.44*KET + 0.18*ONIT + 0.23*HCHO + 0.11*ACT + 0.07*ORA1 
+    IRR_205: LIMP + NO =k> 0.90*HO2 + 0.25*MACR + 0.25*KET + 0.03*ACT + 0.90*NO2 + 0.10*ONIT 
+    IRR_206: BENP + NO =k> .082*ONIT + .918*HO2 + .459*UALD + .918*NO2 + .459*OLI + .918*GLY 
+    IRR_207: XYOP + NO =k> 0.95*HO2 + .350*GLY + .600*MGLY + .700*DCB1 + .073*DCB2 + .177*DCB3 + 0.05*ONIT + 0.95*NO2 
+    IRR_208: ADDC + NO =k> NO2 + HO2 + 0.68*GLY + 0.68*OP2 + 0.32*HKET 
+    IRR_209: ACO3 + NO =k> MO2 + NO2 
+    IRR_210: RCO3 + NO =k> ETHP + NO2 
+    IRR_211: KETP + NO =k> 0.54*MGLY + 0.46*ALD + 0.23*ACO3 + 0.77*HO2 + 0.16*XO2 + NO2 
+    IRR_212: ACTP + NO =k> 1.00*ACO3 + 1.00*NO2 + 1.00*HCHO 
+    IRR_213: OLNN + NO =k> ONIT + NO2 + HO2 
+    IRR_214: OLND + NO =k> .287*HCHO + 1.24*ALD + .464*KET + 2.00*NO2 
+    IRR_215: MO2 + HO2 =k> OP1 
+    IRR_216: ETHP + HO2 =k> OP2 
+    IRR_217: HC3P + HO2 =k> OP2 
+    IRR_218: HC5P + HO2 =k> OP2 
+    IRR_219: HC8P + HO2 =k> OP2 
+    IRR_220: ETEP + HO2 =k> OP2 
+    IRR_221: OLTP + HO2 =k> OP2 
+    IRR_222: OLIP + HO2 =k> OP2 
+    IRR_223: ISOP + HO2 =k> ISHP 
+    IRR_224: MACP + HO2 =k> MAHP 
+    IRR_225: MVKP + HO2 =k> OP2 
+    IRR_226: UALP + HO2 =k> OP2 
+    IRR_227: APIP + HO2 =k> OP2 
+    IRR_228: LIMP + HO2 =k> OP2 
+    IRR_229: BENP + HO2 =k> OP2 
+    IRR_230: XYOP + HO2 =k> OP2 
+    IRR_231: ADDC + HO2 =k> OP2 
+    IRR_232: CHO + HO2 =k> CSL 
+    IRR_233: ACO3 + HO2 =k> 0.4*PAA + 0.2*ORA2 + 0.4*MO2 + 0.4*HO + 0.4*CO2 
+    IRR_234: RCO3 + HO2 =k> 0.4*PAA + 0.2*ORA2 + 0.4*ETHP + 0.4*HO + 0.4*CO2 
+    IRR_235: ACTP + HO2 =k> .330*OP2 + .670*HO + .670*HCHO + .670*ACO3 
+    IRR_236: MEKP + HO2 =k> OP2 
+    IRR_237: KETP + HO2 =k> OP2 
+    IRR_238: OLNN + HO2 =k> ONIT 
+    IRR_239: OLND + HO2 =k> ONIT 
+    IRR_240: MO2 + MO2 =k> 1.37*HCHO + 0.74*HO2 + 0.63*MOH 
+    IRR_241: ETHP + MO2 =k> 0.75*HCHO + HO2 + 0.75*ACD + .250*MOH + .250*EOH 
+    IRR_242: HC3P + MO2 =k> .827*HCHO + .894*HO2 + .198*ALD + .497*KET + .080*MO2 + .250*MOH + .026*XO2 + .050*GLY + .026*ETHP + .250*ROH 
+    IRR_243: HC5P + MO2 =k> .777*HCHO + .842*HO2 + .251*ALD + .618*KET + .140*ETHP + .191*XO2 + .018*MO2 + .250*MOH + .250*ROH 
+    IRR_244: HC8P + MO2 =k> .750*HCHO + .910*HO2 + .197*ALD + .652*KET + .281*XO2 + .090*ETHP + .250*MOH + .250*ROH 
+    IRR_245: ETEP + MO2 =k> 1.95*HCHO + HO2 + 0.15*ALD + .250*MOH + .250*ETEG 
+    IRR_246: OLTP + MO2 =k> 1.50*HCHO + HO2 + .705*ALD + .045*KET + .250*MOH + .250*ROH 
+    IRR_247: OLIP + MO2 =k> .750*HCHO + HO2 + 1.28*ALD + .218*KET + .250*MOH + .250*ROH 
+    IRR_248: ISOP + MO2 =k> 1.54*HCHO + 1.0*HO2 + .305*MVK + .219*MACR + .250*MOH + .250*ROH 
+    IRR_249: MACP + MO2 =k> 1.50*HCHO + 1.00*HO2 + .167*HACE + .167*CO + .167*ACO3 + .333*MGLY + .042*ORA2 + .250*MOH + .250*ROH 
+    IRR_250: MVKP + MO2 =k> 1.5*HCHO + 1.0*HO2 + 1.75*ALD + 1.16*XO2 + .292*ORA2 + .500*MGLY + 1.16*ACO3 + .250*MOH + .250*ROH 
+    IRR_251: UALP + MO2 =k> .773*HCHO + 1.0*HO2 + .203*ALD + .525*KET + .305*CO + .105*MGLY + .135*GLY + .250*MOH + .250*ROH 
+    IRR_252: APIP + MO2 =k> 1.00*HO2 + .750*ALD + .750*HCHO + .750*KET + .250*MOH + .250*ROH 
+    IRR_253: LIMP + MO2 =k> 1.00*HO2 + .308*MACR + .192*OLI + 1.04*HCHO + .250*MOH + .250*ROH 
+    IRR_254: BENP + MO2 =k> HCHO + 1.6*HO2 + .600*GLY + .300*OLI + 0.7*UALD + HO2 
+    IRR_255: TOLP + MO2 =k> HCHO + 2.0*HO2 + .271*GLY + DCB2 
+    IRR_256: TLP1 + MO2 =k> HCHO + 1.0*HO2 + BALD 
+    IRR_257: PER1 + MO2 =k> HCHO + 2.0*HO2 + MGLY + DCB1 
+    IRR_258: XYOP + MO2 =k> HCHO + 2.0*HO2 + .368*GLY + .632*MGLY + .737*DCB1 + .077*DCB2 + .186*DCB3 
+    IRR_259: XYL1 + MO2 =k> HCHO + 1.0*HO2 + BALD 
+    IRR_260: XYLP + MO2 =k> HCHO + 2.0*HO2 + DCB2 
+    IRR_261: PER2 + MO2 =k> HCHO + 2.0*HO2 + MGLY + DCB1 + 2.05*DCB3 
+    IRR_262: BALP + MO2 =k> HCHO + 1.0*HO2 + BAL1 
+    IRR_263: BAL1 + MO2 =k> HCHO + 1.0*HO2 + BAL2 
+    IRR_264: ADDC + MO2 =k> HCHO + 2.0*HO2 + .68*GLY + 0.32*HKET + 0.68*OP2 
+    IRR_265: ACO3 + MO2 =k> HCHO + 0.9*HO2 + 0.90*MO2 + 0.1*ORA2 + 0.4*CO2 
+    IRR_266: RCO3 + MO2 =k> HCHO + 0.9*HO2 + 0.9*MO2 + 0.1*ORA2 + 0.4*CO2 
+    IRR_267: ACTP + MO2 =k> 0.25*ROH + 1.50*HCHO + 0.50*ACO3 + 0.25*MOH + 0.50*HO2 + .125*ORA2 
+    IRR_268: MEKP + MO2 =k> .334*DCB1 + .834*HO2 + 0.25*MOH + 1.00*HCHO + 0.25*ROH 
+    IRR_269: KETP + MO2 =k> 0.50*DCB1 + 1.00*HO2 + 0.25*MOH + 0.75*HCHO + 0.25*ROH 
+    IRR_270: OLNN + MO2 =k> HCHO + 2.00*HO2 + ONIT 
+    IRR_271: OLND + MO2 =k> .965*HCHO + .500*HO2 + .930*ALD + .348*KET + .500*NO2 + .250*MOH + 0.25*ROH + .500*ONIT 
+    IRR_272: ETHP + ACO3 =k> ACD + .500*HO2 + 0.5*MO2 + 0.5*ORA2 
+    IRR_273: HC3P + ACO3 =k> .273*ALD + .662*KET + .394*HO2 + .580*MO2 + .500*ORA2 + .130*HCHO + .026*ETHP + .026*XO2 + .067*GLY 
+    IRR_274: HC5P + ACO3 =k> .381*ALD + .824*KET + .342*HO2 + .518*MO2 + .500*ORA2 + .042*HCHO + .140*ETHP + .191*XO2 
+    IRR_275: HC8P + ACO3 =k> .217*ALD + .642*KET + .303*HO2 + .500*MO2 + .495*ORA2 + .067*ETHP + .208*XO2 
+    IRR_276: ETEP + ACO3 =k> 1.6*HCHO + 0.2*ALD + 0.5*HO2 + 0.5*MO2 + 0.5*ORA2 
+    IRR_277: OLTP + ACO3 =k> .940*ALD + HCHO + .500*HO2 + .500*MO2 + .500*ORA2 + .060*KET 
+    IRR_278: OLIP + ACO3 =k> 1.71*ALD + .500*HO2 + .500*MO2 + .290*KET + .500*ORA2 
+    IRR_279: ISOP + ACO3 =k> 0.5*HO2 + 0.5*MO2 + 0.5*ORA2 + 1.048*HCHO + .219*MACR + .305*MVK 
+    IRR_280: MACP + ACO3 =k> .500*HO2 + 0.5*MO2 + 0.583*ORA2 + .167*HACE + .167*CO + 0.167*ACO3 + 0.33*MGLY + HCHO 
+    IRR_281: MVKP + ACO3 =k> 0.5*HO2 + 0.5*MO2 + 1.083*ORA2 + 2.3*ALD + 1.16*XO2 + HCHO + 0.5*MGLY + 1.16*ACO3 
+    IRR_282: UALP + ACO3 =k> 0.5*HO2 + 0.5*MO2 + 0.5*ORA2 + 0.27*ALD + 0.7*KET + .105*MGLY + 0.5*CO + .030*HCHO + 0.18*GLY 
+    IRR_283: APIP + ACO3 =k> .5*HO2 + ALD + .5*MO2 + KET + ORA2 
+    IRR_284: LIMP + ACO3 =k> .5*HO2 + .308*MACR + 0.192*OLI + .385*HCHO + .5*MO2 + .5*ORA2 
+    IRR_285: BENP + ACO3 =k> MO2 + 0.60*HO2 + .600*GLY + .700*UALD + 0.30*OLI 
+    IRR_286: TOLP + ACO3 =k> DCB2 + HO2 + MO2 
+    IRR_287: TLP1 + ACO3 =k> 1.00*MO2 + 1.00*BALD 
+    IRR_288: PER1 + ACO3 =k> DCB1 + MO2 + MGLY + HO2 
+    IRR_289: PER2 + ACO3 =k> DCB1 + MO2 + MGLY + HO2 + 2.05*DCB3 
+    IRR_290: BALP + ACO3 =k> BAL1 + MO2 
+    IRR_291: BAL1 + ACO3 =k> BAL2 + MO2 
+    IRR_292: XYOP + ACO3 =k> MO2 + HO2 + .368*GLY + .632*MGLY + .737*DCB1 + .077*DCB2 + .186*DCB3 
+    IRR_293: XYL1 + ACO3 =k> 1.00*MO2 + 1.00*BALD 
+    IRR_294: XYLP + ACO3 =k> DCB2 + MO2 + HO2 
+    IRR_295: ADDC + ACO3 =k> MO2 + 2.0*HO2 + .68*GLY + 0.32*HKET + 0.68*OP2 
+    IRR_296: ACO3 + ACO3 =k> 2.0*MO2 + 2.0*CO2 
+    IRR_297: RCO3 + RCO3 =k> 2.0*ETHP + 2.0*CO2 
+    IRR_298: KETP + ACO3 =k> 0.50*DCB1 + 0.50*HO2 + 0.50*ORA2 + 0.50*MO2 
+    IRR_299: ACTP + ACO3 =k> 0.50*MO2 + HCHO + 0.75*ORA2 + 0.50*ACO3 
+    IRR_300: MEKP + ACO3 =k> 0.50*MO2 + 0.50*ORA2 + 0.334*DCB1 + 0.33*HO2 + 0.33*HCHO 
+    IRR_301: OLNN + ACO3 =k> ONIT + 1.00*MO2 + 1.00*HO2 
+    IRR_302: OLND + ACO3 =k> .287*HCHO + 1.24*ALD + .464*KET + .500*MO2 + .500*ORA2 + NO2 
+    IRR_303: OLNN + OLNN =k> 2.00*ONIT + HO2 
+    IRR_304: OLNN + OLND =k> .202*HCHO + .640*ALD + .149*KET + .500*HO2 + .500*NO2 + 1.50*ONIT 
+    IRR_305: OLND + OLND =k> .504*HCHO + 1.21*ALD + .285*KET + ONIT + NO2 
+    IRR_306: MO2 + NO3 =k> HCHO + HO2 + NO2 
+    IRR_307: ETHP + NO3 =k> ACD + HO2 + NO2 
+    IRR_308: HC3P + NO3 =k> .050*HCHO + .248*ALD + .662*KET + .067*GLY + .789*HO2 + .159*MO2 + .051*ETHP + .051*XO2 + NO2 
+    IRR_309: HC5P + NO3 =k> .024*HCHO + .241*ALD + .824*KET + .684*HO2 + .035*MO2 + .280*ETHP + .381*XO2 + NO2 
+    IRR_310: HC8P + NO3 =k> .203*ALD + .869*KET + .180*ETHP + NO2 + .820*HO2 + .563*XO2 
+    IRR_311: ETEP + NO3 =k> 1.6*HCHO + HO2 + NO2 + 0.2*ALD 
+    IRR_312: OLTP + NO3 =k> 0.94*ALD + HCHO + HO2 + NO2 + 0.06*KET 
+    IRR_313: OLIP + NO3 =k> HO2 + 1.71*ALD + 0.29*KET + NO2 
+    IRR_314: ISOP + NO3 =k> .438*MACR + .610*MVK + HO2 + NO2 + 1.05*HCHO 
+    IRR_315: APIP + NO3 =k> HO2 + ALD + NO2 + KET 
+    IRR_316: LIMP + NO3 =k> HO2 + .615*MACR + 0.385*OLI + .385*HCHO + NO2 
+    IRR_317: BENP + NO3 =k> HO2 + GLY + .500*UALD + NO2 + 0.50*OLI 
+    IRR_318: XYOP + NO3 =k> HO2 + .368*GLY + .632*MGLY + .737*DCB1 + .077*DCB2 + .186*DCB3 + NO2 
+    IRR_319: ADDC + NO3 =k> NO2 + HO2 + .68*GLY + 0.68*OP2 + 0.32*HKET 
+    IRR_320: ACO3 + NO3 =k> MO2 + NO2 
+    IRR_321: RCO3 + NO3 =k> ETHP + NO2 
+    IRR_322: MEKP + NO3 =k> 0.67*DCB1 + 0.67*HO2 + 0.33*HCHO + NO2 
+    IRR_323: KETP + NO3 =k> 1.00*DCB1 + HO2 + NO2 
+    IRR_324: ACTP + NO3 =k> 1.00*ACO3 + 1.00*NO2 + 1.00*HCHO 
+    IRR_325: OLNN + NO3 =k> ONIT + NO2 + HO2 
+    IRR_326: OLND + NO3 =k> .287*HCHO + 1.24*ALD + .464*KET + 2.00*NO2 
+    IRR_327: MVKP + NO3 =k> NO2 + 0.7*ALD + 2.3*XO2 + 2.3*ACO3 + 0.3*HCHO + MGLY + HO2 
+    IRR_328: MACP + NO3 =k> NO2 + 0.33*ACO3 + 0.33*HACE + 0.33*CO + HCHO + 0.667*MGLY + HO2 
+    IRR_329: TLP1 + NO3 =k> 1.00*NO2 + 1.00*BALD 
+    IRR_330: TOLP + NO3 =k> DCB2 + NO2 + HO2 
+    IRR_331: PER1 + NO3 =k> DCB1 + NO2 + MGLY + HO2 
+    IRR_332: XYL1 + NO3 =k> 1.00*NO2 + 1.00*BALD 
+    IRR_333: XYLP + NO3 =k> DCB2 + NO2 + HO2 
+    IRR_334: PER2 + NO3 =k> DCB1 + NO2 + MGLY + HO2 + 2.05*DCB3 
+    IRR_335: BALP + NO3 =k> BAL1 + NO2 
+    IRR_336: BAL1 + NO3 =k> BAL2 + NO2 
+    IRR_337: UALP + NO3 =k> NO2 + HO2 + 0.61*CO + 0.27*ALD + 0.03*HCHO + 0.18*GLY + 0.21*MGLY + 0.7*KET 
+    IRR_338: XO2 + HO2 =k> OP2 
+    IRR_339: XO2 + MO2 =k> HCHO + HO2 
+    IRR_340: XO2 + ACO3 =k> MO2 
+    IRR_341: XO2 + XO2 =k> DUMMY 
+    IRR_342: XO2 + NO =k> NO2 
+    IRR_343: XO2 + NO3 =k> NO2 
+    IRR_344: ORAP + NO =k> NO2 + GLY + HO2 
+    IRR_345: ORAP + HO2 =k> OP2 
+    IRR_346: ORAP + MO2 =k> HCHO + HO2 + GLY 
+    IRR_347: ORAP + ACO3 =k> MO2 + GLY 
+    IRR_348: ORAP + NO3 =k> NO2 + GLY + HO2 
+    IRR_349: RCO3 + ACO3 =k> ETHP + MO2 + 2.00*CO2 
