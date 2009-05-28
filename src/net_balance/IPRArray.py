@@ -172,5 +172,8 @@ class IPR(ndarray):
             return "%f lost by %s" % (value, self.name)
 
     def array(self):
+        """
+        view IPR array
+        """
         return self.view(type = ndarray, dtype = 'f')
         

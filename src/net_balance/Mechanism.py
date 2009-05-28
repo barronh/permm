@@ -16,7 +16,30 @@ from IPRArray import IPR
 __all__ = ['Mechanism']
 
 class Mechanism(object):
+    """
+    The mechanism object is the central repository for information
+    about a chemcial model.  It is aware of species, reactions, species
+    groups (e.g. NOy), net reactions (e.g. PAN <-> C2O3 + NO2).  
+    
+    The mechanism object also has introspective tools.  In addition, it
+    provides an interpreter through its call interface.
+    
+    Reaction data can be augmented with IRR data via set_irr or set_mrg
+    """
     def __init__(self, yaml_path):
+        """
+        Initialization requires a yaml_path or a dictionary.
+        The dictionary should have the following keys:
+        
+        species_list - a list of string names for chemical species
+                        (i.e. O3)
+        reaction_list - a list of strings representing reactions 
+                        (see ReactionGroup.ReactionFromString)
+        net_reaction_list - a dictionary of reaction additions 
+                            (i.e. NAME: RXN_01 + RXN_02)
+        process_group_list - a dictionary of process additions
+                            (i.e. VertAdv = Top_Adv + Bottom_Adv)
+        """
         import os
         if isinstance(yaml_path,str):
             if os.path.exists(yaml_path):
@@ -45,9 +68,17 @@ class Mechanism(object):
         self.net_reaction_dict = yaml_file.get('net_reaction_list',{})
             
     def __call__(self,expr):
+        """
+        Evaluate string expression in the context of mechanism
+        species, species groups, reactions, net reactions and processes
+        """
         return eval(expr, None, self)
     
     def __getitem__(self,item):
+        """
+        Provide a single getitem interface for mechanism species, species 
+        groups, reactions, net reactions and processes
+        """
         try:
             result = eval(item, self.__reaction_data, self.species_dict)
             self.__reaction_data.pop('__builtins__')
@@ -57,6 +88,17 @@ class Mechanism(object):
         return result
         
     def __add_spc_to_reactions(self,rxn_list, spc):
+        """
+        Add a species to a reaction as an accumulation of components
+          if RXN1 = CH3C(O)CH3 -j> CH3C(O)O2 + CH3O2
+          and SPC = Species(CH3C(O)O2 + CH3O2, name = 'AO2')
+          
+          mech.__add_spc_to_reactions([RXN1],SPC)
+          
+          would make RXN1 = CH3C(O)CH3 -j> CH3C(O)O2 + CH3O2 + 2*AO2
+        
+        For more detail, see ReactionGroup.Reaction.__add__ interface
+        """
         if not self.species_dict.has_key(spc.name):
             self.species_dict[spc.name] = spc
             
@@ -66,23 +108,38 @@ class Mechanism(object):
         return len(rxn_list)
     
     def __ensure_species(self,spc):
+        """
+        Return species (created if necessary)
+        """
         if isinstance(spc,str):
             spc = self.species_dict[spc]
         return spc
         
     def add_rct_to_reactions(self, spc):
+        """
+        Add spc to reactions where components are reactants
+        see __ensure_species
+        """
         spc = self.__ensure_species(spc)
         
         rxns = self.find_rxns(spc,[])
         return self.__add_spc_to_reactions(rxns, spc)
 
     def add_prd_to_reactions(self, spc):
+        """
+        Add spc to reactions where components are products
+        see __ensure_species
+        """
         spc = self.__ensure_species(spc)
         
         rxns = self.find_rxns([],spc)
         return self.__add_spc_to_reactions(rxns, spc)
 
     def add_spc_to_reactions(self, spc):
+        """
+        Add spc to reactions where components are reactants
+        or products see __ensure_species
+        """
         nrcts = self.add_rct_to_reactions(spc)
         nprds = self.add_prd_to_reactions(spc)
         return nrcts+nprds
@@ -106,7 +163,13 @@ class Mechanism(object):
         
     def find_rxns(self, reactants, products, logical_and = True):
         """
-        Get reaction where filter is true.
+        Get reactions where filter is true
+        
+        When logical_and is true, filter requires reaction to have
+        all reactants AND all products.
+        
+        When logical_and is False, filter requires reaction to have
+        all reactants OR all products.
         """
         if isinstance(reactants, (Species, str)):
             reactants = [reactants]
@@ -143,6 +206,10 @@ class Mechanism(object):
         return result
     
     def yaml_net_rxn(self, rxns):
+        """
+        Create the YAML representation of a net reaction for the supplied
+        reactions
+        """
         species = list(set(reduce(operator.add, [self.reaction_dict[rxn].species() for rxn in rxns])))
         
         for role in ('r','p'):
@@ -153,25 +220,43 @@ class Mechanism(object):
                         pass
         
     def make_net_rxn(self, reactants, products, logical_and = True):
+        """
+        Create and return a net reactions that meet the reactants and
+        products filter (see find_rxns)
+        """
         rxns = self.find_rxns(reactants, products, logical_and)
         result = self(' + '.join(rxns))
         
         return result
 
     def print_rxns(self, reactants, products, logical_and = True):
+        """
+        Print reactions that meet the reactants and
+        products filter (see find_rxns)
+        """
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.reaction_dict[rxn]
         
     def print_nrxns(self, reactants, products, logical_and = True, factor = 1.):
+        """
+        Print net reactions that meet the reactants and
+        products filter (see find_rxns)
+        """
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.nreaction_dict[rxn].sum() * factor
         
     def set_mrg(self,mrg, use_net_rxns = True):
+        """
+        Add process analysis from a 1D merged IRR/IPR file
+        """
         self.mrg = mrg
         self.set_irr(mrg.variables['IRR'], mrg.Reactions.split())
         self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
         
     def set_irr(self,irr, ReactionNames, use_net_rxns = True):
+        """
+        Add process analysis from a 2D merged IRR array dim(TIME,RXN)
+        """
         irr_type = dtype(dict(names = ReactionNames, formats = 'f'*len(ReactionNames)))
         class irr_array(ndarray):
             pass
@@ -189,6 +274,9 @@ class Mechanism(object):
                 self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.nreaction_dict)
         
     def set_ipr(self,ipr, species, processes):
+        """
+        Add process analysis from a 3D merged IPR array (TIME,SPC,PROC)
+        """
         self.process_dict={}
         for proc in processes:
             self.process_dict[proc] = Process(name = proc, names = [proc])
