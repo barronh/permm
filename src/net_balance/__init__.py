@@ -7,9 +7,9 @@ if __name__ != '__main__':
     from SpeciesGroup import Species
     from ReactionGroup import Reaction, Stoic
     from ProcessGroup import Process
-    from PhyTableMaker import PhyTable
     from IPRArray import IPR
     from Mechanism import Mechanism
+    from PhyTableMaker import PhyTable
     from SumTableMaker import SumTable
     from NetTableMaker import NetTables
     from PhyTableMaker import PhyTables, VOCTable
@@ -45,12 +45,27 @@ else:
     else:
         mrg_data_path=args[0]
 
-    from net_balance import mechanisms, netcdf, getmech
+    from net_balance import mechanisms, \
+                            netcdf, \
+                            getmech
+    
+    from net_balance.PhyTableMaker import PhyTable
+    from net_balance.SumTableMaker import SumTable
+    from net_balance.NetTableMaker import NetTables
+    from net_balance.PhyTableMaker import PhyTables
+    from net_balance.PhyTableMaker import VOCTable
+    from net_balance.PtbMaker import PtbTable
+    from net_balance.IRRTable import IRRTable
+
     mech_prep = mechanisms.cb05_camx.mechprep.cb05_camx_prep
     get_prepared_mech = getmech.get_prepared_mech
     get_pure_mech = getmech.get_pure_mech
     
-    mech = get_prepared_mech(options.mechanism)
+    try:
+        mech = get_prepared_mech(options.mechanism)
+    except:
+        mech = get_pure_mech(options.mechanism)
+        
     if mrg_data_path is not None:
         NetCDFFile = netcdf.NetCDFFile
         mrg_file = NetCDFFile(mrg_data_path,'rs')
