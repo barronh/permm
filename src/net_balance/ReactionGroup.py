@@ -1,5 +1,7 @@
 from numpy import ndarray, \
-                  array
+                  array, \
+                  newaxis, \
+                  float64
 
 from utils import AttrDict
 from SpeciesGroup import Species
@@ -11,7 +13,7 @@ ReactionGroup = str
 
 __all__ = ['Stoic', 'ReactionFromString', 'Reaction', 'ReactionArray']
 
-class Stoic(float):
+class Stoic(float64):
     """
     Stoic is a sub-class of float with a role
     property.  The role property is 'r', 'p', or 'u'.
@@ -31,15 +33,15 @@ class Stoic(float):
         __add__: Stoic+(Stoic|Number)
     """
     def __new__(subtype,f,role):
-        result = float.__new__(subtype,f)
+        result = float64.__new__(subtype,f)
         result.role = role
         return result
 
     def __mul__(self,y):
-        return Stoic(float(self)*y,self.role)
+        return Stoic(float64.__mul__(self,y),self.role)
 
     def __rmul__(self,y):
-        return Stoic(float(self)*y,self.role)
+        return Stoic(float64.__mul__(self,y),self.role)
 
     def __add__(self,y):
         if isinstance(y,Stoic):
@@ -50,7 +52,7 @@ class Stoic(float):
         else:
             role = self.role
 
-        return Stoic(float(self)+y,role)
+        return Stoic(float64.__add__(self,y),role)
 
 def ReactionFromString(rxn_str):
     """
@@ -141,7 +143,7 @@ class Reaction(AttrDict):
     def __init__(self, *args, **kwds):
         AttrDict.__init__(self, *args, **kwds)
         
-        has_rxn_type = self.get('reaction_type',None) != None
+        has_rxn_type = self.has_key('reaction_type')
         check = reduce(operator.and_,[isinstance(v,Stoic) for k, v in self.iteritems() if k != 'reaction_type'])
         
         if not check or not has_rxn_type:
@@ -154,7 +156,7 @@ class Reaction(AttrDict):
             return AttrDict.__getitem__(self,item.name)
         else:
             species = [name for name in item.names() if name in self.keys()]
-            value = sum([self[spc]*item[spc] for spc in species])
+            value = sum([item[spc][0] * AttrDict.__getitem__(self, spc) for spc in species])
 
             first_spc_role = self[species[0]].role
             same_role = array([first_spc_role == self[spc].role for spc in species]).all()
@@ -186,7 +188,7 @@ class Reaction(AttrDict):
             stoic = []
             for spc in species:
                 try:
-                    stoic.append(self[spc]+y.get(spc, 0))
+                    stoic.append(dict.__getitem__(self,spc)+y.get(spc, 0))
                 except:
                     stoic.append(y[spc]+0)
     
@@ -205,26 +207,20 @@ class Reaction(AttrDict):
         return self.__mul__(irrs)
         
     def __mul__(self,irrs):
-        is_array = isinstance(irrs,ndarray)
-        
-        is_number = isinstance(irrs, (int, long, float))
-        
-        if is_array:
-            result = ReactionArray([self*irr for irr in irrs], dtype = Reaction)
+        species = self.species()
+        # Using native dict getitem for speed
+        stoic = (array([dict.__getitem__(self,k) for k in species], dtype = object)[:,newaxis]*array(irrs).view(ndarray)).swapaxes(0,1)
+
+        # Improvements in Stoic have made this unnecessary
+        #stoic = [Stoic(s, s.role) for s in stoic]
+        rct_dict = dict(reaction_type = self.reaction_type)
+        if not isinstance(irrs, ndarray):
+            result = Reaction(**return_updated_dict(dict(zip(species,stoic[0])), rct_dict))
         else:
-            stoic = [self.get(k, 0)*irrs for k in self.species()]
-            
-            stoic = [Stoic(s, s.role) for s in stoic]
-                
-            kwds = dict(zip(self.species(),stoic))
-            
-            
-            kwds['reaction_type'] = self.reaction_type
-            
-            result = Reaction(**kwds)
+            result = ReactionArray([Reaction(return_updated_dict(dict(zip(species,stc)), rct_dict)) for stc in stoic], dtype = Reaction)
             
         return result
-        
+
     def __add_if_in_spclist(self,y,spc_list):
         if not self.has_spc(y):
             raise KeyError, 'Reaction has no components of %s' % y.name
@@ -319,7 +315,7 @@ class ReactionArray(ndarray):
 
     def __getitem__(self,item):
         if isinstance(item,(Species,str)):
-            return array([v[item] for v in self], dtype = Stoic)
+            return array([v[item] for v in self])
         else:
             return ndarray.__getitem__(self,item)
 
@@ -345,3 +341,7 @@ class ReactionArray(ndarray):
         
         return result
         
+
+def return_updated_dict(d1, d2):
+    d1.update(d2)
+    return d1
