@@ -5,3 +5,4 @@ import cb05_cmaq
 import geos_chem
 import saprc99_cmaq
 import saprc07_cmaq
+import racm2_cmaq
