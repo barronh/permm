@@ -1,5 +1,5 @@
 __all__ = ['SumTable']
-from numpy import ndarray, where
+from numpy import ndarray, where, nan
 
 def sum_line(label, hourly, aggregate = None):
     if aggregate is None:
@@ -289,15 +289,25 @@ def SumTable(mech):
     
     no2_available = no2_initial + no2_carry + no2_from_o3_oxid + no2_new + no2_from_ro2_oxid
 
-    no2_available_agg = (no2_from_o3_oxid + no2_new + no2_from_ro2_oxid).sum()
+
+    # Available[NO2] - CHEM[NO2] - PHY[NO2] = 0
+    # only if no2_available includes no2_initial
+    no2_available_agg = (no2_initial + no2_from_o3_oxid + no2_new + no2_from_ro2_oxid).sum()
     
     no2_from_chem = no2_from_ro2_oxid + no2_from_no3_pl_org
     no2_frac_from_chem = no2_from_chem / no2_available
-    for hr in range(no2_from_chem.shape[0]):
-        no2_from_chem[hr] += no2_frac_from_chem[hr] * no2_carry[hr]
-        no2_frac_from_chem = no2_from_chem / no2_available
+    
+    # Big assumption!!!
+    # Assuming initial NO2 chemicaly produced fraction is 
+    # proportional to first hour process fractions
+    no2_frac_from_chem[0] = no2_from_chem[0] / (no2_available[0] - no2_initial[0])
+    no2_from_chem[0] += no2_frac_from_chem[0] * no2_initial[0]
 
     no2_frac_from_chem_agg = no2_from_chem.sum() / no2_available_agg
+
+    for hr in range(no2_from_chem.shape[0])[1:]:
+        no2_from_chem[hr] += no2_frac_from_chem[hr-1] * no2_carry[hr]
+        no2_frac_from_chem = no2_from_chem / no2_available
     result += header('Total Available NO2 Inside Box')
     result += sum_line('Initial', no2_initial)
     result += sum_line('Carry over', no2_carry, 0)
@@ -321,10 +331,10 @@ def SumTable(mech):
     result += sum_line('Total NO2 phy losses', no2_phy_loss, no2_phy_loss_agg)
     result += sum_line('Total NO2 for Chem', no2_phy_loss + no2_available, no2_phy_loss_agg + no2_available_agg)
     
-    no2_phot_loss = no2_phot[NO2]
-    no_prod = no2_phot[NO]
-    o3_prod = no2_phot[O3]
-    no3_prod = no2_phot[NO3]
+    no2_phot_loss = where(no2_phot[NO2]<0, no2_phot[NO2], 0)
+    no_prod = where(no2_phot[NO2]<0, no2_phot[NO], 0)
+    o3_prod = where(no2_phot[NO2]<0, no2_phot[O3], 0)
+    no3_prod = where(no2_phot[NO2]<0, no2_phot[NO3], 0)
     
     o3_per_no2 = o3_prod / no2_available
     o3_per_no2_agg = o3_prod.sum() / no2_available_agg
@@ -369,7 +379,7 @@ def SumTable(mech):
 
     no_recreated = no_prod - no_new_sec
     no_recreated_agg = no_prod.sum() - no_new_sec.sum()
-    no_propef = 1 - 1/no_chain_length
+    no_propef = 1 - 1/where(no_chain_length == 0, nan, no_chain_length)
     no_propef_agg = 1 - 1/no_chain_length_agg
 
 
