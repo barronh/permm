@@ -245,13 +245,15 @@ class Mechanism(object):
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.nreaction_dict[rxn].sum() * factor
         
-    def set_mrg(self,mrg, use_net_rxns = True):
+    def set_mrg(self,mrg, use_net_rxns = True, use_irr = True, use_ipr = True):
         """
         Add process analysis from a 1D merged IRR/IPR file
         """
         self.mrg = mrg
-        self.set_irr(mrg.variables['IRR'], mrg.Reactions.split())
-        self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
+        if use_irr:
+            self.set_irr(mrg.variables['IRR'], mrg.Reactions.split())
+        if use_ipr:
+            self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
         
     def set_irr(self,irr, ReactionNames, use_net_rxns = True):
         """
