@@ -93,6 +93,6 @@ def display(mech, spc, process, label, condition = None, agg = lambda x: x.sum()
         result = ("  %-19s"+"%11.4f"*n_vals+'\n') % display_values
     except KeyError, strerror:
         result = ''
-        warn(strerror)
+        warn('%s: %s' % (spc, strerror))
 
     return result
