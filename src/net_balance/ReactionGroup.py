@@ -235,7 +235,7 @@ class Reaction(AttrDict):
         new_species = [name for name in y.names() if name in spc_list]
 
         old_stoic = self.stoic()
-        new_stoic = sum([self[spc]*y[spc] for spc in new_species])
+        new_stoic = sum([self[spc]*y[spc][0] for spc in new_species])
 
         kwds = dict(zip(old_species+[y.name],old_stoic+[Stoic(new_stoic,'u')]))
         kwds['reaction_type'] = self.reaction_type
