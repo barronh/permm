@@ -318,11 +318,11 @@ reaction_list:
     IRR_222: SESQ + NO3 =k> NO3 + SESQRXN
     
 species_group_list:
-    - [NOz, HNO3+RNO3+XN+PAN+PAN2+PBZN+MA_PAN]
-    - [NOx, NO+NO2+NO3+N2O5+HONO+HNO4]
-    - [NOy, NOx+NOz]
-    - [PANS, PAN+PAN2+PBZN+MA_PAN]
-    - [NTR, RNO3+XN]
-    - [ACYL_RAD, RCO_O2+CCO_O2+MA_RCO3+BZCO_O2]
+    - NOz=HNO3+RNO3+XN+PAN+PAN2+PBZN+MA_PAN
+    - NOx=NO+NO2+NO3+N2O5+HONO+HNO4
+    - NOy=NOx+NOz
+    - PANS=PAN+PAN2+PBZN+MA_PAN
+    - NTR=RNO3+XN
+    - ACYL_RAD=RCO_O2+CCO_O2+MA_RCO3+BZCO_O2
 
 ...

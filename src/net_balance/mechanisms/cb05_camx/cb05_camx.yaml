@@ -264,81 +264,83 @@ net_reaction_list:
 
 
 species_group_list:
-    - [NOz,   HNO3+PAN+PANX+NTR]
-    - [NOx,   NO+NO2+NO3+N2O5+HONO+PNA+NXOY]
-    - [NOy,   NOx+NOz]
+    - NOz = HNO3 + PAN + PANX + NTR
+    - NOx = NO + NO2 + NO3 + N2O5 + HONO + PNA + NXOY
+    - NOy = NOx + NOz
 
-    - [NOzN,   HNO3+PAN+PANX+NTR]
-    - [NOxN,   NO+NO2+NO3+2*N2O5+HONO+PNA+2.5*NXOY]
-    - [NOyN,   NOxN+NOzN]
+    - NOzN = HNO3 + PAN + PANX + NTR
+    - NOxN = NO + NO2 + NO3 + 2*N2O5 + HONO + PNA + 2.5*NXOY
+    - NOyN = NOxN + NOzN
 
-    - [VOC,   PAR + ETHA + MEOH + ETOH + ETH + OLE + IOLE + ISOP + TERP + FORM + ALD2 + ALDX + TOL + XYL ]
+    - VOC = PAR + ETHA + MEOH + ETOH + ETH + OLE + IOLE + ISOP + TERP + FORM + ALD2 + ALDX + TOL + XYL 
     
-    - [PARC,  PAR]
-    - [ETHAC,  2*ETHA]
-    - [MEOHC,  MEOH]
-    - [ETOHC,  2*ETOH]
-    - [ETHC,  2*ETH]
-    - [OLEC,  2*OLE]
-    - [IOLEC,  4*IOLE]
-    - [ISOPC,  5*ISOP]
-    - [TERPC,  10*TERP]
-    - [FORMC,  FORM]
-    - [ALD2C,  2*ALD2]
-    - [ALDXC,  2*ALDX]
-    - [TOLC,  7*TOL]
-    - [XYLC,  8*XYL]
-    - [VOCC,   PARC + ETHAC + MEOHC + ETOHC + ETHC + OLEC + IOLEC + ISOPC + TERPC + FORMC + ALD2C + ALDXC + TOLC + XYLC]
-    - [VOC_CO,  VOC+CO]
-    - [VOC_CO_NO2,  VOC_CO + NO2 ]
-    - [VOCm,  VOC]
-    - [OLEC,  2*OLE]
+    - PARC = PAR
+    - ETHAC = 2*ETHA
+    - MEOHC = MEOH
+    - ETOHC = 2*ETOH
+    - ETHC = 2*ETH
+    - OLEC = 2*OLE
+    - IOLEC = 4*IOLE
+    - ISOPC = 5*ISOP
+    - TERPC = 10*TERP
+    - FORMC = FORM
+    - ALD2C = 2*ALD2
+    - ALDXC = 2*ALDX
+    - TOLC = 7*TOL
+    - XYLC = 8*XYL
+    - VOCC = PARC + ETHAC + MEOHC + ETOHC + ETHC + OLEC + IOLEC + ISOPC + TERPC + FORMC + ALD2C + ALDXC + TOLC + XYLC
+    - VOC_CO = VOC + CO
+    - VOC_CO_NO2 = VOC_CO + NO2 
+    - VOCm = VOC
+    - OLEC = 2*OLE
 
-    - [NMHC,   NTR+ROOH+FORM+ALD2+ALDX+PAR+MEPX+MEOH+FACD+PAN+PACD+AACD+PANX+OLE+ETH+IOLE+TOL+CRES+OPEN+CRO+MGLY+XYL+ISOP+ISPD+ETOH+ETHA+TERP]
+    - NMHC = NTR + ROOH + FORM + ALD2 + ALDX + PAR + MEPX + MEOH + FACD + PAN + PACD + AACD + PANX + OLE + ETH + IOLE + TOL + CRES + OPEN + CRO + MGLY + XYL + ISOP + ISPD + ETOH + ETHA + TERP
 
-    - [HC,   NMHC+CH4]
+    - HC = NMHC + CH4
     
-    - [NMHC_NO2,   NMHC+NO2]
+    - NMHC_NO2 = NMHC + NO2
 
-    - [HC_NO2,   HC+NO2]
+    - HC_NO2 = HC + NO2
 
-    - [NMHC_CO,   NMHC+CO]
+    - NMHC_CO = NMHC + CO
 
-    - [HC_CO,   HC+CO]
+    - HC_CO = HC + CO
 
-    - [NMHC_CO_NO2, NMHC_NO2+CO]
+    - NMHC_CO_NO2 = NMHC_NO2 + CO
 
-    - [HC_CO_NO2, HC_NO2+CO]
+    - HC_CO_NO2 = HC_NO2 + CO
 
-    - [Radical,   O1D+OH+HO2+XO2+XO2N+MEO2+HCO3+C2O3+CXO3+ROR+TO2]
+    - Radical = O1D + OH + HO2 + XO2 + XO2N + MEO2 + HCO3 + C2O3 + CXO3 + ROR + TO2
 
-    - [RO2,   HO2+XO2+MEO2+HCO3+C2O3+CXO3+ROR+TO2]
+    - TRO2 = HO2 + XO2 + MEO2 + HCO3 + C2O3 + CXO3 + ROR + TO2
 
-    - [XO2_N, XO2+XO2N]
+    - RO2 = XO2 + MEO2 + HCO3 + C2O3 + CXO3 + ROR + TO2
 
-    - [XO2_TO2, XO2+TO2]
+    - XO2_N = XO2 + XO2N
 
-    - [XO2_N_TO2, XO2_N+TO2]
+    - XO2_TO2 = XO2 + TO2
 
-    - [RO2_NO2,   RO2+NO2]
+    - XO2_N_TO2 = XO2_N + TO2
 
-    - [Ox,   O3+O+O1D+NO2+2*NO3+3*N2O5+HNO3+2*PNA+PAN]
+    - RO2_NO2 = RO2 + NO2
 
-    - [Oy,   Ox+NTR+ROOH]
+    - Ox = O3 + O + O1D + NO2 + 2*NO3 + 3*N2O5 + HNO3 + 2*PNA + PAN
 
-    - [ALD,  ALD2+ALDX+FORM+MGLY+OPEN+ISPD+PACD]
+    - Oy = Ox + NTR + ROOH
+
+    - ALD = ALD2 + ALDX + FORM + MGLY + OPEN + ISPD + PACD
     
-    - [ALD_,  ALD2+ALDX]
+    - ALD_ = ALD2 + ALDX
         
-    - [ALDO3,  C2O3+CXO3]
+    - ALDO3 = C2O3 + CXO3
     
-    - [PANS,  PAN+PANX]
+    - PANS = PAN + PANX
     
-    - [NO2_IMMEDIATES,  NO2+O3+O+NO3+N2O5+NO+O1D]
+    - NO2_IMMEDIATES = NO2 + O3 + O + NO3 + N2O5 + NO + O1D
     
-    - [HOx,  OH+HO2]
+    - HOx = OH + HO2
     
-    - [ROx,  HOx+MEO2+HCO3+C2O3+CXO3+ROR+TO2]
+    - ROx = HOx + MEO2 + HCO3 + C2O3 + CXO3 + ROR + TO2
     
 process_group_list:
   Initial        : INIT

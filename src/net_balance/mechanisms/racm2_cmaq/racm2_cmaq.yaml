@@ -468,3 +468,8 @@ reaction_list:
     IRR_347: ORAP + ACO3 =k> MO2 + GLY 
     IRR_348: ORAP + NO3 =k> NO2 + GLY + HO2 
     IRR_349: RCO3 + ACO3 =k> ETHP + MO2 + 2.00*CO2 
+
+species_group_list:
+    - HC = EPX + LIM + EOH + PAA + ISO + ACT + ETH + PAN + ACE + OLI + CH4 + OLT + BALD + DIEN + MVK + ISHP + MEK + API + DCB1 + DCB3 + DCB2 + XYL + ETEG + BEN + OP1 + OP2 + ETE + ORA2 + TOL + HACE + ROH + HC3 + HC5 + HC8 + PPN + ONIT + MAHP + MACR + ISON + MPAN + NALD + MOH + XYO + ACD + GLY + ALD + ORA1 + MGLY + CSL + PHEN + HKET
+    - NOx = NO + NO2 + NO3 + N2O5 + HONO + HNO4
+    - NOxN = NO + NO2 + NO3 + 2*N2O5 + HONO + HNO4
