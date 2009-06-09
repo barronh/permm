@@ -61,8 +61,9 @@ class Mechanism(object):
 
         self.__reaction_data = self.reaction_dict
 
-        for grp_name, spc_grp in yaml_file.get('species_group_list',[]):
-            self.species_dict[grp_name] = eval(spc_grp,None, self.species_dict)
+        for spc_grp_def in yaml_file.get('species_group_list',[]):
+            grp_name = spc_grp_def.split('=')[0].strip()
+            exec(spc_grp_def, None, self.species_dict)
             self.species_dict[grp_name].name = grp_name
 
         self.net_reaction_dict = yaml_file.get('net_reaction_list',{})
@@ -161,7 +162,7 @@ class Mechanism(object):
 
         return len(new_rxn_def)
         
-    def find_rxns(self, reactants, products, logical_and = True):
+    def find_rxns(self, reactants = [], products =[], logical_and = True):
         """
         Get reactions where filter is true
         
@@ -219,7 +220,7 @@ class Mechanism(object):
                     if getattr(self.reaction_dict[rxn], method)(spc):
                         pass
         
-    def make_net_rxn(self, reactants, products, logical_and = True):
+    def make_net_rxn(self, reactants = [], products = [], logical_and = True):
         """
         Create and return a net reactions that meet the reactants and
         products filter (see find_rxns)
@@ -229,7 +230,7 @@ class Mechanism(object):
         
         return result
 
-    def print_rxns(self, reactants, products, logical_and = True):
+    def print_rxns(self, reactants = [], products = [], logical_and = True):
         """
         Print reactions that meet the reactants and
         products filter (see find_rxns)
@@ -237,11 +238,13 @@ class Mechanism(object):
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.reaction_dict[rxn]
         
-    def print_nrxns(self, reactants, products, logical_and = True, factor = 1.):
+    def print_nrxns(self, reactants = [], products = [], logical_and = True, factor = 1.):
         """
         Print net reactions that meet the reactants and
         products filter (see find_rxns)
         """
+        if not hasattr(self,'nreaction_dict'):
+            raise ValueError, "Net reactions are only available when IRR has been loaded"
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.nreaction_dict[rxn].sum() * factor
         
