@@ -1,7 +1,7 @@
 __all__ = ['PhyTable']
 from numpy import where
 from warnings import warn
-from SpeciesGroup import Species
+from ...SpeciesGroup import Species
 
 default_procs = ['Initial', 'Emissions', 'Chemistry', 'H_Trans', 'V_Trans', 'Entrain', 'Deposit', 'TEMPADJ', 'Final', 'Proc_Sum']
 default_proc_split = ['Chemistry', 'H_Trans', 'V_Trans', 'Entrain']

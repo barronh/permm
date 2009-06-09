@@ -9,12 +9,6 @@ if __name__ != '__main__':
     from ProcessGroup import Process
     from IPRArray import IPR
     from Mechanism import Mechanism
-    from PhyTableMaker import PhyTable
-    from SumTableMaker import SumTable
-    from NetTableMaker import NetTables
-    from PhyTableMaker import PhyTables, VOCTable
-    from PtbMaker import PtbTable
-    from IRRTable import IRRTable
     import mechanisms
     import getmech
     from getmech import get_pure_mech, get_prepared_mech
@@ -46,17 +40,17 @@ else:
     else:
         mrg_data_path=args[0]
 
-    from net_balance import mechanisms, \
+    from perm import mechanisms, \
                             netcdf, \
                             getmech
     
-    from net_balance.PhyTableMaker import PhyTable
-    from net_balance.SumTableMaker import SumTable
-    from net_balance.NetTableMaker import NetTables
-    from net_balance.PhyTableMaker import PhyTables
-    from net_balance.PhyTableMaker import VOCTable
-    from net_balance.PtbMaker import PtbTable
-    from net_balance.IRRTable import IRRTable
+    from perm.analyses.net_balance.PhyTableMaker import PhyTable
+    from perm.analyses.net_balance.SumTableMaker import SumTable
+    from perm.analyses.net_balance.NetTableMaker import NetTables
+    from perm.analyses.net_balance.PhyTableMaker import PhyTables
+    from perm.analyses.net_balance.PhyTableMaker import VOCTable
+    from perm.analyses.net_balance.PtbMaker import PtbTable
+    from perm.analyses.net_balance.IRRTable import IRRTable
 
     mech_prep = mechanisms.cb05_camx.mechprep.cb05_camx_prep
     get_prepared_mech = getmech.get_prepared_mech

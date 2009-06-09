@@ -1,5 +1,5 @@
-from Mechanism import Mechanism
-from netcdf import NetCDFFile
+from ...Mechanism import Mechanism
+from ...netcdf import NetCDFFile
 
 def PtbTable(mech):
     o3 = mech('FCONC[O3].array()')
