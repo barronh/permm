@@ -21,6 +21,7 @@ if __name__ != '__main__':
     get_mech = get_pure_mech
 else:
     from optparse import OptionParser
+    from types import MethodType
     parser = OptionParser()
     parser.set_usage("Usage: %prog [-c cb05_camx|cbiv_camx] [mrgfile]")
     parser.add_option("-i", "--interactive", dest="interactive", \
@@ -60,7 +61,6 @@ else:
     mech_prep = mechanisms.cb05_camx.mechprep.cb05_camx_prep
     get_prepared_mech = getmech.get_prepared_mech
     get_pure_mech = getmech.get_pure_mech
-    
     try:
         mech = get_prepared_mech(options.mechanism)
     except:
@@ -79,6 +79,8 @@ else:
             globals().update(mech.nreaction_dict)
         except:
             pass
+        
+        globals().update([(k,getattr(mech,k)) for k in dir(mech) if '__' not in k and isinstance(getattr(mech,k),MethodType) and k not in ('set_mrg', 'set_irr', 'set_ipr')])
 
         while False:
             try:
