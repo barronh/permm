@@ -267,21 +267,23 @@ def SumTable(mech):
     no2_motion = mech('Motion[NO2].array()')
     no2_motion_gain = where(no2_motion > 0, no2_motion, 0)
     no2_motion_loss = where(no2_motion < 0, no2_motion, 0)
+  
+    no2_initial = mech('Initial[NO2]').array()
+    no2_carry  = mech('Initial[NO2]').array()
+    no2_initial[1:] = 0
+    no2_carry[:1] = 0
 
-    no2_new = no2_emissions + no2_htrans_gain + \
+    no2_new = no2_initial + no2_emissions + no2_htrans_gain + \
               no2_vtrans_gain + no2_motion_gain
-    
+
     result += header('New NO2, Srcs Outside Box')
+    result += sum_line('  NO2 initial', no2_initial)
     result += sum_line('  NO2 emissions', no2_emissions)
     result += sum_line('  NO2 horiz trans', no2_htrans_gain)
     result += sum_line('  NO2 vert trans', no2_vtrans_gain)
     result += sum_line('  NO2 entrain/dil', no2_motion_gain)
     result += sum_line('New NO2', no2_new)
 
-    no2_initial = mech('Initial[NO2]').array()
-    no2_carry  = mech('Initial[NO2]').array()
-    no2_initial[1:] = 0
-    no2_carry[:1] = 0
     no2_phot = nrxns['NO2 Photolysis1']
     no2_from_o3_oxid = where(no2_phot[O3]<0, no2_phot[NO2], 0)
     no2_from_ro2_oxid = nrxns['NO+RO2 Oxidation'][NO2]
@@ -297,11 +299,12 @@ def SumTable(mech):
     no2_from_chem = no2_from_ro2_oxid + no2_from_no3_pl_org
     no2_frac_from_chem = no2_from_chem / no2_available
     
-    # Big assumption!!!
+    no2_frac_from_chem[0] = no2_from_chem[0] / (no2_available[0] - no2_initial[0])
+
+    # Skipping assumptions
     # Assuming initial NO2 chemicaly produced fraction is 
     # proportional to first hour process fractions
-    no2_frac_from_chem[0] = no2_from_chem[0] / (no2_available[0] - no2_initial[0])
-    no2_from_chem[0] += no2_frac_from_chem[0] * no2_initial[0]
+    #no2_from_chem[0] += no2_frac_from_chem[0] * no2_initial[0]
 
     no2_frac_from_chem_agg = no2_from_chem.sum() / no2_available_agg
 
