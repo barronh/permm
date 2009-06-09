@@ -1,7 +1,6 @@
-__all__ = ['Species', 'Stoic', 'Reaction', 'Process', 'PhyTables', \
-           'PtbTable', 'NetTables', 'SumTable', 'IPR', 'Mechanism', \
-           'mechanisms', 'IRRTable', 'VOCTable', 'getmech', \
-           'get_mech', 'get_pure_mech', 'get_prepared_mech']
+__all__ = ['Species', 'Stoic', 'Reaction', 'Process', 'IPR', 'Mechanism', \
+           'mechanisms', 'getmech', 'get_mech', 'get_pure_mech', \
+           'get_prepared_mech', 'analyses']
 
 if __name__ != '__main__':
     from SpeciesGroup import Species
@@ -16,6 +15,8 @@ if __name__ != '__main__':
 else:
     from optparse import OptionParser
     from types import MethodType
+    from warnings import warn
+
     parser = OptionParser()
     parser.set_usage("Usage: %prog [-c cb05_camx|cbiv_camx] [mrgfile]")
     parser.add_option("-i", "--interactive", dest="interactive", \
@@ -27,32 +28,27 @@ else:
                       default="cb05_camx", help="Chemical mechanisms", \
                       metavar="MECHANISM")
 
+    parser.add_option("-a", "--analysis", dest="analysis", \
+                      default=None, help="Stock analysis to perform", \
+                      metavar="ANALYSIS")
+
     parser.add_option("-o", "--output", dest="output", \
                       default=None, help="Base output path", \
                       metavar="ouput base")
     
     (options, args) = parser.parse_args()
-    if len(args)<1:
-        if options.interactive:
-            mrg_data_path = None
-        else:
-            parser.error(msg="Requires a pyPA mrg file as an argument for analysis output.  You can enter an interactive environment (-i), but will not have access to \"netted\" reactions")
-    else:
-        mrg_data_path=args[0]
 
+    if options.analysis is not None:
+        if len(args)<1:
+            parser.error(msg="Requires a pyPA mrg file as an argument for analysis output.  You can enter an interactive environment (-i), but will not have access to \"netted\" reactions")
+
+        from analyses.net_balance import net_balance
+        dict(net_balance=net_balance)[options.analysis](args, options)
+        
     from perm import mechanisms, \
                             netcdf, \
                             getmech
     
-    from perm.analyses.net_balance.PhyTableMaker import PhyTable
-    from perm.analyses.net_balance.SumTableMaker import SumTable
-    from perm.analyses.net_balance.NetTableMaker import NetTables
-    from perm.analyses.net_balance.PhyTableMaker import PhyTables
-    from perm.analyses.net_balance.PhyTableMaker import VOCTable
-    from perm.analyses.net_balance.PtbMaker import PtbTable
-    from perm.analyses.net_balance.IRRTable import IRRTable
-
-    mech_prep = mechanisms.cb05_camx.mechprep.cb05_camx_prep
     get_prepared_mech = getmech.get_prepared_mech
     get_pure_mech = getmech.get_pure_mech
     try:
@@ -60,42 +56,30 @@ else:
     except:
         mech = get_pure_mech(options.mechanism)
         
-    if mrg_data_path is not None:
+    if len(args) > 0:
         NetCDFFile = netcdf.NetCDFFile
-        mrg_file = NetCDFFile(mrg_data_path,'rs')
+        mrg_file = NetCDFFile(args[0],'rs')
         mech.set_mrg(mrg_file)
-        
-    if options.interactive:
-        from warnings import warn
-        globals().update(mech.species_dict)
-        globals().update(mech.reaction_dict)
+
+    def load_environ(locals_dict):
+        if not locals_dict.has_key('mech'):
+            locals_dict['mech'] = mech
+        locals_dict.update(mech.species_dict)
+        locals_dict.update(mech.reaction_dict)
         try:
-            globals().update(mech.nreaction_dict)
+            locals_dict.update(mech.nreaction_dict)
         except:
             pass
+    
+        locals_dict.update([(k,getattr(mech,k)) for k in dir(mech) if '__' not in k and isinstance(getattr(mech,k),MethodType) and k not in ('set_mrg', 'set_irr', 'set_ipr')])            
         
-        globals().update([(k,getattr(mech,k)) for k in dir(mech) if '__' not in k and isinstance(getattr(mech,k),MethodType) and k not in ('set_mrg', 'set_irr', 'set_ipr')])
-
-        while False:
-            try:
-                cmd = raw_input('>> ')
-                exec(cmd)
-            except:
-                warn('Use quit() to exit')
+    if options.interactive:
+        from perm.Shell import PERMConsole
+        console = PERMConsole()
+        load_environ(console.locals)
+        console.interact()
     else:
-        if options.output is None:
-            net_data_path = '.'.join(mrg_data_path.split('.')[:-1])+'.net.'
-        else:
-            net_data_path = options.output+'.'
-        print >> file(net_data_path+'sum','wb'), SumTable(mech)
-        print >> file(net_data_path+'net','wb'), NetTables(mech)
-        print >> file(net_data_path+'phy','wb'), PhyTables(mech)
-        print >> file(net_data_path+'voc','wb'), VOCTable(mech)
-        print >> file(net_data_path+'ptb','wb'), PtbTable(mech)
-        mech = get_pure_mech(options.mechanism)
-        if mrg_data_path is not None:
-            from pynetcdf import NetCDFFile
-            mrg_file = NetCDFFile(mrg_data_path,'rs')
-            mech.set_mrg(mrg_file)
-        
-        print >> file(net_data_path+'irr','wb'), IRRTable(mech)
+        load_environ(globals())
+        for script in args[1:]:
+            execfile(script)
+
