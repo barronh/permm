@@ -1,5 +1,8 @@
 from distutils.core import setup
-from setuptools import setup
+try:
+    from setuptools import setup
+except:
+    pass
 import os
 import sys
 from warnings import warn
@@ -9,7 +12,7 @@ netcdf_pkgs = [('pynetcdf', 'NetCDFFile'), ('netCDF3', 'Dataset'), \
 for pkg, reader in netcdf_pkgs:
     try:
         NetCDFFile = getattr(__import__(pkg, fromlist = [reader]),reader)
-        print >> file(os.path.join('src', 'net_balance', 'netcdf.py'),'wb'), """
+        print >> file(os.path.join('src', 'perm', 'netcdf.py'),'wb'), """
 __all__ = ['NetCDFFile']
 __doc__ = \"\"\"
 .. _netcdf
@@ -31,13 +34,41 @@ from %s import %s as NetCDFFile
 else:
     raise ImportError, "Did not find a NetCDFFile object"
 
-setup(name = 'net_balance',
+def find_packages():
+    import os
+    packages = []
+    walker = os.walk('src')
+    prefix = os.path.join(os.path.curdir,'src')
+    for thisdir, itsdirs, itsfiles in walker:
+        if '__init__.py' in itsfiles:
+            packages.append(thisdir[len(prefix)-1:])
+    
+    return packages
+            
+def find_data():
+    import os
+    import re
+    data_pattern = re.compile(r'.*(.|_)(yaml|nc|net|irr|phy|ptb|sum|voc|txt|xls|graffle)$')
+    data = []
+    prefix = os.path.join(os.path.curdir,'src', 'perm')
+    walker = os.walk('src')
+    for thisdir, itsdirs, itsfiles in walker:
+        if thisdir != os.path.join('src','perm.egg-info'):
+            data.extend([os.path.join(thisdir[len(prefix)-1:],f) for f in itsfiles if data_pattern.match(f) is not None])
+    
+    return data
+
+packages = find_packages()
+data = find_data()
+
+setup(name = 'perm',
       version = '1.0',
       author = 'Barron Henderson',
       author_email = 'barronh@gmail.com',
       maintainer = 'Barron Henderson',
       maintainer_email = 'barronh@gmail.com',
-      packages = ['net_balance', 'net_balance/mechanisms', 'net_balance/mechanisms/cb05_camx', 'net_balance/mechanisms/cb05_cmaq', 'net_balance/mechanisms/geos_chem'], #'net_balance/mechanisms/saprc99_cmaq', 'net_balance/mechanisms/saprc07_cmaq', 
+      packages = packages,
       package_dir = {'': 'src'},
+      package_data = {'perm': data},
       requires = [pkg, 'numpy (>=0.9)', 'yaml']
       )
