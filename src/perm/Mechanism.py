@@ -254,7 +254,7 @@ class Mechanism(object):
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.reaction_dict[rxn]
 
-    def plot_rxns(self, reactants = [], products = [], logical_and = True, plot_spc = None, species_options = {}, path = None, **conf):
+    def plot_rxns(self, reactants = [], products = [], logical_and = True, plot_spc = None, path = None, **conf):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         plot the production/consumption rate for plot_spc.  If plot_spc is
@@ -269,7 +269,7 @@ class Mechanism(object):
                 return x
         if plot_spc is None:
             plot_spc = (ensure_list(reactants)+ensure_list(products))[0]
-        fig = irr_plot(self, self.find_rxns(reactants, products, logical_and), plot_spc, species_options, **conf)
+        fig = irr_plot(self, self.find_rxns(reactants, products, logical_and), plot_spc, **conf)
         if path is not None:
             fig.savefig(path)
         else:
@@ -354,5 +354,5 @@ class Mechanism(object):
             self.nreaction_dict[rxn_key] = ReactionFromString(rxn_str)
             self.nreaction_dict[rxn_key] *= self.irr[rxn_key]
     
-    def plot_proc(self, species, species_options = {}, **conf):
-        return phy_plot(self, species, species_options, **conf)
+    def plot_proc(self, species, **conf):
+        return phy_plot(self, species, **conf)

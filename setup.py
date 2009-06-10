@@ -62,7 +62,7 @@ packages = find_packages()
 data = find_data()
 
 setup(name = 'perm',
-      version = '1.0',
+      version = '1.0rc',
       author = 'Barron Henderson',
       author_email = 'barronh@gmail.com',
       maintainer = 'Barron Henderson',
@@ -70,5 +70,5 @@ setup(name = 'perm',
       packages = packages,
       package_dir = {'': 'src'},
       package_data = {'perm': data},
-      requires = [pkg, 'numpy (>=0.9)', 'yaml']
+      requires = [pkg, 'numpy (>=1.2)', 'yaml']
       )

@@ -47,7 +47,7 @@ def get_date(mrg_file, conf):
     date_objs = date_objs.repeat(2,0)[1:-1]
     return date_objs
 
-def irr_plot(mech, reactions, species, species_options = {}, **conf):
+def irr_plot(mech, reactions, species, **conf):
     """
     irr_plot makes a plot with lines for each reaction
       conf - configuration dictionary
@@ -71,7 +71,7 @@ def irr_plot(mech, reactions, species, species_options = {}, **conf):
     colors = iter(get_cmap(cmap)(arange(nlines, dtype = 'f')/(nlines-1)))
     if fig is None:
         fig = figure()
-    ax = axes([0.1,0.4,.8,.5], **species_options)
+    ax = axes([0.1,0.4,.8,.5], **conf)
     grid(True)
     title(title_str % locals())
 
@@ -117,15 +117,15 @@ def irr_plot(mech, reactions, species, species_options = {}, **conf):
     ylabel(units)
     ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
     ax.set_xlim(date2num(date_objs[0]), date2num(date_objs[-1]))
-    if species_options.has_key('ylim'):
-        ax.set_ylim(*species_options['ylim'])
+    if conf.has_key('ylim'):
+        ax.set_ylim(*conf['ylim'])
 
     fig.autofmt_xdate()
     
     legend(loc=(0,-0.8), prop = FontProperties(size=10))
     return fig
 
-def phy_plot(mech, species, species_options = {}, **conf):
+def phy_plot(mech, species, **conf):
     """
     conf - configuration obect that has title, 
            init, final, process, and species
@@ -150,7 +150,7 @@ def phy_plot(mech, species, species_options = {}, **conf):
     if fig is None:
         fig = figure()
     
-    ax = axes(**species_options)
+    ax = axes(**conf)
 
     grid(True)
     title(title_str % locals())
@@ -180,8 +180,8 @@ def phy_plot(mech, species, species_options = {}, **conf):
     ylabel(units)
     ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
     ax.set_xlim(date2num(date_objs[0]), date2num(date_objs[-1]))
-    if species_options.has_key('ylim'):
-        ax.set_ylim(*species_options['ylim'])
+    if conf.has_key('ylim'):
+        ax.set_ylim(*conf['ylim'])
 
     fig.autofmt_xdate()
     legend()

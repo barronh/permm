@@ -22,7 +22,7 @@ else:
     all_mechs = '|'.join(all_mechs)
     all_analyses = '|'.join(all_analyses)
     parser = OptionParser()
-    parser.set_usage("Usage: python -m perm [-c %s] [-i|-a %s] [mrgfile]" % (all_mechs, all_analyses))
+    parser.set_usage("Usage: python -m perm [-c %s] [-g|-i|-a %s] [mrgfile]" % (all_mechs, all_analyses))
     parser.add_option("-i", "--interactive", dest="interactive", \
                         action="store_true", default=False, \
                         help="open an interactive environment", \
