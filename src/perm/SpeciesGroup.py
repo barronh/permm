@@ -150,16 +150,17 @@ class Species(ndarray):
         if len(self.names()) == 1:
             if self[self.names()[0]] == 1. and self.name == self.names()[0]:
                 return self.name
-        bool_op = (' = ', ' <> ')[self.exclude]
+        bool_op = (' = ', ' != ')[self.exclude]
         result = self.name + bool_op + ' + '.join(['%.3f*%s' % (self[spc],spc) for spc in self.names()])
         return result
         
     def __repr__(self):
-        try:
-            exclude = str(self.exclude)
-        except:
-            exclude = '?'
-        return ndarray.__repr__(self)+'\n      exclude = '+exclude
+        return self.__str__()
+        #try:
+        #    exclude = str(self.exclude)
+        #except:
+        #    exclude = '?'
+        #return ndarray.__repr__(self)+'\n      exclude = '+exclude
         
     def names(self):
         return [n for n in self.dtype.names]

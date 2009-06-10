@@ -1,7 +1,9 @@
 __all__ = ['PhyTable']
 from numpy import where
-from warnings import warn
+import warnings
 from ...SpeciesGroup import Species
+warnings.formatwarning = lambda message, category, filename, lineno, file=None, line=None: '%s: %s\n' % ('ProcessWarning', message)
+
 
 default_procs = ['Initial', 'Emissions', 'Chemistry', 'H_Trans', 'V_Trans', 'Entrain', 'Deposit', 'TEMPADJ', 'Final', 'Proc_Sum']
 default_proc_split = ['Chemistry', 'H_Trans', 'V_Trans', 'Entrain']
@@ -93,6 +95,6 @@ def display(mech, spc, process, label, condition = None, agg = lambda x: x.sum()
         result = ("  %-19s"+"%11.4f"*n_vals+'\n') % display_values
     except KeyError, strerror:
         result = ''
-        warn('%s: %s' % (spc, strerror))
+        warnings.warn('%s' % (strerror))
 
     return result

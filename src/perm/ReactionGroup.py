@@ -181,6 +181,9 @@ class Reaction(AttrDict):
         
         return result
 
+    def __repr__(self):
+        return self.__str__()
+
     def __add__(self,y):
         if isinstance(y,Reaction):
             species = set(self.species()+y.species())

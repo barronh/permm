@@ -12,6 +12,7 @@ from SpeciesGroup import Species
 from ProcessGroup import Process
 from ReactionGroup import ReactionFromString
 from IPRArray import IPR
+from graphing.timeseries import irr_plot, phy_plot
 
 __all__ = ['Mechanism']
 
@@ -222,26 +223,65 @@ class Mechanism(object):
         
     def make_net_rxn(self, reactants = [], products = [], logical_and = True):
         """
-        Create and return a net reactions that meet the reactants and
-        products filter (see find_rxns)
+        Sum each reaction in find_rxns(reactants, procucts, logical_and)
+        and return a net reaction
+        
+        for more information see find_rxns
         """
         rxns = self.find_rxns(reactants, products, logical_and)
         result = self(' + '.join(rxns))
         
         return result
 
+    def print_net_rxn(self, reactants = [], products = [], logical_and = True):
+        """
+        Sum each reaction in find_rxns(reactants, procucts, logical_and)
+        and return a net reaction
+        
+        for more information see find_rxns
+        """
+        net_rxn = self.make_net_rxn(reactants, products, logical_and)
+        
+        print net_rxn
+
     def print_rxns(self, reactants = [], products = [], logical_and = True):
         """
-        Print reactions that meet the reactants and
-        products filter (see find_rxns)
+        For each reaction in find_rxns(reactants, procucts, logical_and),
+        print the reaction
+        
+        for more information see find_rxns
         """
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.reaction_dict[rxn]
+
+    def plot_rxns(self, reactants = [], products = [], logical_and = True, plot_spc = None, species_options = {}, path = None, **conf):
+        """
+        For each reaction in find_rxns(reactants, procucts, logical_and),
+        plot the production/consumption rate for plot_spc.  If plot_spc is
+        not specified, use the first species provided
+        
+        for more information see find_rxns
+        """
+        def ensure_list(x):
+            if isinstance(x, Species):
+                return [x]
+            else:
+                return x
+        if plot_spc is None:
+            plot_spc = (ensure_list(reactants)+ensure_list(products))[0]
+        fig = irr_plot(self, self.find_rxns(reactants, products, logical_and), plot_spc, species_options, **conf)
+        if path is not None:
+            fig.savefig(path)
+        else:
+            from pylab import show
+            show()
         
     def print_nrxns(self, reactants = [], products = [], logical_and = True, factor = 1.):
         """
-        Print net reactions that meet the reactants and
-        products filter (see find_rxns)
+        For each reaction in find_rxns(reactants, procucts, logical_and),
+        print the reaction summed for the entire timeseries.
+        
+        for more information see find_rxns
         """
         if not hasattr(self,'nreaction_dict'):
             raise ValueError, "Net reactions are only available when IRR has been loaded"
@@ -307,3 +347,12 @@ class Mechanism(object):
                 return value
 
         self.__pa_data = key_specific_default(pa_dict)
+
+    def add_rxn(self, rxn_key, rxn_str):
+        self.reaction_dict[rxn_key] = ReactionFromString(rxn_str)
+        if hasattr(self, 'nreaction_dict'):
+            self.nreaction_dict[rxn_key] = ReactionFromString(rxn_str)
+            self.nreaction_dict[rxn_key] *= self.irr[rxn_key]
+    
+    def plot_proc(self, species, species_options = {}, **conf):
+        return phy_plot(self, species, species_options, **conf)

@@ -274,16 +274,16 @@ species_group_list:
 
     - VOC = PAR + ETHA + MEOH + ETOH + ETH + OLE + IOLE + ISOP + TERP + FORM + ALD2 + ALDX + TOL + XYL 
     
-    - PARC = PAR
+    - PARC = 1*PAR
     - ETHAC = 2*ETHA
-    - MEOHC = MEOH
+    - MEOHC = 1*MEOH
     - ETOHC = 2*ETOH
     - ETHC = 2*ETH
     - OLEC = 2*OLE
     - IOLEC = 4*IOLE
     - ISOPC = 5*ISOP
     - TERPC = 10*TERP
-    - FORMC = FORM
+    - FORMC = 1*FORM
     - ALD2C = 2*ALD2
     - ALDXC = 2*ALDX
     - TOLC = 7*TOL
@@ -291,7 +291,7 @@ species_group_list:
     - VOCC = PARC + ETHAC + MEOHC + ETOHC + ETHC + OLEC + IOLEC + ISOPC + TERPC + FORMC + ALD2C + ALDXC + TOLC + XYLC
     - VOC_CO = VOC + CO
     - VOC_CO_NO2 = VOC_CO + NO2 
-    - VOCm = VOC
+    - VOCm = 1*VOC
     - OLEC = 2*OLE
 
     - NMHC = NTR + ROOH + FORM + ALD2 + ALDX + PAR + MEPX + MEOH + FACD + PAN + PACD + AACD + PANX + OLE + ETH + IOLE + TOL + CRES + OPEN + CRO + MGLY + XYL + ISOP + ISPD + ETOH + ETHA + TERP

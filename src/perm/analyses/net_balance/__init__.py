@@ -23,8 +23,9 @@ def net_balance(args, options):
         mech = get_prepared_mech(options.mechanism)
     except:
         mech = get_pure_mech(options.mechanism)
-        
-    mrg_file = NetCDFFile(args[0],'rs')
+    
+    mrg_data_path = args[0]
+    mrg_file = NetCDFFile(mrg_data_path,'rs')
     mech.set_mrg(mrg_file)
 
     if options.output is None:

@@ -1,4 +1,4 @@
-__all__ = ['mechprep']
+__all__ = ['mechprep', 'mech']
 
 import mechprep
 from ...getmech import get_pure_mech

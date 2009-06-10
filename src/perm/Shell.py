@@ -2,6 +2,7 @@ import code
 import readline
 import atexit
 import os
+from types import MethodType
 
 class PERMConsole(code.InteractiveConsole):
     def __init__(self, locals = None, filename = '<console>',
@@ -20,3 +21,16 @@ class PERMConsole(code.InteractiveConsole):
             
     def save_history(self, histfile):
         readline.write_history_file(histfile)
+
+def load_environ(mech, locals_dict):
+    if not locals_dict.has_key('mech'):
+        locals_dict['mech'] = mech
+    locals_dict.update(mech.species_dict)
+    locals_dict.update(mech.reaction_dict)
+    try:
+        locals_dict.update(mech.nreaction_dict)
+    except:
+        pass
+
+    locals_dict.update([(k,getattr(mech,k)) for k in dir(mech) if '__' not in k and isinstance(getattr(mech,k),MethodType) and k not in ('set_mrg', 'set_irr', 'set_ipr')])            
+    
