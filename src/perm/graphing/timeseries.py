@@ -71,7 +71,7 @@ def irr_plot(mech, reactions, species, **conf):
     colors = iter(get_cmap(cmap)(arange(nlines, dtype = 'f')/(nlines-1)))
     if fig is None:
         fig = figure()
-    ax = axes([0.1,0.4,.8,.5], **conf)
+    ax = axes([0.1,0.4,.8,.5])
     grid(True)
     title(title_str % locals())
 
@@ -150,7 +150,7 @@ def phy_plot(mech, species, **conf):
     if fig is None:
         fig = figure()
     
-    ax = axes(**conf)
+    ax = axes()
 
     grid(True)
     title(title_str % locals())
