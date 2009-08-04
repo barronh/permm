@@ -134,6 +134,49 @@ class IPR(ndarray):
         result = ndarray.__getslice__(self, start, end).view(self.__class__)
         return result
 
+    def __generic_math_operator(self, rhs, operation):
+        operator = {'+': ndarray.__add__,
+                    '-': ndarray.__sub__,
+                    '/': ndarray.__div__,
+                    '*': ndarray.__mul__
+                   }[operation]
+        if isinstance(rhs, self.__class__):
+            rhs_dt_sizes = (len(rhs.dtype), len(rhs.dtype[0]))
+            self_dt_sizes = (len(self.dtype), len(self.dtype[0]))
+            if self_dt_sizes == (1,1):
+                if self_dt_sizes == rhs_dt_sizes:
+                    spcs = self.dtype.fields.keys()
+                    this_prc = self.dtype[0].fields.keys()[0]
+                    that_prc = rhs.dtype[0].fields.keys()[0]
+                    new_prc_type = dtype(dict(names = ['%s%s%s' % (this_prc, operation, that_prc)], formats = 'f'))
+                    new_type = dtype(dict(names = spcs, formats = [new_prc_type]*len(spcs)))
+                    result = operator(self.array(), rhs.array())
+                    from perm.mechanisms.cb05_camx import mech
+                    from numpy import argmax
+                    NO2 = mech.species_dict['NO2']
+                    result = result.view(new_type)
+                    
+                    result = result.view(self.__class__)
+                    return result
+                else:
+                    raise ValueError, "Processes must contain the same number of species and processes"
+            else:
+                raise ValueError, "Cannot currently %s multi-process processes or species" % (operation,)
+        else:
+            return operator(self, rhs)
+
+    def __add__(self,rhs):
+        return self.__generic_math_operator(rhs, '+')
+        
+    def __sub__(self,rhs):
+        return self.__generic_math_operator(rhs, '-')
+        
+    def __div__(self,rhs):
+        return self.__generic_math_operator(rhs, '/')
+        
+    def __mul__(self,rhs):
+        return self.__generic_math_operator(rhs, '*')
+        
     def sum(self):
         """
         Sum net reaction species over time
@@ -157,20 +200,6 @@ class IPR(ndarray):
         # Return result
         return result
     
-    def display(self, time = slice(None), reactant_normalized = False):
-        """
-        display returns a string that represents the net
-        reaction.  The net reaction can be optionally sliced
-        by time and divided by the largest reactant stoichiometry
-        """
-        value = self[time].sum()        
-        positive = value >= 0
-        
-        if positive:
-            return "%f gained by %s" % (value, self.name)
-        else:
-            return "%f lost by %s" % (value, self.name)
-
     def array(self):
         """
         view IPR array
