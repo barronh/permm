@@ -69,10 +69,6 @@ else:
         mech.set_mrg(mrg_file)
 
         
-    load_environ(mech, globals())
-    for script in args[1:]:
-        execfile(script)
-
     if options.graphical:
         from perm.GUI import StartGUI
         StartGUI(mech)
@@ -80,6 +76,13 @@ else:
         from perm.Shell import PERMConsole
         console = PERMConsole()
         load_environ(mech,console.locals)
+        for script in args[1:]:
+            execfile(script, {}, console.locals)
         console.interact()
+    elif not options.interactive and len(args) > 0:
+        load_environ(mech, globals())
+        for script in args[1:]:
+            execfile(script)
     elif len(args) == 0:
         parser.print_usage()
+        exit()
