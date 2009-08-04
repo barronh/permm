@@ -2,4 +2,5 @@ __all__ = []
 #testing git
 from ...getmech import get_pure_mech
 from os import path
-mech = get_pure_mech(path.basename(path.dirname(__file__)))
+def mech():
+    get_pure_mech(path.basename(path.dirname(__file__)))

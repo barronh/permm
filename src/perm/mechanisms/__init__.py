@@ -1,8 +1,5 @@
-__all__ = ['cb05_camx', 'cb05_cmaq', 'geos_chem', 'saprc99_cmaq', 'saprc07_cmaq']
+__all__ = ['cb05_camx', 'cb05_cmaq', 'geos_chem', 'saprc99_cmaq', 'saprc07_cmaq', 'racm2_cmaq', 'leedsmcm_kpp']
+from ..getmech import get_pure_mech
 
-import cb05_camx
-import cb05_cmaq
-import geos_chem
-import saprc99_cmaq
-import saprc07_cmaq
-import racm2_cmaq
+for mech in __all__:
+    exec('def %s():\n    return get_pure_mech("%s")' % (mech, mech), globals(), locals())
