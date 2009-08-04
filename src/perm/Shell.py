@@ -31,6 +31,10 @@ def load_environ(mech, locals_dict):
         locals_dict.update(mech.nreaction_dict)
     except:
         pass
+    try:
+        locals_dict.update(dict([(pr_key,mech.ipr[pr]) for pr_key, pr in mech.process_dict.iteritems()]))
+    except:
+        pass
 
-    locals_dict.update([(k,getattr(mech,k)) for k in dir(mech) if '__' not in k and isinstance(getattr(mech,k),MethodType) and k not in ('set_mrg', 'set_irr', 'set_ipr')])            
+    locals_dict.update([(k,getattr(mech,k)) for k in dir(mech) if '__' not in k and isinstance(getattr(mech,k),MethodType) and k not in ('set_mrg', 'set_irr', 'set_ipr')])
     
