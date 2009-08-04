@@ -1,7 +1,8 @@
 from numpy import ndarray, \
                   array, \
                   newaxis, \
-                  float64
+                  float64, \
+                  vectorize
 
 from utils import AttrDict
 from SpeciesGroup import Species
@@ -44,15 +45,27 @@ class Stoic(float64):
         return Stoic(float64.__mul__(self,y),self.role)
 
     def __add__(self,y):
-        if isinstance(y,Stoic):
+        if isinstance(y, Stoic):
             if y.role == self.role:
                 role = self.role
             else:
                 role = 'u'
         else:
             role = self.role
-
+            
         return Stoic(float64.__add__(self,y),role)
+
+StoicArray = vectorize(Stoic, otypes = [object])
+def AddRole(s1, s2):
+    if isinstance(s1,Stoic):
+        return s1
+    else:
+        return Stoic(s1, s2.role)
+        
+def StoicAdd(s1, s2):
+    return Stoic.__add__(AddRole(s1,s2), s2)
+
+StoicAdd = vectorize(StoicAdd, otypes = [object])
 
 def ReactionFromString(rxn_str):
     """
@@ -150,22 +163,23 @@ class Reaction(AttrDict):
             raise ValueError, "Reactions require a reaction_type and species keys with stoic"
     
     def __getitem__(self, item):
-        if not isinstance(item, Species):
-            return AttrDict.__getitem__(self,item)
-        elif self.has_key(item.name):
-            return AttrDict.__getitem__(self,item.name)
-        else:
-            species = [name for name in item.names() if name in self.keys()]
-            value = sum([item[spc][0] * AttrDict.__getitem__(self, spc) for spc in species])
-
-            first_spc_role = self[species[0]].role
-            same_role = array([first_spc_role == self[spc].role for spc in species]).all()
-            
-            if same_role:
-                role = first_spc_role
+        if isinstance(item, Species):
+            if self.has_key(item.name):
+                return AttrDict.__getitem__(self,item.name)
             else:
-                role = 'u'
-            return Stoic(value, role = role)
+                species = set(item.names()).intersection(self.keys())
+                value = sum([item[spc][0] * AttrDict.__getitem__(self, spc) for spc in species])
+                
+                first_spc_role = self[species.pop()].role
+                same_role = array([first_spc_role == self[spc].role for spc in species]).all()
+                
+                if same_role:
+                    role = first_spc_role
+                else:
+                    role = 'u'
+                return Stoic(value, role = role)
+        else:
+            return AttrDict.__getitem__(self,item)
     
     def __str__(self):
         reactants = [(self[rct], rct) for rct in self.reactants()]
@@ -186,18 +200,19 @@ class Reaction(AttrDict):
 
     def __add__(self,y):
         if isinstance(y,Reaction):
-            species = set(self.species()+y.species())
-    
-            stoic = []
-            for spc in species:
-                try:
-                    stoic.append(dict.__getitem__(self,spc)+y.get(spc, 0))
-                except:
-                    stoic.append(y[spc]+0)
-    
+            kwds = {}
+            
+            for spc in self.species():
+                kwds[spc] = dict.__getitem__(self,spc)
+            
+            for spc in y.species():
+                if kwds.has_key(spc):
+                    kwds[spc] += dict.__getitem__(y,spc)
+                else:
+                    kwds[spc] = dict.__getitem__(y,spc)
+            
             reaction_type = ('u',self.reaction_type)[self.reaction_type == y.reaction_type]
             
-            kwds = dict(zip(species,stoic))
             kwds['reaction_type'] = reaction_type
         elif isinstance(y,Species):
             kwds = self.__add_if_in_spclist(y,self.species())
@@ -211,11 +226,13 @@ class Reaction(AttrDict):
         
     def __mul__(self,irrs):
         species = self.species()
+        values = [self[spc] for spc in species]
         # Using native dict getitem for speed
-        stoic = (array([dict.__getitem__(self,k) for k in species], dtype = object)[:,newaxis]*array(irrs).view(ndarray)).swapaxes(0,1)
+        roles = array([val.role for val in values])
+        values = array(values)[:,newaxis]*array(irrs).view(ndarray)
+        stoic = StoicArray(values,roles[:, newaxis]).swapaxes(0,1)
+        #stoic = (array([dict.__getitem__(self,k) for k in species], dtype = object)[:,newaxis]*array(irrs).view(ndarray)).swapaxes(0,1)
 
-        # Improvements in Stoic have made this unnecessary
-        #stoic = [Stoic(s, s.role) for s in stoic]
         rct_dict = dict(reaction_type = self.reaction_type)
         if not isinstance(irrs, ndarray):
             result = Reaction(**return_updated_dict(dict(zip(species,stoic[0])), rct_dict))
@@ -293,8 +310,11 @@ def spc_in_list(spc_grp,local_list):
     if spc_grp.exclude:
         return not spc_in_list(-spc_grp, local_list)
     else:
-        overlapping_spc = set(spc_grp.names()).intersection(local_list)
-        return len(overlapping_spc) > 0 
+        for s in spc_grp.names():
+            if s in local_list:
+                return True
+        else:
+            return False
 
    
 class ReactionArray(ndarray):
