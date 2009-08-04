@@ -141,7 +141,10 @@ class Species(ndarray):
     
     def __getitem__(self,item):
         if isinstance(item,Species):
-            return sum([item[n]*self[n] for n in item.names()])
+            if self.has_key(item.name):
+                return item[n]*self[n]
+            else:
+                return sum([item[n]*self[n] for n in item.names()])
         else:
             result = ndarray.__getitem__(self,item)
             return result.view(ndarray)
@@ -190,30 +193,40 @@ class Species(ndarray):
         return self.__add__(-other_species)
         
     def __add__(self, other_species):
-        if not isinstance(other_species,Species):
-            raise TypeError, "Can only add SpeciesGroups"
+        return species_sum([self, other_species])
+
+def species_sum(species_list):
+    if not all([isinstance(spc,Species) for spc in species_list]):
+        raise TypeError, "Can only add SpeciesGroups"
         
-        
-        if self.exclude ^ other_species.exclude:
-            new_name = self.name + '+' + other_species.name
-            new_names =     list(set(self.dtype.names).difference(other_species.dtype.names))
+    out_species = species_list[0]
+    out_names = set(out_species.dtype.names)
+    out_name = out_species.name
+    out_exclude = out_species.exclude
+    out_stoic = {}
+    for spc in out_species.dtype.names:
+        try:
+            out_stoic[spc] += out_species[spc]
+        except:
+            out_stoic[spc] = out_species[spc]
+
+    for next_species in species_list[1:]:
+        if out_exclude ^ next_species.exclude:
+            out_name += '+' + next_species.name
+            out_names = out_names.difference(next_species.dtype.names)
         else:
-            new_name = self.name + '-' + other_species.name
-            new_names = list(set(self.dtype.names + \
-                            other_species.dtype.names))
+            out_name += '+' + next_species.name
+            out_names.update(next_species.dtype.names)
         
-        n_new_names = len(new_names)
+        out_exclude = out_exclude and next_species.exclude
         
-        stoic_type = dtype(dict(names = new_names, formats = 'f' * n_new_names))
-        
-        new_stoic = zeros((1,), dtype = stoic_type)
-        
-        for name in new_names:
-            if name in other_species.names():
-                new_stoic[name] += other_species[name]
-            if name in self.names():
-                new_stoic[name] += self[name]
-        
-        new_stoic = new_stoic.tolist()[0]
-        return Species(name = new_name, names = new_names, \
-                            stoic = new_stoic)
+        for spc in next_species.dtype.names:
+            try:
+                out_stoic[spc] += next_species[spc]
+            except:
+                out_stoic[spc] = next_species[spc]
+    
+    out_names = list(out_names)
+    out_stoic = [out_stoic[name] for name in out_names]
+    return Species(name = out_name, names = out_names, \
+                    stoic = out_stoic, exclude = out_exclude)
