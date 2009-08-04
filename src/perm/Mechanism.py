@@ -265,7 +265,8 @@ class Mechanism(object):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         plot the production/consumption rate for plot_spc.  If plot_spc is
-        not specified, use the first species provided
+        not specified, use the first product provided.  If no products, use 
+        the first reactant.
         
         for more information see find_rxns
         """
@@ -275,7 +276,7 @@ class Mechanism(object):
             else:
                 return x
         if plot_spc is None:
-            plot_spc = (ensure_list(reactants)+ensure_list(products))[0]
+            plot_spc = (ensure_list(products)+ensure_list(reactants))[0]
         reactions = self.find_rxns(reactants, products, logical_and)
         
         if reactions == []:
