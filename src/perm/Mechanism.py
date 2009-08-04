@@ -8,7 +8,7 @@ from numpy import dtype, \
                   array, \
                   ndarray
 from warnings import warn
-from SpeciesGroup import Species
+from SpeciesGroup import Species, species_sum
 from ProcessGroup import Process
 from ReactionGroup import ReactionFromString
 from IPRArray import IPR
@@ -53,17 +53,26 @@ class Mechanism(object):
         yaml_file = AttrDict(yaml_file)
         self.__yaml_file = yaml_file
         self.species_dict = AttrDict()
-        for spc in yaml_file.species_list:
-            self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
+        if yaml_file.has_key('species_list'):
+            for spc in yaml_file.species_list:
+                self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
         
         self.reaction_dict = AttrDict()
+        reaction_species = []
         for rxn_name, rxn_str in yaml_file.reaction_list.iteritems():
-            self.reaction_dict[rxn_name] = ReactionFromString(rxn_str)
+            rxn = self.reaction_dict[rxn_name] = ReactionFromString(rxn_str)
+            reaction_species += rxn.species()
+        
+        reaction_species = set(reaction_species)
+        for spc in [spc for spc in reaction_species if not self.species_dict.has_key(spc)]:
+            self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
 
         self.__reaction_data = self.reaction_dict
 
         for spc_grp_def in yaml_file.get('species_group_list',[]):
             grp_name = spc_grp_def.split('=')[0].strip()
+            if (spc_grp_def.count('+') + spc_grp_def.count('-')) > 4:
+                spc_grp_def = '=species_sum(['.join(spc_grp_def.replace('+',',').replace('-',',').split('='))+'])'
             exec(spc_grp_def, None, self.species_dict)
             self.species_dict[grp_name].name = grp_name
 
@@ -165,13 +174,13 @@ class Mechanism(object):
         
     def find_rxns(self, reactants = [], products =[], logical_and = True):
         """
-        Get reactions where filter is true
+        Get reactions that meet the criteria specified by reactants, products and logical_and.
         
-        When logical_and is true, filter requires reaction to have
-        all reactants AND all products.
-        
-        When logical_and is False, filter requires reaction to have
-        all reactants OR all products.
+        reactants - filter mechanism reactions for reactions with all reactant(s)
+        products - filter mechanism reactions for reactions with all product(s)
+        logical_and - a boolean indicating how to combine reactant and product filters
+                      True: reaction is in both filters (i.e. reactants AND products)
+                      False: reaction is in either filter (i.e. reactants OR products)
         """
         if isinstance(reactants, (Species, str)):
             reactants = [reactants]
@@ -187,14 +196,12 @@ class Mechanism(object):
 
 
         if reactants != []:
-            reactant_result = [set([rxn_name for rxn_name, rxn in result if rxn.has_rct(rct)]) for rct in reactants]
-            reactant_result = list(reduce(lambda x,y: set.intersection(x,y), reactant_result))
+            reactant_result = [rxn_name for rxn_name, rxn in result if all([rxn.has_rct(rct) for rct in reactants])]
         else:
             reactant_result = [rn for rn, rv in result]
         
         if products != []:
-            product_result = [set([rxn_name for rxn_name, rxn in result if rxn.has_prd(prd)]) for prd in products]
-            product_result = list(reduce(lambda x,y: set.intersection(x,y), product_result))
+            product_result = [rxn_name for rxn_name, rxn in result if all([rxn.has_prd(prd) for prd in products])]
         else:
             product_result = [rn for rn, rv in result]
         
@@ -269,12 +276,18 @@ class Mechanism(object):
                 return x
         if plot_spc is None:
             plot_spc = (ensure_list(reactants)+ensure_list(products))[0]
-        fig = irr_plot(self, self.find_rxns(reactants, products, logical_and), plot_spc, **conf)
+        reactions = self.find_rxns(reactants, products, logical_and)
+        
+        if reactions == []:
+            raise ValueError, "Your query didn't match any reactions; check your query and try again (try print_rxns)."
+        fig = irr_plot(self, reactions, plot_spc, **conf)
         if path is not None:
             fig.savefig(path)
         else:
             from pylab import show
             show()
+        
+        return fig
         
     def print_nrxns(self, reactants = [], products = [], logical_and = True, factor = 1.):
         """
@@ -294,7 +307,7 @@ class Mechanism(object):
         """
         self.mrg = mrg
         if use_irr:
-            self.set_irr(mrg.variables['IRR'], mrg.Reactions.split())
+            self.set_irr(mrg.variables['IRR'], mrg.Reactions.split(), use_net_rxns = use_net_rxns)
         if use_ipr:
             self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
         
@@ -327,8 +340,11 @@ class Mechanism(object):
             self.process_dict[proc] = Process(name = proc, names = [proc])
         
         for prc_name, prc in self.__yaml_file.get('process_group_list', {}).iteritems():
-            self.process_dict[prc_name] = eval(prc,{},self.process_dict)
-            self.process_dict[prc_name].name = prc_name
+            try:
+                self.process_dict[prc_name] = eval(prc,{},self.process_dict)
+                self.process_dict[prc_name].name = prc_name
+            except:
+                warn("Cannot create %s process group" % prc_name)
             
         self.ipr = IPR(array(ipr), species, processes)
         self.ipr.units = ipr.units
@@ -354,5 +370,36 @@ class Mechanism(object):
             self.nreaction_dict[rxn_key] = ReactionFromString(rxn_str)
             self.nreaction_dict[rxn_key] *= self.irr[rxn_key]
     
-    def plot_proc(self, species, **conf):
-        return phy_plot(self, species, **conf)
+    def plot_proc(self, species, path = None, **kwds):
+        """
+        species - perm.SpeciesGroup.Species object
+        path - path for saved figure
+        kwds - * title - title
+               * init - Name of initial concentration process
+               * final - Name of final concentration process
+               * linestyle - default line style (default: '-')
+               * linewidth - default line width (default: 3)
+               * marker - default line marker style (default: None)
+               * ncol - number of legend columns (default: 1)
+               * fig - figure to plot on (default: None)
+               * cmap - matplotlib color map for lines (default: None)
+               * filter - remove processes with zero values (default: True)
+               * <process name1> - process names from mech.process_dict can be 
+                                   provided to limit the processes shown.  When 
+                                   provided, a process should be a dictionary of 
+                                   matplotlib plot options (common: linestyle,
+                                   linewidth, label, marker).  The dictionary can
+                                   be empty.
+               * <process name2> - same as process 1
+               * <process nameN> - same as process 1
+               * end_date - times are for the time period end
+               
+               
+        """
+        fig = phy_plot(self, species, **kwds)
+        if path is not None:
+            fig.savefig(path)
+        else:
+            from pylab import show
+            show()
+        return fig
