@@ -322,13 +322,17 @@ class Mechanism(object):
             
         self.irr = array(irr).view(dtype = irr_type).squeeze().view(type = irr_array)
         self.irr.units = irr.units
+        self.__use_net_rxns = use_net_rxns
+        self.apply_irr()
+
+    def apply_irr(self):
         self.nreaction_dict = AttrDict()
         for rxn_name, rxn in self.reaction_dict.iteritems():
             self.nreaction_dict[rxn_name] = rxn * self.irr[rxn_name]
 
         self.__reaction_data = self.nreaction_dict
         
-        if use_net_rxns:
+        if self.__use_net_rxns:
             for nrxn_name, nrxn in self.net_reaction_dict.iteritems():
                 self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.nreaction_dict)
         
