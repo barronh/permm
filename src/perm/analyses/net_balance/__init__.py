@@ -6,7 +6,7 @@ import PhyTableMaker
 import PtbMaker
 import SumTableMaker
 
-def net_balance(args, options):
+def net_balance(mechanism, mrg_data_path, output_dir):
     from perm.analyses.net_balance.PhyTableMaker import PhyTable
     from perm.analyses.net_balance.SumTableMaker import SumTable
     from perm.analyses.net_balance.NetTableMaker import NetTables
@@ -20,24 +20,21 @@ def net_balance(args, options):
     get_prepared_mech = getmech.get_prepared_mech
     get_pure_mech = getmech.get_pure_mech
     try:
-        mech = get_prepared_mech(options.mechanism)
+        mech = get_prepared_mech(mechanism)
     except:
-        mech = get_pure_mech(options.mechanism)
+        mech = get_pure_mech(mechanism)
     
-    mrg_data_path = args[0]
-    mrg_file = NetCDFFile(mrg_data_path,'rs')
-    mech.set_mrg(mrg_file)
 
-    if options.output is None:
+    if output_dir is None:
         net_data_path = '.'.join(mrg_data_path.split('.')[:-1])+'.net.'
     else:
-        net_data_path = options.output+'.'
+        net_data_path = output_dir+'.'
     print >> file(net_data_path+'sum','wb'), SumTable(mech)
     print >> file(net_data_path+'net','wb'), NetTables(mech)
     print >> file(net_data_path+'phy','wb'), PhyTables(mech)
     print >> file(net_data_path+'voc','wb'), VOCTable(mech)
     print >> file(net_data_path+'ptb','wb'), PtbTable(mech)
-    mech = get_pure_mech(options.mechanism)
+    mech = get_pure_mech(mechanism)
 
     mech.set_mrg(mrg_file)
     
