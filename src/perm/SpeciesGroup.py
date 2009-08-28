@@ -208,7 +208,7 @@ def species_sum(species_list):
         try:
             out_stoic[spc] += out_species[spc]
         except:
-            out_stoic[spc] = out_species[spc]
+            out_stoic[spc] = out_species[spc].copy()
 
     for next_species in species_list[1:]:
         if out_exclude ^ next_species.exclude:
