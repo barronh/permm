@@ -15,6 +15,7 @@ if __name__ != '__main__':
     from getmech import get_pure_mech, get_prepared_mech
     get_mech = get_pure_mech
 else:
+    import os
     from optparse import OptionParser
     from warnings import warn
     from perm.mechanisms import __all__ as all_mechs
@@ -47,13 +48,6 @@ else:
     
     (options, args) = parser.parse_args()
 
-    if options.analysis is not None:
-        if len(args)<1:
-            parser.error(msg="Requires a pyPA mrg file as an argument for analysis output.  You can enter an interactive environment (-i), but will not have access to \"netted\" reactions")
-
-        from perm.analyses.net_balance import net_balance
-        dict(net_balance=net_balance)[options.analysis](args, options)
-        
     from perm import mechanisms, \
                             netcdf, \
                             getmech
@@ -61,6 +55,7 @@ else:
     
     get_prepared_mech = getmech.get_prepared_mech
     get_pure_mech = getmech.get_pure_mech
+
     mech = get_pure_mech(options.mechanism)
         
     if len(args) > 0:
@@ -68,21 +63,35 @@ else:
         mrg_file = NetCDFFile(args[0],'rs')
         mech.set_mrg(mrg_file)
 
-        
-    if options.graphical:
-        from perm.GUI import StartGUI
-        StartGUI(mech)
-    elif options.interactive:
+    from perm.Shell import PERMConsole
+    console = PERMConsole()
+    load_environ(mech,console.locals)
+    
+    for script in args[1:]:
+        if os.path.isfile(script):
+            source = file(script).read()
+            fname = script
+        else:
+            source = script
+            fname = '<input>'
+            
+        console.runsource(source, filename = fname)
+
+    if options.interactive:
         from perm.Shell import PERMConsole
         console = PERMConsole()
         load_environ(mech,console.locals)
-        for script in args[1:]:
-            execfile(script, {}, console.locals)
         console.interact()
-    elif not options.interactive and len(args) > 0:
-        load_environ(mech, globals())
-        for script in args[1:]:
-            execfile(script)
-    elif len(args) == 0:
-        parser.print_usage()
-        exit()
+
+    if options.graphical:
+        console.runsource("from perm.GUI import StartGUI")
+        console.runsource("StartGUI(mech)")
+
+    if options.analysis is not None:
+        if len(args)<1:
+            parser.error(msg="Requires a pyPA mrg file as an argument for analysis output.  You can enter an interactive environment (-i), but will not have access to \"netted\" reactions")
+
+        if options.analysis == "net_balance":
+            console.runsource("from perm.analyses.net_balance import net_balance")
+            console.runsource("net_balance('%s', '%s', '%s')" % (options.mechanism, args[0], options.output))
+        
