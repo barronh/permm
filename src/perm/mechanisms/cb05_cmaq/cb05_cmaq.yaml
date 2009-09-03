@@ -295,7 +295,8 @@ net_reaction_list:
 
 species_group_list:
     - NOz=HNO3+PAN+PANX+NTR
-    - NOx=NO+NO2+NO3+N2O5+HONO+PNA
+    - NOx=NO+NO2
+    - NOX=NOx+NO3+N2O5+HONO+PNA
     - NOy=NOx+NOz
 
     - NOzN=HNO3+PAN+PANX+NTR
@@ -371,6 +372,18 @@ species_group_list:
     - ROx=HOx+MEO2+HCO3+C2O3+CXO3+ROR+TO2
 
     - ACYL_RAD=C2O3+CXO3
+
+    - NTRS = NTR
+    - RNO3 = NTRS
+    - HNO4 = PNA
+    - HPANS = PANS - PAN
+    - NXOY = NO3 + N2O5
+    - CH3CO3 = C2O3
+    - CH3CnO3 = CXO3
+    - CH2O = FORM
+    - CH3CHO = ALD2
+    - CH3OOH = MEPX
+    - CH3CHO = 1.e-30 * NO
     
 process_group_list:
   Initial        : INIT

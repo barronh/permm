@@ -471,5 +471,21 @@ reaction_list:
 
 species_group_list:
     - HC = EPX + LIM + EOH + PAA + ISO + ACT + ETH + PAN + ACE + OLI + CH4 + OLT + BALD + DIEN + MVK + ISHP + MEK + API + DCB1 + DCB3 + DCB2 + XYL + ETEG + BEN + OP1 + OP2 + ETE + ORA2 + TOL + HACE + ROH + HC3 + HC5 + HC8 + PPN + ONIT + MAHP + MACR + ISON + MPAN + NALD + MOH + XYO + ACD + GLY + ALD + ORA1 + MGLY + CSL + PHEN + HKET
-    - NOx = NO + NO2 + NO3 + N2O5 + HONO + HNO4
+    - NOx = NO + NO2
+    - NOX = NOx + NO3 + N2O5 + HONO + HNO4
     - NOxN = NO + NO2 + NO3 + 2*N2O5 + HONO + HNO4
+    - OH = HO
+    - PANS = PAN + PPN + MPAN
+    - HPANS = PANS - PAN
+    - NTRS = ONIT + ISON + NALD + OLNN + ADCN
+    - RNO3 = NTRS
+    - NXOY = NO3 + N2O5
+    - NOy = NO + NO2 + NO3 + N2O5 + HNO3 + HONO + HNO4 + PANS + NTRS
+    - NOyN = NO + NO2 + NO3 + 2*N2O5 + HNO3 + HONO + HNO4 + PANS + NTRS
+    - CH3CO3 = ACO3
+    - CH3CnO3 = RCO3 + MACP
+    - CH3OOH = OP1
+    - CH3COCH3 = ACT
+    - CH3CHO = ACD
+    - CH2O = HCHO
+...

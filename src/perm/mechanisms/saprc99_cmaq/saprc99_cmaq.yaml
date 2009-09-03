@@ -319,10 +319,21 @@ reaction_list:
     
 species_group_list:
     - NOz=HNO3+RNO3+XN+PAN+PAN2+PBZN+MA_PAN
-    - NOx=NO+NO2+NO3+N2O5+HONO+HNO4
+    - NOx=NO+NO2
+    - NOX=NO+NO2+NO3+N2O5+HONO+HNO4
     - NOy=NOx+NOz
     - PANS=PAN+PAN2+PBZN+MA_PAN
     - NTR=RNO3+XN
     - ACYL_RAD=RCO_O2+CCO_O2+MA_RCO3+BZCO_O2
-
+    - OH = HO
+    - H2O2 = HO2H
+    - HPANS = PANS - PAN
+    - NTRS = RNO3 + XN
+    - NXOY = NO3 + N2O5
+    - CH3CO3 = CCO_O2
+    - CH3CnO3 = RCO_O2 + MA_RCO3 + BZCO_O2
+    - CH3OOH = COOH
+    - CH3CHO = CCHO
+    - CH3COCH3 = ACET
+    - CH2O = HCHO
 ...

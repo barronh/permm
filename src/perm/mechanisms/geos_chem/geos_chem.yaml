@@ -389,42 +389,50 @@ reaction_list:
 
 
 species_group_list:
-    - NOx=NO + NO2 + NO3 + N2O5 + HNO2 + HNO4 + N2O
-    - PANS=GLPAN + GPAN + PAN + PMN + PPN
-    - ACYL_RAD=RCO3+MCO3+GCO3+MAO3+GLCO3
-    - RNO3=ISN2 + ISNO3 + MNO3 + R4N2
-    - NOz=HNO3 + PANS + RNO3
-    - NOy=NOx + NOz + R4N1
+    - NOx = NO + NO2
+    - NOX = NOx + NO3 + N2O5 + HNO2 + HNO4 + N2O
+    - PANS = GLPAN + GPAN + PAN + PMN + PPN
+    - ACYL_RAD = RCO3+MCO3+GCO3+MAO3+GLCO3
+    - RNO3 = ISN2 + ISNO3 + MNO3 + R4N2
+    - NOz = HNO3 + PANS + RNO3
+    - NOy = NOx + NOz + R4N1
 
-    - NOxN=NO + NO2 + NO3 + 2*N2O5 + HNO2 + HNO4 + 2*N2O
-    - NOyN=NOxN + NOz + R4N1
+    - NOxN = NO + NO2 + NO3 + 2*N2O5 + HNO2 + HNO4 + 2*N2O
+    - NOyN = NOxN + NOz + R4N1
 
-    - NMHC=ACET + ACTA + ALD2 + ALK4 + C2H6 + C3H8 + CH2O + EOH + GLYX + HAC + HCOOH + ISOP + MACR + MAP + MEK + MGLY + MOH + MVK + PRPE + RCOOH + ROH
-    - VOC=NMHC
-    - ALD=CH2O + GLYC + IALD + MACR + RCHO
+    - NMHC = ACET + ACTA + ALD2 + ALK4 + C2H6 + C3H8 + CH2O + EOH + GLYX + HAC + HCOOH + ISOP + MACR + MAP + MEK + MGLY + MOH + MVK + PRPE + RCOOH + ROH
+    - VOC = NMHC
+    - ALD = CH2O + GLYC + IALD + MACR + RCHO + ALD2
+    - RO2 = A3O2 + ATO2 + B3O2 + ETO2 + GCO3 + GLCO3 + IAO2 + INO2 + ISN1 + KO2 + MAN2 + MAO3 + MCO3 + MO2 + MRO2 + MVN2 + O2CH2OH + PO2 + PRN1 + R4N1 + R4O2 + RCO3 + RIO1 + RIO2 + VRO2
+    - PEROXIDES = ETP + GLP + GP + H2O2 + IAP + INPN + ISNP + MAOP + MP + MRP + PP + PRPN + R4P + RA3P + RB3P + RIP + RP + VRP
+    - HOx = OH + HO2
 
-    - RO2=A3O2 + ATO2 + B3O2 + ETO2 + GCO3 + GLCO3 + IAO2 + INO2 + ISN1 + KO2 + MAN2 + MAO3 + MCO3 + MO2 + MRO2 + MVN2 + O2CH2OH + PO2 + PRN1 + R4N1 + R4O2 + RCO3 + RIO1 + RIO2 + VRO2
-    - PEROXIDES=ETP + GLP + GP + H2O2 + IAP + INPN + ISNP + MAOP + MP + MRP + PP + PRPN + R4P + RA3P + RB3P + RIP + RP + VRP
-    - HOx=OH + HO2
+    - Radical = HOx + RO2
 
-    - Radical=HOx + RO2
-
-    - Ox=O3 + NO2 + 2*NO3 + 3*N2O5 + HNO3 + 2*HNO4
-    - Oy=Ox + RNO3 + PANS
+    - Ox = O3 + NO2 + 2*NO3 + 3*N2O5 + HNO3 + 2*HNO4
+    - Oy = Ox + RNO3 + PANS
     
-    - NO2_IMMEDIATES=NO2 + O3 + NO3 + N2O5 + NO
+    - NO2_IMMEDIATES = NO2 + O3 + NO3 + N2O5 + NO
 
-    - VOC_CO=VOC + CO
-    - VOC_CO_NO2=VOC_CO  +  NO2 
-    - VOCm=VOC
-    - HC=NMHC + CH4
-    - NMHC_NO2=NMHC + NO2
-    - HC_NO2=HC + NO2
-    - NMHC_CO=NMHC + CO
-    - HC_CO=HC + CO
-    - NMHC_CO_NO2=NMHC_NO2 + CO
-    - HC_CO_NO2=HC_NO2 + CO
-    - RO2_NO2=RO2 + NO2    
-    - ROx=HOx + RO2
-            
+    - VOC_CO = VOC + CO
+    - VOC_CO_NO2 = VOC_CO  +  NO2 
+    - VOCm = VOC
+    - HC = NMHC + CH4
+    - NMHC_NO2 = NMHC + NO2
+    - HC_NO2 = HC + NO2
+    - NMHC_CO = NMHC + CO
+    - HC_CO = HC + CO
+    - NMHC_CO_NO2 = NMHC_NO2 + CO
+    - HC_CO_NO2 = HC_NO2 + CO
+    - RO2_NO2 = RO2 + NO2    
+    - ROx = HOx + RO2
+    - HONO = HNO2            
+    - HPANS = PANS - PAN
+    - NTRS = RNO3
+    - NXOY = NO3 + N2O5
+    - CH3CnO3 = RCO3 + GCO3 + MAO3 + GLCO3
+    - CH3CO3 = MCO3
+    - CH3CHO = ALD2
+    - CH3COCH3 = ACET
+    - CH3OOH = MP
 ...
