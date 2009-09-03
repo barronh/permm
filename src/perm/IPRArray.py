@@ -12,7 +12,8 @@ class IPR(ndarray):
     and specialized functions for netting, sorting and display
     """
     def __new__(subtype, ipr, spc_names, proc_names):
-        proc_type = dtype(dict(names = proc_names, formats = 'f' * len(proc_names)))
+        ipr_dtype = ipr.dtype.char
+        proc_type = dtype(dict(names = proc_names, formats = ipr_dtype * len(proc_names)))
 
         spc_type = dtype(dict(names = spc_names, formats = [proc_type] * len(spc_names)))
 
@@ -21,6 +22,7 @@ class IPR(ndarray):
         result = result.view(spc_type)[:, 0]
         
         result = result.view(subtype)
+        result.__dtype = ipr_dtype
         
         return result
         
@@ -78,7 +80,7 @@ class IPR(ndarray):
             else:
                 proc_names = list(this_proc_names.intersection(proc_names))
             
-            spc_type = dtype(dict(names = species_names, formats = 'f' * len(species_names)))
+            spc_type = dtype(dict(names = species_names, formats = self.__dtype * len(species_names)))
     
             result = array([ \
                         array([ndarray.__getitem__(ndarray.__getitem__(self, spc_name), proc_name) for proc_name in proc_names]).sum(0) \
@@ -103,7 +105,7 @@ class IPR(ndarray):
             proc_size = len(self.dtype[0].names)
 
             result = array( \
-                [ndarray.__getitem__(self, spc_name).copy().view('f').reshape(time_size, proc_size)*item[spc_name][0] for spc_name in species_names]
+                [ndarray.__getitem__(self, spc_name).copy().view(self.__dtype).reshape(time_size, proc_size)*item[spc_name][0] for spc_name in species_names]
                 ).sum(0)[:, newaxis, :]
                 
             species_names = [spc for spc in species_names]
@@ -148,7 +150,7 @@ class IPR(ndarray):
                     spcs = self.dtype.fields.keys()
                     this_prc = self.dtype[0].fields.keys()[0]
                     that_prc = rhs.dtype[0].fields.keys()[0]
-                    new_prc_type = dtype(dict(names = ['%s%s%s' % (this_prc, operation, that_prc)], formats = 'f'))
+                    new_prc_type = dtype(dict(names = ['%s%s%s' % (this_prc, operation, that_prc)], formats = self.__dtype))
                     new_type = dtype(dict(names = spcs, formats = [new_prc_type]*len(spcs)))
                     result = operator(self.array(), rhs.array())
                     from perm.mechanisms.cb05_camx import mech
@@ -191,7 +193,7 @@ class IPR(ndarray):
 
         # Cast NetRxnArray as ndarray of type float32 and reshape
         # so that species is the last dimension
-        result = self.view('f').reshape(time_size, species_size, process_size)
+        result = self.view(self.__dtype).reshape(time_size, species_size, process_size)
 
         # Sum result across time dimensions using ndarray sum
         # and recast to previous dtype and NetRxnArray type
@@ -204,5 +206,5 @@ class IPR(ndarray):
         """
         view IPR array
         """
-        return self.view(type = ndarray, dtype = 'f')
+        return self.view(type = ndarray, dtype = self.__dtype)
         

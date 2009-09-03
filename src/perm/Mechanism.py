@@ -316,7 +316,7 @@ class Mechanism(object):
         """
         Add process analysis from a 2D merged IRR array dim(TIME,RXN)
         """
-        irr_type = dtype(dict(names = ReactionNames, formats = 'f'*len(ReactionNames)))
+        irr_type = dtype(dict(names = ReactionNames, formats = irr[:].dtype.char*len(ReactionNames)))
         class irr_array(ndarray):
             pass
             
