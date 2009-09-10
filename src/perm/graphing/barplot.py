@@ -4,7 +4,7 @@ from warnings import warn
 from pylab import figure, title, bar, savefig, legend, grid, xlabel, ylabel, xticks, axis
 from matplotlib.cm import get_cmap
 from matplotlib.colors import rgb2hex
-from pynetcdf import NetCDFFile
+from ..netcdf import NetCDFFile
 from numpy import arange, ndarray
 
 def profile_process(mech, species_group, process, loc = 1, width = .8, sort = False, fig = None, cmap = None, normalize = True, missing = None):
