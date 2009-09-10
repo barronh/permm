@@ -15,13 +15,19 @@ from types import InstanceType
 from ..netcdf import NetCDFFile
 from PseudoNetCDF.sci_var import PseudoNetCDFFile
 from numpy import array, concatenate, zeros, arange, ceil
-from pylab import figure, title, plot_date, savefig, legend, axis, grid, axes, xlabel, ylabel, subplot, gca, twinx
+from pylab import figure, title, plot_date, savefig, legend, axis, grid, axes, xlabel, ylabel, subplot, gca, twinx, rcParams
 from matplotlib.dates import DateFormatter, date2num
 from matplotlib.cm import get_cmap
 from matplotlib.font_manager import FontProperties
 import re
 import operator
 import os
+
+try:
+    rcParams['text.usetex'] = True
+    rcParams['text.latex.preamble'] = '\usepackage[font=sf]{mhchem}'
+except:
+    pass
 
 def add_mech(conf):
     if conf.has_key('mech'):
@@ -67,7 +73,12 @@ def irr_plot(mech, reactions, species, **conf):
     ncol = float(conf.get('ncol',2))
     fig = conf.get('fig', None)
     cmap = conf.get('cmap', None)
-    title_str = conf.get('title', 'Plot of %s for %d Reactions' % (species.name, len(reactions)))
+    if mhchem in rcParams['text.latex.preamble'] and rcParams['text.usetex']:
+        title_str = 'Plot of \ce{%s} for %d Reactions' % (species.name, len(reactions))
+    else:
+        title_str = 'Plot of %s for %d Reactions' % (species.name, len(reactions))
+
+    title_str = conf.get('title', title_str)
     chem = conf.get('chem', 'Chemistry')
     factor = conf.get('factor', 1.)
     
@@ -176,7 +187,11 @@ def phy_plot(mech, species, **kwds):
     filter = kwds.get('filter', True)
     fig = kwds.get('fig', None)
     ncol = kwds.get('ncol', 1)
-    title_str = kwds.get('title', '%s Process' % species.name)
+    if mhchem in rcParams['text.latex.preamble'] and rcParams['text.usetex']:
+        title_str = '\ce{%s} Processes' % species.name
+    else:
+        title_str = '%s Processes' % species.name
+    title_str = kwds.get('title', title_str)
     cmap = kwds.get('cmap', None)
     linestyle = kwds.get('linestyle', '-')
     linewidth = kwds.get('linewidth', 3)
@@ -220,7 +235,7 @@ def phy_plot(mech, species, **kwds):
         options.setdefault('linewidth', linewidth)
         options.setdefault('label', process)
         options.setdefault('marker', marker)
-        data = mech('(%s)' % (process,))[species].array().repeat(2,0)
+        data = mech('(%s)' % (process,))[species].array().repeat(2,0) * factor
         if data.nonzero()[0].any() or not filter:
             plot_date(date_objs, data, **options)
             
