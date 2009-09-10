@@ -57,29 +57,36 @@ else:
     get_pure_mech = getmech.get_pure_mech
 
     mech = get_pure_mech(options.mechanism)
-        
+    
     if len(args) > 0:
-        NetCDFFile = netcdf.NetCDFFile
-        mrg_file = NetCDFFile(args[0],'rs')
-        mech.set_mrg(mrg_file)
+        try:
+            NetCDFFile = netcdf.NetCDFFile
+            mrg_file = NetCDFFile(args[0],'rs')
+            mech.set_mrg(mrg_file)
+        except:
+            start_script = 0
+        else:
+            start_script = 1
 
     from perm.Shell import PERMConsole
     console = PERMConsole()
     load_environ(mech,console.locals)
-    
-    for script in args[1:]:
+
+    def runsource(source, filename = '<input>'):
+        for line in source.splitlines():
+            console.runsource(line, filename, 'single')
+            
+    for script in args[start_script:]:
         if os.path.isfile(script):
             source = file(script).read()
             fname = script
         else:
             source = script
             fname = '<input>'
-            
-        console.runsource(source, filename = fname)
+
+        runsource(source, filename = fname)
 
     if options.interactive:
-        from perm.Shell import PERMConsole
-        console = PERMConsole()
         load_environ(mech,console.locals)
         console.interact()
 
