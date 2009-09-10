@@ -383,7 +383,7 @@ species_group_list:
     - CH2O = FORM
     - CH3CHO = ALD2
     - CH3OOH = MEPX
-    - CH3CHO = 1.e-30 * NO
+    - CH3COCH3 = 1.e-30 * NO
     
 process_group_list:
   Initial        : INIT

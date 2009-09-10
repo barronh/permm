@@ -96,15 +96,15 @@ species_list:
     - &SO4 'SO4'
 
 reaction_list:
-    IRR_01: O3 + NO =k> 1.000*NO2 + 1.000*O2 
-    IRR_02: O3 + OH =k> 1.000*HO2 + 1.000*O2 
-    IRR_03: O3 + HO2 =k> 1.000*OH + 1.000*O2 + 1.000*O2 
-    IRR_04: O3 + NO2 =k> 1.000*O2 + 1.000*NO3 
-    IRR_05: O3 + MO2 =k> 1.000*CH2O + 1.000*HO2 + 2.000*O2 
-    IRR_06: OH + OH =k> 1.000*H2O + 1.000*O3 
-    IRR_07: OH + OH =k> 1.000*H2O2 
-    IRR_08: OH + HO2 =k> 1.000*H2O + 1.000*O2 
-    IRR_09: OH + H2O2 =k> 1.000*H2O + 1.000*HO2 
+    IRR_1: O3 + NO =k> 1.000*NO2 + 1.000*O2 
+    IRR_2: O3 + OH =k> 1.000*HO2 + 1.000*O2 
+    IRR_3: O3 + HO2 =k> 1.000*OH + 1.000*O2 + 1.000*O2 
+    IRR_4: O3 + NO2 =k> 1.000*O2 + 1.000*NO3 
+    IRR_5: O3 + MO2 =k> 1.000*CH2O + 1.000*HO2 + 2.000*O2 
+    IRR_6: OH + OH =k> 1.000*H2O + 1.000*O3 
+    IRR_7: OH + OH =k> 1.000*H2O2 
+    IRR_8: OH + HO2 =k> 1.000*H2O + 1.000*O2 
+    IRR_9: OH + H2O2 =k> 1.000*H2O + 1.000*HO2 
     IRR_10: HO2 + NO =k> 1.000*OH + 1.000*NO2 
     IRR_11: HO2 + HO2 =k> 1.000*H2O2 
     IRR_12: OH + H2 =k> 1.000*H2O + 1.000*HO2 
