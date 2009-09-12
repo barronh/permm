@@ -72,19 +72,12 @@ else:
     console = PERMConsole()
     load_environ(mech,console.locals)
 
-    def runsource(source, filename = '<input>'):
-        for line in source.splitlines():
-            console.runsource(line, filename, 'single')
-            
     for script in args[start_script:]:
         if os.path.isfile(script):
-            source = file(script).read()
-            fname = script
+            execfile(script, None, console.locals)
         else:
-            source = script
-            fname = '<input>'
+            exec(script, None, console.locals)
 
-        runsource(source, filename = fname)
 
     if options.interactive:
         load_environ(mech,console.locals)
