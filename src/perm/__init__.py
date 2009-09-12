@@ -57,14 +57,14 @@ else:
     get_pure_mech = getmech.get_pure_mech
 
     mech = get_pure_mech(options.mechanism)
-    
+    start_script = 0
     if len(args) > 0:
         try:
             NetCDFFile = netcdf.NetCDFFile
             mrg_file = NetCDFFile(args[0],'rs')
             mech.set_mrg(mrg_file)
         except:
-            start_script = 0
+            pass
         else:
             start_script = 1
 

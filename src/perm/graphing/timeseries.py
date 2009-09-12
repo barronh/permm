@@ -23,11 +23,8 @@ import re
 import operator
 import os
 
-try:
-    rcParams['text.usetex'] = True
+if rcParams['text.usetex'] == True:
     rcParams['text.latex.preamble'] = '\usepackage[font=sf]{mhchem}'
-except:
-    pass
 
 def add_mech(conf):
     if conf.has_key('mech'):
@@ -73,7 +70,7 @@ def irr_plot(mech, reactions, species, **conf):
     ncol = float(conf.get('ncol',2))
     fig = conf.get('fig', None)
     cmap = conf.get('cmap', None)
-    if mhchem in rcParams['text.latex.preamble'] and rcParams['text.usetex']:
+    if rcParams['text.usetex']:
         title_str = 'Plot of \ce{%s} for %d Reactions' % (species.name, len(reactions))
     else:
         title_str = 'Plot of %s for %d Reactions' % (species.name, len(reactions))
@@ -187,7 +184,7 @@ def phy_plot(mech, species, **kwds):
     filter = kwds.get('filter', True)
     fig = kwds.get('fig', None)
     ncol = kwds.get('ncol', 1)
-    if mhchem in rcParams['text.latex.preamble'] and rcParams['text.usetex']:
+    if rcParams['text.usetex']:
         title_str = '\ce{%s} Processes' % species.name
     else:
         title_str = '%s Processes' % species.name
