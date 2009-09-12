@@ -12,5 +12,5 @@ __doc__ = """
               selects it and provides it.
 .. moduleauthor:: Barron Henderson <barronh@unc.edu>
 """
-from netCDF4 import Dataset as NetCDFFile
+from pupynere import NetCDFFile as NetCDFFile
 
