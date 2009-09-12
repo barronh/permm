@@ -74,9 +74,9 @@ else:
 
     for script in args[start_script:]:
         if os.path.isfile(script):
-            execfile(script, None, console.locals)
+            execfile(script, globals(), console.locals)
         else:
-            exec(script, None, console.locals)
+            exec(script, globals(), console.locals)
 
 
     if options.interactive:
