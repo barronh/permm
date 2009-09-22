@@ -4,15 +4,14 @@ import operator
 import yaml
 import re
 import sys
-from numpy import dtype, \
-                  array, \
-                  ndarray
+from numpy import * # Explicitly using dtype, array and ndarry; providing all default numpy to __call__interface
 from warnings import warn
 from SpeciesGroup import Species, species_sum
 from ProcessGroup import Process
 from ReactionGroup import ReactionFromString
 from IPRArray import IPR
 from graphing.timeseries import irr_plot, phy_plot
+from Shell import load_environ
 
 __all__ = ['Mechanism']
 
@@ -77,26 +76,22 @@ class Mechanism(object):
             self.species_dict[grp_name].name = grp_name
 
         self.net_reaction_dict = yaml_file.get('net_reaction_list',{})
+        self.__eval_environment = {}
+        load_environ(self, self.__eval_environment)
             
-    def __call__(self,expr):
+    def __call__(self, expr, env = globals()):
         """
         Evaluate string expression in the context of mechanism
         species, species groups, reactions, net reactions and processes
         """
-        return eval(expr, None, self)
+        return eval(expr, env, self.__eval_environment)
     
     def __getitem__(self,item):
         """
         Provide a single getitem interface for mechanism species, species 
         groups, reactions, net reactions and processes
         """
-        try:
-            result = eval(item, self.__reaction_data, self.species_dict)
-            self.__reaction_data.pop('__builtins__')
-        except NameError:
-            result = eval(item, self.species_dict, self.__pa_data)
-            self.species_dict.pop('__builtins__')
-        return result
+        return self.__eval_environment[item]
         
     def __add_spc_to_reactions(self,rxn_list, spc):
         """
@@ -312,6 +307,8 @@ class Mechanism(object):
         if use_ipr:
             self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
         
+        load_environ(self, self.__eval_environment)
+        
     def set_irr(self,irr, ReactionNames, use_net_rxns = True):
         """
         Add process analysis from a 2D merged IRR array dim(TIME,RXN)
@@ -351,7 +348,7 @@ class Mechanism(object):
             except:
                 warn("Cannot create %s process group" % prc_name)
             
-        self.ipr = IPR(array(ipr), species, processes)
+        self.ipr = IPR(ipr, species, processes, ipr.units)
         self.ipr.units = ipr.units
         
         def pa_dict(item):
