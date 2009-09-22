@@ -4,24 +4,26 @@ from numpy import ndarray, \
                   newaxis
 from ProcessGroup import Process
 from SpeciesGroup import Species
+from PseudoNetCDF import PseudoNetCDFVariable
 import sys
 
-class IPR(ndarray):
+class IPR(PseudoNetCDFVariable):
     """
     IPR is a recarray with a field for each species
     and specialized functions for netting, sorting and display
     """
-    def __new__(subtype, ipr, spc_names, proc_names):
-        ipr_dtype = ipr.dtype.char
+    def __new__(subtype, ipr, spc_names, proc_names, units):
+        ipr_dtype = ipr[:].dtype.char
         proc_type = dtype(dict(names = proc_names, formats = ipr_dtype * len(proc_names)))
 
         spc_type = dtype(dict(names = spc_names, formats = [proc_type] * len(spc_names)))
 
-        result = ipr.view(proc_type)[:, :, 0]
+        result = ipr[:].view(proc_type)[:, :, 0]
 
         result = result.view(spc_type)[:, 0]
         
         result = result.view(subtype)
+        result.units = units
         result.__dtype = ipr_dtype
         
         return result
@@ -86,7 +88,7 @@ class IPR(ndarray):
                         array([ndarray.__getitem__(ndarray.__getitem__(self, spc_name), proc_name) for proc_name in proc_names]).sum(0) \
                         for spc_name in species_names
                     ], ndmin = 3).swapaxes(0, 2)
-            result = IPR(result.copy(), species_names, [item.name])
+            result = IPR(result.copy(), species_names, [item.name], self.units)
             
             
         elif isinstance(item, Species):
@@ -110,7 +112,7 @@ class IPR(ndarray):
                 
             species_names = [spc for spc in species_names]
             proc_names = [prc for prc in self.dtype[0].names]
-            result = IPR(result.copy(), [item.name], proc_names)
+            result = IPR(result.copy(), [item.name], proc_names, units = self.units)
             
 
         else:
@@ -153,9 +155,6 @@ class IPR(ndarray):
                     new_prc_type = dtype(dict(names = ['%s%s%s' % (this_prc, operation, that_prc)], formats = self.__dtype))
                     new_type = dtype(dict(names = spcs, formats = [new_prc_type]*len(spcs)))
                     result = operator(self.array(), rhs.array())
-                    from perm.mechanisms.cb05_camx import mech
-                    from numpy import argmax
-                    NO2 = mech.species_dict['NO2']
                     result = result.view(new_type)
                     
                     result = result.view(self.__class__)
@@ -206,5 +205,6 @@ class IPR(ndarray):
         """
         view IPR array
         """
-        return self.view(type = ndarray, dtype = self.__dtype)
-        
+        result = self.view(type = ndarray, dtype = self.__dtype).view(PseudoNetCDFVariable)
+        result.units = self.units
+        return result
