@@ -435,4 +435,5 @@ species_group_list:
     - CH3CHO = ALD2
     - CH3COCH3 = ACET
     - CH3OOH = MP
+    - CH3COOOH = MAP
 ...

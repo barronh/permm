@@ -488,4 +488,5 @@ species_group_list:
     - CH3COCH3 = ACT
     - CH3CHO = ACD
     - CH2O = HCHO
+    - CH3COOOH = PAA
 ...

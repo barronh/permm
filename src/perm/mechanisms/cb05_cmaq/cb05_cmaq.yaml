@@ -384,6 +384,7 @@ species_group_list:
     - CH3CHO = ALD2
     - CH3OOH = MEPX
     - CH3COCH3 = 1.e-30 * NO
+    - CH3COOOH = PACD
     
 process_group_list:
   Initial        : INIT

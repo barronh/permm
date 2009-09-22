@@ -4711,4 +4711,5 @@ species_group_list:
     - RNO3 = NTRS
     - CH2O = HCHO
     - C2O3 = CH3CO3
+    - CH3COOOH = CH3CO3H
 ...

@@ -336,4 +336,5 @@ species_group_list:
     - CH3CHO = CCHO
     - CH3COCH3 = ACET
     - CH2O = HCHO
+    - CH3COOOH = CCO_OOH
 ...

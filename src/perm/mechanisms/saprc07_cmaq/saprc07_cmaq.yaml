@@ -872,3 +872,4 @@ species_group_list:
     - CH3CHO = CCHO
     - CH3COCH3 = ACETONE
     - CH2O = HCHO
+    - CH3COOOH = CCOOOH
