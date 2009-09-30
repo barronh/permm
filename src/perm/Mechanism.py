@@ -4,7 +4,7 @@ import operator
 import yaml
 import re
 import sys
-from numpy import * # Explicitly using dtype, array and ndarry; providing all default numpy to __call__interface
+from numpy import * # Explicitly using dtype, array and ndarray; providing all default numpy to __call__interface
 from warnings import warn
 from SpeciesGroup import Species, species_sum
 from ProcessGroup import Process
@@ -12,6 +12,7 @@ from ReactionGroup import ReactionFromString
 from IPRArray import IPR
 from graphing.timeseries import irr_plot, phy_plot
 from Shell import load_environ
+from PseudoNetCDF.sci_var import PseudoNetCDFVariable
 
 __all__ = ['Mechanism']
 
@@ -314,10 +315,8 @@ class Mechanism(object):
         Add process analysis from a 2D merged IRR array dim(TIME,RXN)
         """
         irr_type = dtype(dict(names = ReactionNames, formats = irr[:].dtype.char*len(ReactionNames)))
-        class irr_array(ndarray):
-            pass
             
-        self.irr = array(irr).view(dtype = irr_type).squeeze().view(type = irr_array)
+        self.irr = array(irr).view(dtype = irr_type).squeeze().view(type = PseudoNetCDFVariable)
         self.irr.units = irr.units
         self.__use_net_rxns = use_net_rxns
         self.apply_irr()
@@ -351,6 +350,11 @@ class Mechanism(object):
         self.ipr = IPR(ipr, species, processes, ipr.units)
         self.ipr.units = ipr.units
         
+        # Add extra species for names in IPR
+        for name in self.ipr.dtype.names:
+            if not self.species_dict.has_key(name):
+                self.species_dict[name] = Species(name = name, names = [name], stoic = [1.])
+            
         def pa_dict(item):
             if self.process_dict.has_key(item):
                 return self.ipr[self.process_dict[item]]
@@ -405,3 +409,6 @@ class Mechanism(object):
             from pylab import show
             show()
         return fig
+
+    def globalize(self, env):
+        load_environ(self, env)
