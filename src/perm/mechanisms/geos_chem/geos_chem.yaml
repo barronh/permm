@@ -395,7 +395,7 @@ species_group_list:
     - ACYL_RAD = RCO3+MCO3+GCO3+MAO3+GLCO3
     - RNO3 = ISN2 + ISNO3 + MNO3 + R4N2
     - NOz = HNO3 + PANS + RNO3
-    - NOy = NOx + NOz + R4N1
+    - NOy = NOX + NOz + R4N1
 
     - NOxN = NO + NO2 + NO3 + 2*N2O5 + HNO2 + HNO4 + 2*N2O
     - NOyN = NOxN + NOz + R4N1

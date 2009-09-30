@@ -4703,11 +4703,13 @@ species_group_list:
     - INORGANICS = CO + H2 + H2O2 + HNO3 + HO2 + HO2NO2 + HONO + HSO3 + N2O5 + NO + NO2 + NO3 + O + O1D + O3 + OH + SO2 + SO3
     - NOx = NO + NO2
     - NOX = NOx + NO3 + HO2NO2 + HONO + N2O5
+    - NOXN = NOx + NO3 + HO2NO2 + HONO + 2*N2O5
     - HNO4 = HO2NO2
     - HPANS = PANS - PAN
     - NXOY = NO3 + N2O5
-    - NOy = NO + NO2 + NO3 + N2O5 + HNO3 + HONO + HNO4 + PANS + NTRS
-    - NOyN = NO + NO2 + NO3 + 2*N2O5 + HNO3 + HONO + HNO4 + PANS + NTRS
+    - NOz = PANS + NTRS + HNO3
+    - NOy = NOX + NOz
+    - NOyN = NOXN + NOz
     - RNO3 = NTRS
     - CH2O = HCHO
     - C2O3 = CH3CO3

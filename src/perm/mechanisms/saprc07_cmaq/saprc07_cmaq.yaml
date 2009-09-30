@@ -848,8 +848,8 @@ reaction_list:
 species_group_list:
     - NOz=HNO3+RNO3+XN+PAN+PAN2+PBZN+MAPAN
     - NOx=NO+NO2
-    - NOX=NO+NO2+NO3+N2O5+HONO+HNO4
-    - NOy=NOx+NOz
+    - NOX=NOx+NO3+N2O5+HONO+HNO4
+    - NOy=NOX+NOz
     - PANS=PAN+PAN2+PBZN+MAPAN
     - NTR=RNO3+XN
     - HOx=HO2+OH

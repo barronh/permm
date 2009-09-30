@@ -297,11 +297,12 @@ species_group_list:
     - NOz=HNO3+PAN+PANX+NTR
     - NOx=NO+NO2
     - NOX=NOx+NO3+N2O5+HONO+PNA
-    - NOy=NOx+NOz
+    - NOy=NOX+NOz
 
     - NOzN=HNO3+PAN+PANX+NTR
-    - NOxN=NO+NO2+NO3+2*N2O5+HONO+PNA
-    - NOyN=NOxN+NOzN
+    - NOxN=NOx
+    - NOXN=NO+NO2+NO3+2*N2O5+HONO+PNA
+    - NOyN=NOXN+NOzN
 
     - VOC=PAR + ETHA + MEOH + ETOH + ETH + OLE + IOLE + ISOP + TERP + FORM + ALD2 + ALDX + TOL + XYL 
     

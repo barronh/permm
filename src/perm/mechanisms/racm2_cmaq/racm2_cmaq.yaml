@@ -480,7 +480,8 @@ species_group_list:
     - NTRS = ONIT + ISON + NALD + OLNN + ADCN
     - RNO3 = NTRS
     - NXOY = NO3 + N2O5
-    - NOy = NO + NO2 + NO3 + N2O5 + HNO3 + HONO + HNO4 + PANS + NTRS
+    - NOz = HNO3 + PANS + NTRS
+    - NOy = NOX + NOz
     - NOyN = NO + NO2 + NO3 + 2*N2O5 + HNO3 + HONO + HNO4 + PANS + NTRS
     - CH3CO3 = ACO3
     - CH3CnO3 = RCO3 + MACP
