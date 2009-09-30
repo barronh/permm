@@ -1,10 +1,11 @@
 from numpy import ndarray, \
                   dtype, \
                   array, \
-                  newaxis
+                  newaxis, \
+                  rollaxis
 from ProcessGroup import Process
 from SpeciesGroup import Species
-from PseudoNetCDF import PseudoNetCDFVariable
+from PseudoNetCDF.sci_var import PseudoNetCDFVariable
 import sys
 
 class IPR(PseudoNetCDFVariable):
@@ -18,9 +19,9 @@ class IPR(PseudoNetCDFVariable):
 
         spc_type = dtype(dict(names = spc_names, formats = [proc_type] * len(spc_names)))
 
-        result = ipr[:].view(proc_type)[:, :, 0]
+        result = ipr[:].view(proc_type)[..., 0]
 
-        result = result.view(spc_type)[:, 0]
+        result = result.view(spc_type)[..., 0]
         
         result = result.view(subtype)
         result.units = units
@@ -63,7 +64,24 @@ class IPR(PseudoNetCDFVariable):
         
         # Return result
         return result
-        
+    def __repr__(self):
+        this_dims = str(self.shape)
+        this_proc_names = list(set([k for k in self.dtype[0].names]))
+        nprocs = len(this_proc_names)
+        this_spc_names = list(set([k for k in self.dtype.names]))
+        nspcs = len(this_spc_names)
+        result = """IPR Array\n  Dimensions: %s\n  Process: %s\n  Species: %s""" % (this_dims, (this_proc_names), str(this_spc_names))
+        for prc in this_proc_names:
+            result += '\n\n%s:' % prc
+            prc_values = self[prc]
+            for spc in this_spc_names:
+                spc_values = prc_values[spc]
+                result += '\n  %s: %s' % (spc, str(spc_values.array()))
+        return result
+    
+    def __str__(self):
+        return self.__repr__()
+
     def __getitem__(self, item):
         """
         Use standard ndarray.__getitem__, but retain
@@ -87,7 +105,18 @@ class IPR(PseudoNetCDFVariable):
             result = array([ \
                         array([ndarray.__getitem__(ndarray.__getitem__(self, spc_name), proc_name) for proc_name in proc_names]).sum(0) \
                         for spc_name in species_names
-                    ], ndmin = 3).swapaxes(0, 2)
+                    ])[newaxis,...]
+            result = result.transpose()
+            # pre-transpose dims: proc, spc, dim0, dim1, ... dimN
+            # post-transpose dims: dimN, ..., dim1, dim0, spc, prc                    
+
+            # Fix N dimension order:
+            # for each non-species/process dimension
+            #   move the dimension to the front
+            # post-fix dims: dim0, dim1, ..., dimN, spc, prc
+            for dim in range(1,len(result.shape)-2):
+                result = rollaxis(result, dim, start = 0)
+
             result = IPR(result.copy(), species_names, [item.name], self.units)
             
             
@@ -103,12 +132,11 @@ class IPR(PseudoNetCDFVariable):
             if len(species_names) == 0:
                 raise KeyError, "%s has no processes" % (item.name,)
                 
-            time_size = self.shape[0]
             proc_size = len(self.dtype[0].names)
 
             result = array( \
-                [ndarray.__getitem__(self, spc_name).copy().view(self.__dtype).reshape(time_size, proc_size)*item[spc_name][0] for spc_name in species_names]
-                ).sum(0)[:, newaxis, :]
+                [ndarray.__getitem__(self, spc_name).copy().view(self.__dtype).reshape(self.shape + (proc_size,))*item[spc_name][0] for spc_name in species_names]
+                ).sum(0)[..., newaxis, :]
                 
             species_names = [spc for spc in species_names]
             proc_names = [prc for prc in self.dtype[0].names]
@@ -125,8 +153,9 @@ class IPR(PseudoNetCDFVariable):
                     raise KeyError, "%s is not a process or a species"
 
             else:
-                result = ndarray.__getitem__(self, item)
-                result = result.view(self.__class__)
+                result = array(ndarray.__getitem__(self, item), ndmin = 1, copy = True).view(IPR)
+                result.__dtype = self.__dtype
+                result.units = self.units
 
         return result
 
