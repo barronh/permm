@@ -138,7 +138,7 @@ def irr_plot(mech, reactions, species, **conf):
     fig.autofmt_xdate()
     labels = [l.get_label() for l in ax.lines]
     handles = ax.lines
-    leg = fig.legend(handles, labels, ncol = 2, loc = 8, prop = FontProperties(size=10))
+    leg = fig.legend(handles, labels, ncol = ncol, loc = 8, prop = FontProperties(size=10))
 
     return fig
 
