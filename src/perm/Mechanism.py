@@ -346,7 +346,7 @@ class Mechanism(object):
         """
         irr_type = dtype(dict(names = ReactionNames, formats = irr[:].dtype.char*len(ReactionNames)))
             
-        self.irr = array(irr).view(dtype = irr_type).squeeze().view(type = PseudoNetCDFVariable)
+        self.irr = irr[:].view(dtype = irr_type).squeeze().view(type = PseudoNetCDFVariable)
         self.irr.units = irr.units
         self.__use_net_rxns = use_net_rxns
         self.apply_irr()
