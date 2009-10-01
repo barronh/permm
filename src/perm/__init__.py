@@ -61,7 +61,7 @@ else:
     if len(args) > 0:
         try:
             NetCDFFile = netcdf.NetCDFFile
-            mrg_file = NetCDFFile(args[0],'rs')
+            mrg_file = NetCDFFile(args[0],'r')
             mech.set_mrg(mrg_file)
         except:
             pass
