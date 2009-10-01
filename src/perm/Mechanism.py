@@ -257,6 +257,19 @@ class Mechanism(object):
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.reaction_dict[rxn]
 
+    def plot_rxn_list(self, reactions, plot_spc = None, path = None, **conf):
+        if plot_spc is None:
+            plot_spc = self((reactions[0][0].products() + reactions[0][0].reactants())[0])
+            
+        fig = irr_plot(self, reactions, plot_spc, **conf)
+        if path is not None:
+            fig.savefig(path)
+        else:
+            from pylab import show
+            show()
+        
+        return fig
+
     def plot_rxns(self, reactants = [], products = [], logical_and = True, plot_spc = None, path = None, **conf):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
@@ -277,14 +290,31 @@ class Mechanism(object):
         
         if reactions == []:
             raise ValueError, "Your query didn't match any reactions; check your query and try again (try print_rxns)."
-        fig = irr_plot(self, reactions, plot_spc, **conf)
-        if path is not None:
-            fig.savefig(path)
-        else:
-            from pylab import show
-            show()
-        
-        return fig
+
+        combine = conf.get('combine',[()])
+
+        reactions = [ rxn for rxn in reactions if rxn not in reduce(operator.add, combine) ]
+        nlines = min(conf.get('nlines',8),len(reactions)+1)
+        if combine != [()]:
+            reactions = reactions + map(lambda t2: '+'.join(t2), combine)
+    
+        reactions = [ (abs(self('(%s)' % (rxn))[plot_spc]).sum(),rxn) for rxn in reactions]
+    
+        reactions.sort(reverse = True)
+    
+        reactions = [r for v,r in reactions]
+        reactions = [self('(%s)' % (rxn, )) for rxn in reactions[:nlines-1]]
+        for rxn in reactions[nlines-1:]:
+            try:
+                other += self('(%s)' % (rxn,))
+            except:
+                other = self('(%s)' % (rxn,))
+        try:
+            reactions += [other]
+        except:
+            pass
+
+        return self.plot_rxn_list(reactions, plot_spc, path = path, **conf)
         
     def print_nrxns(self, reactants = [], products = [], logical_and = True, factor = 1.):
         """

@@ -23,7 +23,7 @@ import re
 import operator
 import os
 
-if rcParams['text.usetex'] == True:
+if rcParams['text.usetex']:
     rcParams['text.latex.preamble'] = '\usepackage[font=sf]{mhchem}'
 
 def add_mech(conf):
@@ -62,18 +62,17 @@ def irr_plot(mech, reactions, species, **conf):
       fig - figure to plot on
       cmap - color map to be used
     """
-    combine = conf.get('combine',[()])
-    reactions = [ rxn for rxn in reactions if rxn not in reduce(operator.add, combine) ]
+    
     date_objs = get_date(mech.mrg, conf)
     units = conf.get('units', mech.irr.units)
-    nlines = min(conf.get('nlines',8),len(reactions)+1)
-    ncol = float(conf.get('ncol',2))
+    ncol = int(conf.get('ncol',2))
+    nlines = len(reactions)
     fig = conf.get('fig', None)
     cmap = conf.get('cmap', None)
     if rcParams['text.usetex']:
-        title_str = 'Plot of \ce{%s} for %d Reactions' % (species.name, len(reactions))
+        title_str = 'Plot of \ce{%s} Reactions' % (species.name, )
     else:
-        title_str = 'Plot of %s for %d Reactions' % (species.name, len(reactions))
+        title_str = 'Plot of %s Reactions' % (species.name, )
 
     title_str = conf.get('title', title_str)
     chem = conf.get('chem', 'Chemistry')
@@ -82,40 +81,29 @@ def irr_plot(mech, reactions, species, **conf):
     colors = iter(get_cmap(cmap)(arange(nlines, dtype = 'f')/(nlines-1)))
     if fig is None:
         fig = figure()
-        ax = axes([.1, .1+.037*(ceil(nlines/ncol)+1), .8, .8-.037*ceil(nlines/ncol)])
+        legend_line_height = .037
+        if rcParams['text.usetex']: legend_line_height = .045
+            
+        ax = axes([.1, .1+legend_line_height*(ceil(nlines/ncol)+1), .8, .8-legend_line_height*ceil(nlines/ncol)])
     else:
         ax = gca()
         
     grid(True)
     title(title_str % locals())
 
-    if combine != [()]:
-        reactions = reactions + map(lambda t2: '+'.join(t2), combine)
-
-    reactions = [ (abs(mech('(%s)' % (rxn))[species]).sum(),rxn) for rxn in reactions]
-
-    reactions.sort(reverse = True)
-
-    reactions = [r for v,r in reactions]
-    
     options = {}
     options.setdefault('linestyle', '-')
     options.setdefault('linewidth', 3)
     options.setdefault('marker', 'None')
 
-    for rxn in reactions[:nlines-1]:
+    for rxn in reactions:
         options['color'] = colors.next()
-        data = mech('(%s)' % (rxn, ))[species] * factor
-        options['label'] = re.compile('\d+.\d+\*').sub('', str(mech(rxn).sum())).replace(' ', '')
+        data = rxn[species] * factor
+        options['label'] = re.compile('\d+.\d+\*').sub('', str(rxn.sum()))
+        if rcParams['text.usetex']: options['label'] = '\ce{' + options['label'].replace('>', ']').replace('=', '->[') + '}'
+        
         plot_date(date_objs, data.repeat(2,0), **options)
 
-    data = zeros(data.shape, dtype = data.dtype)
-    for rxn in reactions[nlines-1:]:
-        data += mech('(%s)' % (rxn,))[species]
-        
-    if (data != 0).any():
-        options['label'] = 'other'
-        plot_date(date_objs, data.repeat(2,0), **options)
     if chem is not None:
         options['color'] = 'black'
         options['marker'] = 'o'
