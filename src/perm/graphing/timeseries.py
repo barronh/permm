@@ -15,7 +15,7 @@ from types import InstanceType
 from ..netcdf import NetCDFFile
 from PseudoNetCDF.sci_var import PseudoNetCDFFile
 from numpy import array, concatenate, zeros, arange, ceil
-from pylab import figure, title, plot_date, savefig, legend, axis, grid, axes, xlabel, ylabel, subplot, gca, twinx, rcParams
+from pylab import figure, title as pylabtitle, plot_date, savefig, legend, axis, grid, axes, xlabel, ylabel, subplot, gca, twinx, rcParams
 from matplotlib.dates import DateFormatter, date2num
 from matplotlib.cm import get_cmap
 from matplotlib.font_manager import FontProperties
@@ -39,10 +39,10 @@ def add_mech(conf):
 
         mech.set_mrg(mrg_file)
 
-def get_date(mrg_file, conf):
+def get_date(mrg_file, end_date = True):
     date_ints = mrg_file.variables['TFLAG'][:,0,:]
     date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints])
-    if conf.get('end_date',True):
+    if end_date:
         date_objs = concatenate([date_objs[[0]]-(date_objs[-1]-date_objs[-2]), date_objs])
     else:
         date_objs = concatenate([date_objs, date_objs[[-1]]+(date_objs[-1]-date_objs[-2])])
@@ -50,48 +50,71 @@ def get_date(mrg_file, conf):
     date_objs = date_objs.repeat(2,0)[1:-1]
     return date_objs
 
-def irr_plot(mech, reactions, species, **conf):
+def none_defaults_to(v, default):
+    return {True: default, False: v}[v is None]
+    
+def irr_plot(
+             mech, reactions, species,
+             factor = 1, units = None, end_date = True,
+             chem = 'CHEM', title = None, ylim = None, xlim = None, 
+             figure_settings = {}, axis_settings = {}, line_settings = {},
+             fig = None, cmap = None, ncol = 2
+            ):
     """
-    irr_plot makes a plot with lines for each reaction
-      conf - configuration dictionary
+    irr_plot makes a plot with lines for each reaction object provided
+    
       mech - Mechanism object
-      date_objs - dates assoicated with IRR
-      species - species name for production plot
-      nlines - limit number of process lines to nlines
-      combine - iterable of iterables; inner iterable should be used to make net reactions
-      fig - figure to plot on
+      reactions - list of reaction objects
+      species - species to plot from reactions
+      end_date - dates are provided for the interval end
+      units - string for y-axis label (defaults to mech.irr.units)
+      ncol - number of columns in the legend
+      fig - a previous figure to plot results on
       cmap - color map to be used
+      chem - the process name of the total chemistry or None to 
+             not plot total chemistry
+      factor - a scaling factor for process data (i.e. if data is ppm 
+               and you want to plot ppt, factor = 1e6)
+      title - a string for the title of the figure
+      ylim - an iterable (e.g. tuple or list) of min and max values
+             for y-scale
+      xlim - an iterable (e.g. tuple or list) of min and max values
+             for x-scale
+      figure_settings - properties for the figure; dictionary of 
+                        keywords that pertain to the matplotlib
+                        figure function
+      axis_settings - properties for the figure axes; dictionary of 
+                      keywords that pertain to the matplotlib
+                      axes function
+      line_settings - properties for all lines; dictionary of keywords
+                      for matplotlib plot_date function
     """
     
-    date_objs = get_date(mech.mrg, conf)
-    units = conf.get('units', mech.irr.units)
-    ncol = int(conf.get('ncol',2))
+    date_objs = get_date(mech.mrg, end_date)
+    units = none_defaults_to(units, mech.irr.units)
     nlines = len(reactions)
-    fig = conf.get('fig', None)
-    cmap = conf.get('cmap', None)
     if rcParams['text.usetex']:
         title_str = 'Plot of \ce{%s} Reactions' % (species.name, )
     else:
         title_str = 'Plot of %s Reactions' % (species.name, )
 
-    title_str = conf.get('title', title_str)
-    chem = conf.get('chem', 'Chemistry')
-    factor = conf.get('factor', 1.)
+    title_str = none_defaults_to(title, title_str)
     
     colors = iter(get_cmap(cmap)(arange(nlines, dtype = 'f')/(nlines-1)))
     if fig is None:
-        fig = figure()
+        fig = figure(**figure_settings)
         legend_line_height = .037
         if rcParams['text.usetex']: legend_line_height = .045
-            
-        ax = axes([.1, .1+legend_line_height*(ceil(nlines/ncol)+1), .8, .8-legend_line_height*ceil(nlines/ncol)])
+        nrows = ceil(nlines/ncol)
+        legend_space = (nrows + 2) * legend_line_height
+        ax = axes([.1, .1 + legend_space, .8, .8 - legend_space], **axis_settings)
     else:
         ax = gca()
         
     grid(True)
-    title(title_str % locals())
+    pylabtitle(title_str % locals())
 
-    options = {}
+    options = line_settings
     options.setdefault('linestyle', '-')
     options.setdefault('linewidth', 3)
     options.setdefault('marker', 'None')
@@ -120,8 +143,8 @@ def irr_plot(mech, reactions, species, **conf):
     ylabel(units)
     ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
     ax.set_xlim(date2num(date_objs[0]), date2num(date_objs[-1]))
-    if conf.has_key('ylim'):
-        ax.set_ylim(*conf['ylim'])
+    if ylim is not None:
+        ax.set_ylim(*ylim)
 
     fig.autofmt_xdate()
     labels = [l.get_label() for l in ax.lines]

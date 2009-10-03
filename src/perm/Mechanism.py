@@ -257,11 +257,21 @@ class Mechanism(object):
         for rxn in self.find_rxns(reactants, products, logical_and):
             print rxn, self.reaction_dict[rxn]
 
-    def plot_rxn_list(self, reactions, plot_spc = None, path = None, **conf):
+    def plot_rxn_list(self, reactions, plot_spc = None, path = None,
+                      factor = 1, units = None, end_date = True,
+                      chem = 'CHEM', title = None, ylim = None, xlim = None,
+                      figure_settings = {}, axis_settings = {}, line_settings = {},
+                      fig = None, cmap = None, ncol = 2
+                    ):
         if plot_spc is None:
             plot_spc = self((reactions[0][0].products() + reactions[0][0].reactants())[0])
             
-        fig = irr_plot(self, reactions, plot_spc, **conf)
+        fig = irr_plot(self, reactions, plot_spc,
+                       factor, units, end_date,
+                       chem, title, ylim, xlim,
+                       figure_settings, axis_settings, line_settings,
+                       fig, cmap, ncol
+                      )
         if path is not None:
             fig.savefig(path)
         else:
@@ -270,14 +280,47 @@ class Mechanism(object):
         
         return fig
 
-    def plot_rxns(self, reactants = [], products = [], logical_and = True, plot_spc = None, path = None, **conf):
+    def plot_rxns(self, reactants = [], products = [], logical_and = True,
+                  plot_spc = None, path = None,
+                  combine = [()], nlines = 8,
+                  factor = 1, units = None, end_date = True,
+                  chem = 'CHEM', title = None, ylim = None, xlim = None, 
+                  figure_settings = {}, axis_settings = {}, line_settings = {},
+                  fig = None, cmap = None, ncol = 2
+                  ):
         """
-        For each reaction in find_rxns(reactants, procucts, logical_and),
-        plot the production/consumption rate for plot_spc.  If plot_spc is
-        not specified, use the first product provided.  If no products, use 
-        the first reactant.
+        For the top nlines reactions in find_rxns(reactants, procucts, logical_and),
+        plot the production/consumption rate for plot_spc.  The top lines are selected
+        based on total mass throughput of the species being plotted (i.e. plot_spc).
+        If plot_spc is not specified, use the first product provided.  If no products, 
+        use the first reactant.
         
-        for more information see find_rxns
+        For each set of reactions in combine (i.e. combine = [('IRR_1', 'IRR_2'), ...])
+        create a net reaction and plot that instead.  For each reaction, over nlines
+        create 
+        
+        end_date - dates are provided for the interval end
+        units - string for y-axis label (defaults to mech.irr.units)
+        ncol - number of columns in the legend
+        fig - a previous figure to plot results on
+        cmap - color map to be used
+        chem - the process name of the total chemistry or None to 
+               not plot total chemistry
+        factor - a scaling factor for process data (i.e. if data is ppm 
+                 and you want to plot ppt, factor = 1e6)
+        title - a string for the title of the figure
+        ylim - an iterable (e.g. tuple or list) of min and max values
+               for y-scale
+        xlim - an iterable (e.g. tuple or list) of min and max values
+               for x-scale
+        figure_settings - properties for the figure; dictionary of 
+                          keywords that pertain to the matplotlib
+                          figure function
+        axis_settings - properties for the figure axes; dictionary of 
+                        keywords that pertain to the matplotlib
+                        axes function
+        line_settings - properties for all lines; dictionary of keywords
+                        for matplotlib plot_date function
         """
         def ensure_list(x):
             if isinstance(x, Species):
@@ -291,10 +334,8 @@ class Mechanism(object):
         if reactions == []:
             raise ValueError, "Your query didn't match any reactions; check your query and try again (try print_rxns)."
 
-        combine = conf.get('combine',[()])
-
         reactions = [ rxn for rxn in reactions if rxn not in reduce(operator.add, combine) ]
-        nlines = min(conf.get('nlines',8),len(reactions)+1)
+        nlines = min(nlines, len(reactions)+1)
         if combine != [()]:
             reactions = reactions + map(lambda t2: '+'.join(t2), combine)
     
@@ -314,7 +355,12 @@ class Mechanism(object):
         except:
             pass
 
-        return self.plot_rxn_list(reactions, plot_spc, path = path, **conf)
+        return self.plot_rxn_list(reactions, plot_spc, path,
+                                  factor, units, end_date,
+                                  chem, title, ylim, xlim, 
+                                  figure_settings, axis_settings, line_settings,
+                                  fig, cmap, ncol
+                                 )
         
     def print_nrxns(self, reactants = [], products = [], logical_and = True, factor = 1.):
         """
