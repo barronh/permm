@@ -1,6 +1,4 @@
-__all__ = ['irr_plot', 'irr_plots', \
-           'loss_plots', 'phy_plots', \
-           'prod_plots', 'rxn_plots']
+__all__ = ['irr_plot', 'phy_plot', 'phy_plots']
 
 
 HeadURL="$HeadURL$"
@@ -118,11 +116,19 @@ def irr_plot(
     options.setdefault('linestyle', '-')
     options.setdefault('linewidth', 3)
     options.setdefault('marker', 'None')
-
     for rxn in reactions:
         options['color'] = colors.next()
         data = rxn[species] * factor
-        options['label'] = re.compile('\d+.\d+\*').sub('', str(rxn.sum()))
+        rxn_sum = rxn.sum()
+        reaction_label = re.compile('\d+.\d+\*').sub('', str(rxn_sum))
+        if len(reaction_label) > 70:
+            if rxn_sum.has_prd(species):
+                append = '%s + products' % species.name
+            else:
+                append = 'products'
+                
+            reaction_label = ' '.join(re.compile('(=[k|k|u]>)').split(reaction_label)[:2] + [append])
+        options['label'] = reaction_label
         if rcParams['text.usetex']: options['label'] = '\ce{' + options['label'].replace('>', ']').replace('=', '->[') + '}'
         
         plot_date(date_objs, data.repeat(2,0), **options)
@@ -146,6 +152,9 @@ def irr_plot(
     if ylim is not None:
         ax.set_ylim(*ylim)
 
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+
     fig.autofmt_xdate()
     labels = [l.get_label() for l in ax.lines]
     handles = ax.lines
@@ -153,21 +162,25 @@ def irr_plot(
 
     return fig
 
-def phy_plot(mech, species, **kwds):
+def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date = True,
+             exclude = ['UCNV', 'AVOL', 'DATE', 'TIME', 'I', 'J', 'K'], processes = None,
+             units = None, ylim = None, xlim = None,
+             title = None, filter = True, fig = None, ncol = 1, cmap = None,
+             figure_settings = {}, axis_settings = {},
+             line_settings = {'linestyle': '-', 'linewidth': 3, 'marker': 'None'},
+             **kwds):
+
     """
     mech - perm.Mechanism.Mechanism object
     species - perm.SpeciesGroup.Species object
-    kwds - * title - title
-           * init - Name of initial concentration process
-           * final - Name of final concentration process
-           * linestyle - default line style (default: '-')
-           * linewidth - default line width (default: 3)
-           * marker - default line marker style (default: None)
-           * ncol - number of legend columns (default: 1)
-           * fig - figure to plot on (default: None)
-           * cmap - matplotlib color map for lines (default: None)
-           * filter - remove processes with zero values (default: True)
-           * <process name1> - process names from mech.process_dict can be 
+    title - title
+    init - Name of initial concentration process
+    final - Name of final concentration process
+    ncol - number of legend columns (default: 1)
+    fig - figure to plot on (default: None)
+    cmap - matplotlib color map for lines (default: None)
+    filter - remove processes with zero values (default: True)
+    kwds - * <process name1> - process names from mech.process_dict can be 
                                provided to limit the processes shown.  When 
                                provided, a process should be a dictionary of 
                                matplotlib plot options (common: linestyle,
@@ -179,40 +192,27 @@ def phy_plot(mech, species, **kwds):
            
            
     """
-    init = kwds.get('init', 'INIT')
-    final = kwds.get('final', 'FCONC')
-    factor = kwds.get('factor', 1)
-    exclude = kwds.get('exclude', 'UCNV AVOL DATE TIME I J K'.split())
-    if kwds.has_key('processes'):
-        processes = kwds['processes']
-    else:
-        processes = set(kwds.keys()).intersection(mech.process_dict.keys())
-        if processes == set():
-            processes = set([k for k, v in mech.process_dict.iteritems() if len(v.names)==1 and v.names[0]==k]).difference([init, final]+exclude)
+    processes = none_defaults_to(processes, set(kwds.keys()).intersection(mech.process_dict.keys()))
+    if processes == set():
+        processes = set([k for k, v in mech.process_dict.iteritems() if len(v.names)==1 and v.names[0]==k]).difference([init, final]+exclude)
 
-    processes = dict(zip(processes, map(lambda k: kwds.get(k,{}), processes)))
+    processes = dict(zip(processes, map(lambda k: kwds.get(k,line_settings.copy()), processes)))
             
-    filter = kwds.get('filter', True)
-    fig = kwds.get('fig', None)
-    ncol = kwds.get('ncol', 1)
     if rcParams['text.usetex']:
         title_str = '\ce{%s} Processes' % species.name
     else:
         title_str = '%s Processes' % species.name
-    title_str = kwds.get('title', title_str)
-    cmap = kwds.get('cmap', None)
-    linestyle = kwds.get('linestyle', '-')
-    linewidth = kwds.get('linewidth', 3)
-    marker = kwds.get('marker', 'None')
+
+    title_str = none_defaults_to(title, title_str)
 
     if isinstance(processes, (list, set)):
         processes = dict([(k,{}) for k in processes])
 
-    units = kwds.get('units', mech.ipr.units)
+    units = none_defaults_to(units, mech.ipr.units)
     nlines = len(processes)
     colors = iter(get_cmap(cmap)(arange(nlines, dtype = 'f')/(nlines-1)))
     
-    date_objs = get_date(mech.mrg, kwds)
+    date_objs = get_date(mech.mrg, end_date)
     legend_width = ncol * max([len(k) for k in processes.keys()]) * 10 # 10 is legend.fontsize
     
     if fig is None:
@@ -224,11 +224,9 @@ def phy_plot(mech, species, **kwds):
     
     tax = ax
     grid(True)
-    title(title_str % locals())
-    options = {'color': 'k'}
-    options.setdefault('linestyle', linestyle)
-    options.setdefault('linewidth', linewidth)
-    options.setdefault('marker', 'o')
+    pylabtitle(title_str % locals())
+    options = line_settings.copy()
+    options['color'] = 'k'
     data = mech('%s'  % (init,))[species].array() * factor
     tax.plot_date(date_objs[::2], data, **options)
     options.setdefault('label', 'Conc')
@@ -237,12 +235,13 @@ def phy_plot(mech, species, **kwds):
     tax.plot_date(date_objs[1::2], data, **options)
     
     for process in processes.keys():
-        options = processes.get(process, {})
+        options = processes[process]
         options.setdefault('color', colors.next())
-        options.setdefault('linestyle', linestyle)
-        options.setdefault('linewidth', linewidth)
-        options.setdefault('label', process)
-        options.setdefault('marker', marker)
+        process_label = process
+        if rcParams['text.usetex']:
+            process_label = process_label.replace('_', '\_')
+            
+        options['label'] = process_label
         data = mech('(%s)' % (process,))[species].array().repeat(2,0) * factor
         if data.nonzero()[0].any() or not filter:
             plot_date(date_objs, data, **options)
@@ -251,8 +250,10 @@ def phy_plot(mech, species, **kwds):
     ylabel(units)
     ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
     ax.set_xlim(date2num(date_objs[0]), date2num(date_objs[-1]))
-    if kwds.has_key('ylim'):
-        ax.set_ylim(*kwds['ylim'])
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+    if xlim is not None:
+        ax.set_xlim(*xlim)
 
     fig.autofmt_xdate()
     legend(ncol = ncol, loc = (1.05,0), prop = FontProperties(size=10))

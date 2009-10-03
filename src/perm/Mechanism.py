@@ -266,11 +266,11 @@ class Mechanism(object):
         if plot_spc is None:
             plot_spc = self((reactions[0][0].products() + reactions[0][0].reactants())[0])
             
-        fig = irr_plot(self, reactions, plot_spc,
-                       factor, units, end_date,
-                       chem, title, ylim, xlim,
-                       figure_settings, axis_settings, line_settings,
-                       fig, cmap, ncol
+        fig = irr_plot(self, reactions = reactions, species = plot_spc,
+                       factor = factor, units = units, end_date = end_date,
+                       chem = chem, title = title, ylim = ylim, xlim = xlim,
+                       figure_settings = figure_settings, axis_settings = axis_settings, line_settings = line_settings,
+                       fig = fig, cmap = cmap, ncol = ncol
                       )
         if path is not None:
             fig.savefig(path)
@@ -338,28 +338,28 @@ class Mechanism(object):
         nlines = min(nlines, len(reactions)+1)
         if combine != [()]:
             reactions = reactions + map(lambda t2: '+'.join(t2), combine)
-    
+        
         reactions = [ (abs(self('(%s)' % (rxn))[plot_spc]).sum(),rxn) for rxn in reactions]
     
         reactions.sort(reverse = True)
-    
+
         reactions = [r for v,r in reactions]
-        reactions = [self('(%s)' % (rxn, )) for rxn in reactions[:nlines-1]]
         for rxn in reactions[nlines-1:]:
             try:
-                other += self('(%s)' % (rxn,))
+                other = other + self('(%s)' % (rxn,))
             except:
                 other = self('(%s)' % (rxn,))
+        
         try:
-            reactions += [other]
+            reactions = [self('(%s)' % (rxn, )) for rxn in reactions[:nlines-1]] + [other]
         except:
-            pass
-
-        return self.plot_rxn_list(reactions, plot_spc, path,
-                                  factor, units, end_date,
-                                  chem, title, ylim, xlim, 
-                                  figure_settings, axis_settings, line_settings,
-                                  fig, cmap, ncol
+            reactions = [self('(%s)' % (rxn, )) for rxn in reactions[:nlines-1]]
+        
+        return self.plot_rxn_list(reactions = reactions, plot_spc = plot_spc, path = path,
+                                  factor = factor, units = units, end_date = end_date,
+                                  chem = chem, title = title, ylim = ylim, xlim = xlim, 
+                                  figure_settings = figure_settings, axis_settings = axis_settings,
+                                  line_settings = line_settings, fig = fig, cmap = cmap, ncol = ncol
                                  )
         
     def print_nrxns(self, reactants = [], products = [], logical_and = True, factor = 1.):
