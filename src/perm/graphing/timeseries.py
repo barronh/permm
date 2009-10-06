@@ -12,7 +12,7 @@ from datetime import datetime
 from types import InstanceType
 from ..netcdf import NetCDFFile
 from PseudoNetCDF.sci_var import PseudoNetCDFFile
-from numpy import array, concatenate, zeros, arange, ceil
+from numpy import array, concatenate, zeros, arange, ceil, concatenate
 from pylab import figure, title as pylabtitle, plot_date, savefig, legend, axis, grid, axes, xlabel, ylabel, subplot, gca, twinx, rcParams
 from matplotlib.dates import DateFormatter, date2num
 from matplotlib.cm import get_cmap
@@ -37,13 +37,18 @@ def add_mech(conf):
 
         mech.set_mrg(mrg_file)
 
-def get_date(mrg_file, end_date = True):
+def get_dates(mrg_file, end_date = True):
     date_ints = mrg_file.variables['TFLAG'][:,0,:]
     date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints])
     if end_date:
         date_objs = concatenate([date_objs[[0]]-(date_objs[-1]-date_objs[-2]), date_objs])
     else:
         date_objs = concatenate([date_objs, date_objs[[-1]]+(date_objs[-1]-date_objs[-2])])
+
+    return date_objs
+    
+def get_date_steps(mrg_file, end_date = True):
+    date_objs = get_dates(mrg_file)
 
     date_objs = date_objs.repeat(2,0)[1:-1]
     return date_objs
@@ -88,7 +93,7 @@ def irr_plot(
                       for matplotlib plot_date function
     """
     
-    date_objs = get_date(mech.mrg, end_date)
+    date_objs = get_date_steps(mech.mrg, end_date)
     units = none_defaults_to(units, mech.irr.units)
     nlines = len(reactions)
     if rcParams['text.usetex']:
@@ -188,6 +193,7 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
                                be empty.
            * <process name2> - same as process 1
            * <process nameN> - same as process 1
+           * CONC - same as process 1, but for the concentration line
            * end_date - times are for the time period end
            
            
@@ -212,7 +218,7 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
     nlines = len(processes)
     colors = iter(get_cmap(cmap)(arange(nlines, dtype = 'f')/(nlines-1)))
     
-    date_objs = get_date(mech.mrg, end_date)
+    date_objs = get_date_steps(mech.mrg, end_date)
     legend_width = ncol * max([len(k) for k in processes.keys()]) * 10 # 10 is legend.fontsize
     
     if fig is None:
@@ -225,23 +231,28 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
     tax = ax
     grid(True)
     pylabtitle(title_str % locals())
-    options = line_settings.copy()
-    options['color'] = 'k'
-    data = mech('%s'  % (init,))[species].array() * factor
-    tax.plot_date(date_objs[::2], data, **options)
+    options = kwds.get('CONC',line_settings.copy())
+    options.setdefault('color', 'k')
     options.setdefault('label', 'Conc')
-    options['marker'] = 'x'
-    data = mech('%s'  % (final,))[species].array() * factor
-    tax.plot_date(date_objs[1::2], data, **options)
+    options.setdefault('linestyle', '-')
+    options.setdefault('linewidth', 3)
+    options.setdefault('marker', 'None')
+    init_vals = mech('%s'  % (init,))[species].array()
+    fconc_vals = mech('%s'  % (final,))[species].array()
+    data = concatenate([init_vals[..., :1], fconc_vals[...]], axis = -1) * factor
+    tax.plot_date(get_dates(mech.mrg), data, **options)
     
     for process in processes.keys():
         options = processes[process]
         options.setdefault('color', colors.next())
+        options.setdefault('linestyle', '-')
+        options.setdefault('linewidth', 3)
+        options.setdefault('marker', 'None')
         process_label = process
         if rcParams['text.usetex']:
             process_label = process_label.replace('_', '\_')
             
-        options['label'] = process_label
+        options.setdefault('label', process_label)
         data = mech('(%s)' % (process,))[species].array().repeat(2,0) * factor
         if data.nonzero()[0].any() or not filter:
             plot_date(date_objs, data, **options)
@@ -263,7 +274,7 @@ def phy_plots(conf, filter = True, fmt = 'pdf', fig_append = 'IPR'):
     add_mech(conf)
     
     mech = conf['mech']
-    date_objs = get_date(mech.mrg, conf)
+    date_objs = get_date_steps(mech.mrg, conf)
 
     for species, species_options in conf['species'].iteritems():
         try:
