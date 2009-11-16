@@ -28,6 +28,7 @@ def load_environ(mech, locals_dict):
     locals_dict.update(mech.species_dict)
     locals_dict.update(mech.reaction_dict)
     try:
+        locals_dict.update(mech.irr_dict)
         locals_dict.update(mech.nreaction_dict)
     except:
         pass
