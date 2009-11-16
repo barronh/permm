@@ -1,100 +1,4 @@
 ---
-species_list:
-    - &O3 'O3'
-    - &CH4 'CH4'
-    - &NO 'NO'
-    - &NO2 'NO2'
-    - &N2O 'N2O'
-    - &O2CH2OH 'O2CH2OH'
-    - &OH 'OH'
-    - &HO2 'HO2'
-    - &NO3 'NO3'
-    - &MO2 'MO2'
-    - &CH2O 'CH2O'
-    - &H2O2 'H2O2'
-    - &CO 'CO'
-    - &MP 'MP'
-    - &MOH 'MOH'
-    - &HNO3 'HNO3'
-    - &HNO2 'HNO2'
-    - &HNO4 'HNO4'
-    - &N2O5 'N2O5'
-    - &HCOOH 'HCOOH'
-    - &ALD2 'ALD2'
-    - &MCO3 'MCO3'
-    - &PAN 'PAN'
-    - &C2H6 'C2H6'
-    - &ETO2 'ETO2'
-    - &C3H8 'C3H8'
-    - &B3O2 'B3O2'
-    - &A3O2 'A3O2'
-    - &RCHO 'RCHO'
-    - &PO2 'PO2'
-    - &ALK4 'ALK4'
-    - &R4O2 'R4O2'
-    - &ACET 'ACET'
-    - &MEK 'MEK'
-    - &R4N2 'R4N2'
-    - &R4N1 'R4N1'
-    - &ATO2 'ATO2'
-    - &KO2 'KO2'
-    - &RIO2 'RIO2'
-    - &MVK 'MVK'
-    - &MACR 'MACR'
-    - &RIO1 'RIO1'
-    - &IALD 'IALD'
-    - &IAO2 'IAO2'
-    - &HAC 'HAC'
-    - &GLYC 'GLYC'
-    - &MGLY 'MGLY'
-    - &ISN1 'ISN1'
-    - &ISN2 'ISN2'
-    - &ISNO3 'ISNO3'
-    - &VRO2 'VRO2'
-    - &MRO2 'MRO2'
-    - &MVN2 'MVN2'
-    - &MAN2 'MAN2'
-    - &INO2 'INO2'
-    - &PRN1 'PRN1'
-    - &ACTA 'ACTA'
-    - &RCO3 'RCO3'
-    - &PPN 'PPN'
-    - &GCO3 'GCO3'
-    - &GPAN 'GPAN'
-    - &MAO3 'MAO3'
-    - &PMN 'PMN'
-    - &GLCO3 'GLCO3'
-    - &GLPAN 'GLPAN'
-    - &ROH 'ROH'
-    - &R4P 'R4P'
-    - &RIP 'RIP'
-    - &IAP 'IAP'
-    - &ISNP 'ISNP'
-    - &VRP 'VRP'
-    - &MRP 'MRP'
-    - &RB3P 'RB3P'
-    - &INPN 'INPN'
-    - &PRPN 'PRPN'
-    - &EOH 'EOH'
-    - &ETP 'ETP'
-    - &RA3P 'RA3P'
-    - &PP 'PP'
-    - &MAP 'MAP'
-    - &RCOOH 'RCOOH'
-    - &RP 'RP'
-    - &GP 'GP'
-    - &MAOP 'MAOP'
-    - &GLP 'GLP'
-    - &PRPE 'PRPE'
-    - &GLYX 'GLYX'
-    - &ISOP 'ISOP'
-    - &LISOPOH 'LISOPOH'
-    - &MNO3 'MNO3'
-    - &DMS 'DMS'
-    - &SO2 'SO2'
-    - &MSA 'MSA'
-    - &SO4 'SO4'
-
 reaction_list:
     IRR_1: O3 + NO =k> 1.000*NO2 + 1.000*O2 
     IRR_2: O3 + OH =k> 1.000*HO2 + 1.000*O2 
@@ -390,20 +294,20 @@ reaction_list:
 
 species_group_list:
     - NOx = NO + NO2
-    - NOX = NOx + NO3 + N2O5 + HNO2 + HNO4 + N2O
+    - NOX = NOx + NO3 + N2O5 + HNO2 + HNO4
     - PANS = GLPAN + GPAN + PAN + PMN + PPN
     - ACYL_RAD = RCO3+MCO3+GCO3+MAO3+GLCO3
-    - RNO3 = ISN2 + ISNO3 + MNO3 + R4N2
+    - RNO3 = MNO3 + R4N2
     - NOz = HNO3 + PANS + RNO3
     - NOy = NOX + NOz + R4N1
 
-    - NOxN = NO + NO2 + NO3 + 2*N2O5 + HNO2 + HNO4 + 2*N2O
+    - NOxN = NO + NO2 + NO3 + 2*N2O5 + HNO2 + HNO4
     - NOyN = NOxN + NOz + R4N1
 
     - NMHC = ACET + ACTA + ALD2 + ALK4 + C2H6 + C3H8 + CH2O + EOH + GLYX + HAC + HCOOH + ISOP + MACR + MAP + MEK + MGLY + MOH + MVK + PRPE + RCOOH + ROH
     - VOC = NMHC
     - ALD = CH2O + GLYC + IALD + MACR + RCHO + ALD2
-    - RO2 = A3O2 + ATO2 + B3O2 + ETO2 + GCO3 + GLCO3 + IAO2 + INO2 + ISN1 + KO2 + MAN2 + MAO3 + MCO3 + MO2 + MRO2 + MVN2 + O2CH2OH + PO2 + PRN1 + R4N1 + R4O2 + RCO3 + RIO1 + RIO2 + VRO2
+    - RO2 = A3O2 + ATO2 + B3O2 + ETO2 + GCO3 + GLCO3 + IAO2 + INO2 + ISN1 + KO2 + MAN2 + MAO3 + MCO3 + MO2 + MRO2 + MVN2 + PO2 + PRN1 + R4N1 + R4O2 + RCO3 + RIO1 + RIO2 + VRO2
     - PEROXIDES = ETP + GLP + GP + H2O2 + IAP + INPN + ISNP + MAOP + MP + MRP + PP + PRPN + R4P + RA3P + RB3P + RIP + RP + VRP
     - HOx = OH + HO2
 
