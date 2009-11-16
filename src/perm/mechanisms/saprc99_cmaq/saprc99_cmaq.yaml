@@ -319,7 +319,7 @@ reaction_list:
     
 species_group_list:
     - PANS=PAN+PAN2+PBZN+MA_PAN
-    - NTR=RNO3+XN
+    - NTR=RNO3
     - NOz=HNO3+NTR+PANS
     - NOx=NO+NO2
     - NOX=NOx+NO3+N2O5+HONO+HNO4
@@ -328,7 +328,7 @@ species_group_list:
     - OH = HO
     - H2O2 = HO2H
     - HPANS = PANS - PAN
-    - NTRS = RNO3 + XN
+    - NTRS = RNO3
     - NXOY = NO3 + N2O5
     - CH3CO3 = CCO_O2
     - CH3CnO3 = RCO_O2 + MA_RCO3 + BZCO_O2
