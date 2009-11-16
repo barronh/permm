@@ -63,8 +63,11 @@ else:
             NetCDFFile = netcdf.NetCDFFile
             mrg_file = NetCDFFile(args[0],'r')
             mech.set_mrg(mrg_file)
-        except:
-            pass
+        except RuntimeError, (e):
+            warn("\n-------------------------------------------------------\nFirst argument was not a data file.\nAttempting to continue with first argument as a script.\n-------------------------------------------------------")
+        except ValueError, (e):
+            warn("\n-------------------------------------------\nAre you sure this is a %s data file?\n-------------------------------------------" % options.mechanism)
+            raise e
         else:
             start_script = 1
 
