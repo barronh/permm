@@ -3,17 +3,19 @@ from numpy import ndarray, \
                   newaxis, \
                   float64, \
                   vectorize, \
-                  rollaxis
+                  rollaxis, \
+                  indices
+from numpy.ma import sum
 
-from utils import AttrDict
-from SpeciesGroup import Species
+from perm.SpeciesGroup import Species
 from warnings import warn
 import operator
 import re
-
+print "local"
 ReactionGroup = str
 
 __all__ = ['Stoic', 'ReactionFromString', 'Reaction', 'ReactionArray']
+
 
 class Stoic(float64):
     """
@@ -79,7 +81,9 @@ def ReactionFromString(rxn_str):
     For example:
         OH + OLE =k> 0.8*FORM + 0.33*ALD2 + 0.62*ALDX + 0.8*XO2 + 0.95*HO2 - 0.7 PAR
     """
-    result = AttrDict()
+    stoics = {}
+    roles = {}
+    species = ()
     
     reaction_re = re.compile("(?P<reactants>.*)=(?P<rxn_type>[kj])[>]\s*(?P<products>.*)")
 
@@ -93,7 +97,6 @@ def ReactionFromString(rxn_str):
     reaction_type = reaction_match.groupdict()['rxn_type']
     products = reaction_match.groupdict()['products']
 
-    result.reaction_type = reaction_type
     for spc in species_re.finditer(reactants):
         spc_g = spc.groupdict()
         name = spc_g['name']
@@ -104,8 +107,15 @@ def ReactionFromString(rxn_str):
 
         if stoic is None:
             stoic = '1'
-        
-        result[name] = Stoic(-float(sign + stoic) + result.get(name,0), 'r')
+
+        if name in species:
+            stoics[name] += -float(sign + stoic)
+        else:
+            species += (name,)
+            stoics[name] = -float(sign + stoic)
+
+        roles[name] = 'r'
+
     
     for spc in species_re.finditer(products):
         spc_g = spc.groupdict()
@@ -117,15 +127,21 @@ def ReactionFromString(rxn_str):
 
         if stoic is None:
             stoic = '1'
-        value = float(sign + stoic) + result.get(name, 0)
-        role = result.get(name,Stoic(0,'p')).role
-        if role == 'r':
-            role = 'u'
-        result[name] = Stoic(value, role)
         
-    return Reaction(result)
+        value = float(sign + stoic)
+        if name in species:
+            stoics[name] += stoics.get(name, 0)
+            role = roles[name]
+            if role == 'r':
+                role = 'u'
+            roles[name] = role
+        else:
+            stoics[name] = value
+            roles[name] = 'p'
+        
+    return Reaction(reaction_type = reaction_type, roles = roles, **stoics)
 
-class Reaction(AttrDict):
+class Reaction(object):
     """
     Reaction is an object that represents reaction groups.  The simplest
     case being a "single reaction" reaction group.
@@ -150,50 +166,108 @@ class Reaction(AttrDict):
         add_rct_spc
         add_prd_spc
     """
-    def __new__(subtype, *args, **kwds):        
-        result = AttrDict.__new__(subtype)
+    def __init__(self, roles = {}, reaction_type = 'k', **stoic):
+        self._reaction_type = reaction_type
+        self._species = tuple([k for k in stoic.keys()])
+        self._roles = roles.copy()
+        self._stoic = stoic.copy()
+        
+        try:
+            self.shape = self._stoic[self._species[0]].shape
+        except AttributeError, (e):
+            for spc in self._species:
+                self._stoic[spc] = float64(self._stoic[spc])
+        
+        for k in self._species:    
+            if k not in self._roles:
+                self._roles[k] = {True: 'r', False: 'p'}[sum(stoic[k]) < 0]
+        self._update_roles()
+
+    def copy(self):
+        return Reaction(roles = self._roles, reaction_type = self._reaction_type, **dict([(k, v.copy()) for k, v in self._stoic.iteritems()]))
+
+    def sum(self):
+        result = self.copy()
+        for spc in result._species:
+            result._stoic[spc] = self._stoic[spc].sum()
+        result.shape = ()
         return result
-    
-    def __init__(self, *args, **kwds):
-        AttrDict.__init__(self, *args, **kwds)
         
-        has_rxn_type = self.has_key('reaction_type')
-        check = reduce(operator.and_,[isinstance(v,Stoic) for k, v in self.iteritems() if k != 'reaction_type'])
+    def _update_roles(self):
+        self._reactants = ()
+        self._products = ()
+        self._unspecified = ()
         
-        if not check or not has_rxn_type:
-            raise ValueError, "Reactions require a reaction_type and species keys with stoic"
+        for k, v in self._roles.iteritems():
+            if v == 'r':
+                self._reactants += (k,)
+            elif v == 'p':
+                self._products += (k,)
+            elif v == 'u':
+                self._unspecified += (k,)
+                if sum(self._stoic[k]) > 0:
+                    self._products += (k,)
+                else:
+                    self._reactants += (k,)
     
+    def reactants(self):
+        return self._reactants
+        
+    def products(self):
+        return self._products
+        
+    def species(self):
+        return self._species
+
+    def unspecified(self):
+        return self._unspecified
+
     def __getitem__(self, item):
         if isinstance(item, Species):
-            if self.has_key(item.name):
-                return AttrDict.__getitem__(self,item.name)
-            else:
-                species = set(item.names()).intersection(self.keys())
-                value = sum([item[spc][0] * AttrDict.__getitem__(self, spc) for spc in species])
-                
-                first_spc_role = self[species.pop()].role
-                same_role = array([first_spc_role == self[spc].role for spc in species]).all()
+            try:
+                return self._stoic[item.name]
+            except KeyError, (e):
+                species = set(item.names()).intersection(self._species)
+                if len(species) == 0:
+                    raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
+                value = sum([item[spc][0] * self._stoic[spc] for spc in species])
+                first_spc_role = self._roles[species.pop()]
+                same_role = all([first_spc_role == self._roles[spc] for spc in species])
                 
                 if same_role:
                     role = first_spc_role
                 else:
                     role = 'u'
                 return Stoic(value, role = role)
+        elif isinstance(item, str):
+            return Stoic(self._stoic[item], role = self._role)
         else:
-            return AttrDict.__getitem__(self,item)
+            return Reaction(roles = self._roles, reaction_type = self._reaction_type, **dict([(k,v[item]) for k, v in self._stoic.iteritems()]))
     
     def __str__(self):
-        reactants = [(self[rct], rct) for rct in self.reactants()]
+        result = ''
+        temp = self.copy()
+        temp.shape = ()
+        if self.shape != ():
+            for idx in indices(self.shape).reshape(len(self.shape), -1).swapaxes(0,1):
+                for spc in self._species:
+                    temp._stoic[spc] = self._stoic[spc][tuple(idx)]
+                result += str(temp)+', \n'
+            result = result[:-3]+'\n'
+        reactants = [(self._stoic[rct].sum(), rct) for rct in self.reactants()]
         reactants.sort(reverse=True)
         reactants = ' + '.join(['%.5f*%s' % (-1*stoic,rct) for stoic, rct in reactants])
 
-        products = [(self[prd], prd) for prd in self.products()]
+        products = [(self._stoic[prd].sum(), prd) for prd in self.products()]
         products.sort(reverse=False)
         products = ' + '.join(['%.5f*%s' % (stoic,prd) for stoic, prd in products])
 
+        sum_result = '%s =%s> %s' % (reactants, self._reaction_type, products)
 
-        result = '%s =%s> %s' % (reactants, self['reaction_type'], products)
-        
+        if result != '':
+            result += '-' * len(sum_result) + '\n'
+        result += sum_result
+            
         return result
 
     def __repr__(self):
@@ -203,20 +277,29 @@ class Reaction(AttrDict):
         if isinstance(y,Reaction):
             kwds = {}
             
-            for spc in self.species():
-                kwds[spc] = dict.__getitem__(self,spc)
+            for spc in self._species:
+                kwds[spc] = self._stoic[spc]
             
-            for spc in y.species():
+            for spc in y._species:
                 if kwds.has_key(spc):
-                    kwds[spc] += dict.__getitem__(y,spc)
+                    kwds[spc] = kwds[spc] + y._stoic[spc]
                 else:
-                    kwds[spc] = dict.__getitem__(y,spc)
+                    kwds[spc] = y._stoic[spc]
+            roles = {}
+            for spc in set(self._species+y._species):
+                new_role = ''.join(set(self._roles.get(spc,'') + y._roles.get(spc,'')))
+                if len(new_role) == 1:
+                    roles[spc] = new_role
+                else:
+                    roles[spc] = 'u'
             
-            reaction_type = ('u',self.reaction_type)[self.reaction_type == y.reaction_type]
+            if self._reaction_type == y._reaction_type:
+                kwds['reaction_type'] = self._reaction_type
+            else:
+                kwds['reaction_type'] = 'u'
             
-            kwds['reaction_type'] = reaction_type
         elif isinstance(y,Species):
-            kwds = self.__add_if_in_spclist(y,self.species())
+            return self.__add_if_in_spclist(y,self._species)
         else:
             raise TypeError, "Currently, only reactions can be added together"
         
@@ -226,100 +309,48 @@ class Reaction(AttrDict):
         return self.__mul__(irrs)
         
     def __mul__(self,irrs):
-        species = self.species()
-        values = [self[spc] for spc in species]
-        # Using native dict getitem for speed
-
-        roles = array([val.role for val in values])
-        factor = array(irrs).view(ndarray)
-        values = array(values).reshape([-1]+[1]*factor.ndim)
-        roles = array(roles).reshape([-1]+[1]*factor.ndim)
-        values = values*factor
-        stoic = StoicArray(values,roles)
-        stoic = stoic.transpose()
-        # pre-transpose dims: spc, dim0, dim1, ... dimN
-        # post-transpose dims: dimN, ..., dim1, dim0, spc
-
-        # Fix N dimension order:
-        # for each non-species/process dimension
-        #   move the dimension to the front
-        # post-fix dims: dim0, dim1, ..., dimN, spc
-        for dim in range(1,len(stoic.shape)-1):
-            stoic = rollaxis(stoic, dim, start = 0)
-        
-        #stoic = (array([dict.__getitem__(self,k) for k in species], dtype = object)[:,newaxis]*array(irrs).view(ndarray)).swapaxes(0,1)
-
-        rct_dict = dict(reaction_type = self.reaction_type)
-        if not isinstance(irrs, ndarray):
-            result = Reaction(**return_updated_dict(dict(zip(species,stoic[0])), rct_dict))
-        else:
-            result = ReactionArray([Reaction(return_updated_dict(dict(zip(species,stc)), rct_dict)) for stc in stoic.reshape(-1,len(species))], dtype = Reaction).reshape(factor.shape)
-            
+        species = self._species
+        values = dict([(k,v*irrs) for k, v in self._stoic.iteritems()])
+        result = Reaction(roles = self._roles, reaction_type = self._reaction_type, **values)
         return result
 
     def __add_if_in_spclist(self,y,spc_list):
         if not self.has_spc(y):
             raise KeyError, 'Reaction has no components of %s' % y.name
-        elif y.name in self.species():
+        elif y.name in self._species:
             warn('Already has %s' % y.name)
-            return dict(self)
+            return self.copy()
         elif y.exclude:
             raise ValueError, 'Exclude is not supported'
+        result = self.copy()
+        new_stoic = result[y]
+        
+        result._roles[y.name] = new_stoic.role
+        result._species += (item.name,)
+        result._stoic[item.name] = new_stoic.view(ndarray)
             
-        old_species = self.species()
-
-        new_species = [name for name in y.names() if name in spc_list]
-
-        old_stoic = self.stoic()
-        new_stoic = sum([self[spc]*y[spc][0] for spc in new_species])
-
-        kwds = dict(zip(old_species+[y.name],old_stoic+[Stoic(new_stoic,'u')]))
-        kwds['reaction_type'] = self.reaction_type
-            
-        return kwds
-    
     def get(self, item, default = None):
         try:
             return self.__getitem__(item)
         except:
             return default
             
-    def species(self):
-        return [k for k, v in self.iteritems() if isinstance(v,Stoic)]
-        
-    def stoic(self):
-        return [self[k] for k in self.species()]
-        
-    def reactants(self):
-        result = [k for k in self.species() if self[k].role == 'r' or (self[k] == 0 and self[k].role == 'u')]
-        result += [spc for spc in self.unspecified() if self[spc] < 0]
-        
-        return result
-
-    def products(self):
-        result = [k for k in self.species() if self[k].role == 'p']
-        result += [spc for spc in self.unspecified() if self[spc] > 0]
-        
-        return result
-
-    def unspecified(self):
-        return [k for k in self.species() if self[k].role == 'u']
 
     def has_spc(self,spc_grp):
-        return spc_in_list(spc_grp,self.species())
+        return spc_in_list(spc_grp,self._species)
         
     def has_rct(self,spc_grp):
-        return spc_in_list(spc_grp,self.reactants())
+        return spc_in_list(spc_grp,self._reactants)
         
     def has_prd(self,spc_grp):
-        return spc_in_list(spc_grp,self.products())
+        return spc_in_list(spc_grp,self._products)
     
     def add_rct_spc(self,y):
-        kwds = self.__add_if_in_spclist(y,self.reactants())
+        kwds = self.__add_if_in_spclist(y,self._reactants)
         return Reaction(**kwds)
         
     def add_prd_spc(self,y):
-        kwds = self.__add_if_in_spclist(y,self.products())
+        kwds = self.__add_if_in_spclist(y,self._products)
         return Reaction(**kwds)
 
 def spc_in_list(spc_grp,local_list):
@@ -331,56 +362,3 @@ def spc_in_list(spc_grp,local_list):
                 return True
         else:
             return False
-
-   
-class ReactionArray(ndarray):
-    """
-    ReactionArray is a sub-class of the numpy ndarray that
-    supports the Reaction dtype.  This allows indexing
-    and mathematical operations on a time-series of Reaction
-    objects
-    
-    Creating an instance follows the typical ndarray __new__ 
-    interface.
-    
-    Only the __getitem__ interface has been implemented; it
-    has been implemented to respond appropriately to a Species 
-    object.
-    """
-    def __new__(subtype, *args, **kwds):
-        result = array(*args, **kwds).view(type = subtype)
-        
-        return result
-
-    def __getitem__(self,item):
-        if isinstance(item,(Species,str)):
-            return array([v[item] for v in self])
-        else:
-            return ndarray.__getitem__(self,item)
-
-    def get_species_roles(self):
-        species_all = self[0].species()
-        for hr in self:
-            species = hr.reactants()+hr.products()
-            if len(species) == len(species_all): break
-        else:
-            warn('No hour has all species as active.  Ordered species: reactant, unspecified, product.')
-            species = [(self[s].sum(), s) for s in hr.species()]
-            species.sort()
-            species = [s[1] for s in species]
-        return species
-
-    def __str__(self):
-        species = self.get_species_roles()
-        template = '%-21s'+'%11.4f'*(self.shape[0]+1)
-        result = ''
-        for spc in species:
-            result += template % tuple([spc]+self[spc].tolist()+[self[spc].sum()])
-            result += '\n'
-        
-        return result
-        
-
-def return_updated_dict(d1, d2):
-    d1.update(d2)
-    return d1
