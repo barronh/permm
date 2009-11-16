@@ -1,5 +1,6 @@
 __all__ = ['IRRTable', 'NetTableMaker', 'PhyTableMaker', 'PtbMaker', 'SumTableMaker']
 
+from ...netcdf import NetCDFFile
 import IRRTable
 import NetTableMaker
 import PhyTableMaker
@@ -29,13 +30,17 @@ def net_balance(mechanism, mrg_data_path, output_dir):
         net_data_path = '.'.join(mrg_data_path.split('.')[:-1])+'.net.'
     else:
         net_data_path = output_dir+'.'
+    
+    mrg_file = NetCDFFile(mrg_data_path, 'r')
+    mech.set_mrg(mrg_file)
+
     print >> file(net_data_path+'sum','wb'), SumTable(mech)
     print >> file(net_data_path+'net','wb'), NetTables(mech)
     print >> file(net_data_path+'phy','wb'), PhyTables(mech)
     print >> file(net_data_path+'voc','wb'), VOCTable(mech)
     print >> file(net_data_path+'ptb','wb'), PtbTable(mech)
     mech = get_pure_mech(mechanism)
-
     mech.set_mrg(mrg_file)
+
     
     print >> file(net_data_path+'irr','wb'), IRRTable(mech)
