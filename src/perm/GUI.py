@@ -35,8 +35,8 @@ class App:
         self.method_list = Listbox(frame, selectmode = EXTENDED, exportselection = 0)
         self.method_list.grid(column = 6, row = 2)
         #self.methods = [k for k in dir(self.mech) if k[:1] != '_' and isinstance(getattr(self.mech, k), MethodType)]
-        self.methods = ['plot_rxns', 'find_rxns', 'print_rxns', 'print_nrxns', 'print_net_rxn']
-        method_labels= ['Plot Reactions', 'Show Rxn Ids', 'Print Rxns', 'Print IRRs', 'Print Net Rxn']
+        self.methods = ['plot_rxns', 'find_rxns', 'print_rxns', 'print_irrs', 'print_net_rxn', 'plot_proc']
+        method_labels= ['Plot Reactions', 'Show Rxn Ids', 'Print Rxns', 'Print IRRs', 'Print Net Rxn', 'Process Plot']
         for method in method_labels:
             self.method_list.insert(END, method)
             
@@ -76,8 +76,14 @@ class App:
         products = self.get_products()
         logical_and = bool(self.logical_and.get())
         methods = self.get_methods()
+        kwds = dict(reactants = reactants, products = products, logical_and = logical_and)
         for method in methods:
-            getattr(self.mech, method)(reactants, products, logical_and)
+            if method == 'plot_proc':
+                thiskwds = {}
+                thiskwds['species'] = (reactants+products)[0]
+            else:
+                thiskwds = kwds.copy()
+            getattr(self.mech, method)(**thiskwds)
 
 def StartGUI(mech):
     root = Tk()
