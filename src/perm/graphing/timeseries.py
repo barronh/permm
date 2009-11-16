@@ -38,8 +38,8 @@ def add_mech(conf):
         mech.set_mrg(mrg_file)
 
 def get_dates(mrg_file, end_date = True):
-    date_ints = mrg_file.variables['TFLAG'][:,0,:]
-    date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints])
+    date_ints = mrg_file.variables['TFLAG'][...,0,:].reshape(-1, 2)
+    date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints]).reshape(mrg_file.variables['TFLAG'].shape[:-2])
     if end_date:
         date_objs = concatenate([date_objs[[0]]-(date_objs[-1]-date_objs[-2]), date_objs])
     else:
@@ -48,13 +48,37 @@ def get_dates(mrg_file, end_date = True):
     return date_objs
     
 def get_date_steps(mrg_file, end_date = True):
-    date_objs = get_dates(mrg_file)
+    date_objs = get_dates(mrg_file, end_date)
 
     date_objs = date_objs.repeat(2,0)[1:-1]
     return date_objs
 
 def none_defaults_to(v, default):
     return {True: default, False: v}[v is None]
+
+def plot(mech, y, stepped = True, end_date = True, figure_settings = {}, axis_settings = {}, line_settings = {}):
+    
+    if stepped:
+        date_objs = get_date_steps(mech.mrg, end_date)
+        y = y.repeat(2,0)
+    else:
+        date_objs = get_dates(mech.mrg, end_date)
+
+    axis_settings = axis_settings.copy()
+    axis_settings.setdefault('xlabel', 'Time')
+    line_settings = line_settings.copy()
+    line_settings.setdefault('linestyle', '-')
+    line_settings.setdefault('linewidth', 3)
+    line_settings.setdefault('marker', 'None')
+
+    fig = figure(**figure_settings)
+    ax = fig.add_subplot(111, **axis_settings)
+    
+    ax.plot_date(date_objs, y, **line_settings)
+    ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
+    fig.autofmt_xdate()
+
+    return fig
     
 def irr_plot(
              mech, reactions, species,
@@ -125,14 +149,7 @@ def irr_plot(
         options['color'] = colors.next()
         data = rxn[species] * factor
         rxn_sum = rxn.sum()
-        reaction_label = re.compile('\d+.\d+\*').sub('', str(rxn_sum))
-        if len(reaction_label) > 70:
-            if rxn_sum.has_prd(species):
-                append = '%s + products' % species.name
-            else:
-                append = 'products'
-                
-            reaction_label = ' '.join(re.compile('(=[k|k|u]>)').split(reaction_label)[:2] + [append])
+        reaction_label = rxn.display(digits = None)
         options['label'] = reaction_label
         if rcParams['text.usetex']: options['label'] = '\ce{' + options['label'].replace('>', ']').replace('=', '->[') + '}'
         
