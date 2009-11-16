@@ -10,7 +10,7 @@ from SpeciesGroup import Species, species_sum
 from ProcessGroup import Process
 from ReactionGroup import ReactionFromString
 from IPRArray import IPR
-from graphing.timeseries import irr_plot, phy_plot
+from graphing.timeseries import irr_plot, phy_plot, plot as tplot
 from Shell import load_environ
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
 
@@ -167,10 +167,22 @@ class Mechanism(object):
         self.reaction_dict.update(new_rxn_def)
 
         return len(new_rxn_def)
-        
-    def find_rxns(self, reactants = [], products =[], logical_and = True):
+    
+    def get_rxns(self, reactants = [], products =[], logical_and = True, reaction_type = None):
         """
-        Get reactions that meet the criteria specified by reactants, products and logical_and.
+        Get reaction objects that meet the criteria specified by reactants, products and logical_and.
+        
+        reactants - filter mechanism reactions for reactions with all reactant(s)
+        products - filter mechanism reactions for reactions with all product(s)
+        logical_and - a boolean indicating how to combine reactant and product filters
+                      True: reaction is in both filters (i.e. reactants AND products)
+                      False: reaction is in either filter (i.e. reactants OR products)
+        """
+        return [self(rk) for rk in self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)]
+
+    def find_rxns(self, reactants = [], products =[], logical_and = True, reaction_type = None):
+        """
+        Get reaction names that meet the criteria specified by reactants, products and logical_and.
         
         reactants - filter mechanism reactions for reactions with all reactant(s)
         products - filter mechanism reactions for reactions with all product(s)
@@ -201,11 +213,18 @@ class Mechanism(object):
         else:
             product_result = [rn for rn, rv in result]
         
+            
         if logical_and:
-            result = list(set(reactant_result).intersection(product_result))
+            reaction_list = set(reactant_result).intersection(product_result)
         else:
-            result = list(set(reactant_result+product_result))
+            reaction_list = set(reactant_result+product_result)
 
+        if reaction_type is not None:
+            reaction_result = [rn for rn, rv in result if rv.reaction_type in reaction_type]
+            reaction_list = reaction_list.intersection(reaction_result)
+
+        
+        result = list(reaction_list)
         result.sort()
         
         return result
@@ -223,38 +242,53 @@ class Mechanism(object):
                     method = dict( r = 'has_rct', p = 'has_prd')
                     if getattr(self.reaction_dict[rxn], method)(spc):
                         pass
+    
+    def subst_net_rxn(self, reactants = [], products = [], logical_and = True, reaction_type = None, name = None):
+        rxns = self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)
+        if len(rxns) > 1:
+            eval_str = ' + '.join(rxns)
+            if name is None:
+                name = eval_str
+            nrxn = eval(eval_str, globals(), self.irr_dict)
+            for rxn in rxns:
+                del self.irr_dict[rxn]
+                del self.reaction_dict[rxn]
+            self.irr_dict[name] = nrxn
+            self.reaction_dict[name] = nrxn.sum()
+            load_environ(self, self.__eval_environment)
         
-    def make_net_rxn(self, reactants = [], products = [], logical_and = True):
+        
+    def make_net_rxn(self, reactants = [], products = [], logical_and = True, reaction_type = None):
         """
         Sum each reaction in find_rxns(reactants, procucts, logical_and)
         and return a net reaction
         
         for more information see find_rxns
         """
-        rxns = self.find_rxns(reactants, products, logical_and)
+        rxns = self.find_rxns(reactants, products, logical_and, reaction_type)
         result = self(' + '.join(rxns))
         
         return result
 
-    def print_net_rxn(self, reactants = [], products = [], logical_and = True):
+    def print_net_rxn(self, reactants = [], products = [], logical_and = True, reaction_type = None):
         """
         Sum each reaction in find_rxns(reactants, procucts, logical_and)
         and return a net reaction
         
         for more information see find_rxns
         """
-        net_rxn = self.make_net_rxn(reactants, products, logical_and)
+        net_rxn = self.make_net_rxn(reactants, products, logical_and, reaction_type)
         
         print net_rxn
 
-    def print_rxns(self, reactants = [], products = [], logical_and = True):
+    def print_rxns(self, reactants = [], products = [], logical_and = True, reaction_type = None):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         print the reaction
         
         for more information see find_rxns
         """
-        for rxn in self.find_rxns(reactants, products, logical_and):
+        for rxn in self.find_rxns(reactants, products, logical_and, reaction_type):
             print rxn, self.reaction_dict[rxn]
 
     def plot_rxn_list(self, reactions, plot_spc = None, path = None,
@@ -280,7 +314,20 @@ class Mechanism(object):
         
         return fig
 
-    def plot_rxns(self, reactants = [], products = [], logical_and = True,
+    def plot(self, y, path = None, stepped = True, end_date = True, time_slice = None, figure_settings = {}, axis_settings = {}, line_settings = {}):
+        """
+        plot creates a timeseries plot of any numerical array.
+        """
+        fig = tplot(self, y, stepped = stepped, end_date = end_date,
+                    figure_settings = figure_settings,
+                    axis_settings = axis_settings,
+                    line_settings = line_settings)
+        if path is not None:
+            fig.savefig(path)
+
+        return fig
+
+    def plot_rxns(self, reactants = [], products = [], logical_and = True, reaction_type = None,
                   plot_spc = None, path = None,
                   combine = [()], nlines = 8,
                   factor = 1, units = None, end_date = True,
@@ -329,7 +376,7 @@ class Mechanism(object):
                 return x
         if plot_spc is None:
             plot_spc = (ensure_list(products)+ensure_list(reactants))[0]
-        reactions = self.find_rxns(reactants, products, logical_and)
+        reactions = self.find_rxns(reactants, products, logical_and, reaction_type)
         
         if reactions == []:
             raise ValueError, "Your query didn't match any reactions; check your query and try again (try print_rxns)."
@@ -362,17 +409,17 @@ class Mechanism(object):
                                   line_settings = line_settings, fig = fig, cmap = cmap, ncol = ncol
                                  )
         
-    def print_nrxns(self, reactants = [], products = [], logical_and = True, factor = 1.):
+    def print_irrs(self, reactants = [], products = [], logical_and = True, reaction_type = None, factor = 1.):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         print the reaction summed for the entire timeseries.
         
         for more information see find_rxns
         """
-        if not hasattr(self,'nreaction_dict'):
+        if not hasattr(self,'irr_dict'):
             raise ValueError, "Net reactions are only available when IRR has been loaded"
-        for rxn in self.find_rxns(reactants, products, logical_and):
-            print rxn, self.nreaction_dict[rxn].sum() * factor
+        for rxn in self.find_rxns(reactants, products, logical_and, reaction_type):
+            print rxn, self.irr_dict[rxn].sum() * factor
         
     def set_mrg(self,mrg, use_net_rxns = True, use_irr = True, use_ipr = True):
         """
@@ -398,15 +445,19 @@ class Mechanism(object):
         self.apply_irr()
 
     def apply_irr(self):
-        self.nreaction_dict = AttrDict()
+        self.irr_dict = {}
         for rxn_name, rxn in self.reaction_dict.iteritems():
-            self.nreaction_dict[rxn_name] = rxn * self.irr[rxn_name]
+            try:
+                self.irr_dict[rxn_name] = rxn * self.irr[rxn_name]
+            except ValueError, (e):
+                warn("IRR does not contain %s: skipped." % rxn_name)
 
-        self.__reaction_data = self.nreaction_dict
+        self.__reaction_data = self.irr_dict
         
         if self.__use_net_rxns:
+            self.nreaction_dict = {}
             for nrxn_name, nrxn in self.net_reaction_dict.iteritems():
-                self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.nreaction_dict)
+                self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.irr_dict)
         
     def set_ipr(self,ipr, species, processes):
         """
@@ -448,9 +499,9 @@ class Mechanism(object):
 
     def add_rxn(self, rxn_key, rxn_str):
         self.reaction_dict[rxn_key] = ReactionFromString(rxn_str)
-        if hasattr(self, 'nreaction_dict'):
-            self.nreaction_dict[rxn_key] = ReactionFromString(rxn_str)
-            self.nreaction_dict[rxn_key] *= self.irr[rxn_key]
+        if hasattr(self, 'irr_dict'):
+            self.irr_dict[rxn_key] = ReactionFromString(rxn_str)
+            self.irr_dict[rxn_key] *= self.irr[rxn_key]
     
     def plot_proc(self, species, path = None, **kwds):
         """
