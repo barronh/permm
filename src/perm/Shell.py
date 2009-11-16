@@ -15,6 +15,7 @@ class PERMConsole(code.InteractiveConsole):
         if hasattr(readline, "read_history_file"):
             try:
                 readline.read_history_file(histfile)
+                readline.set_history_length(1000)
             except IOError:
                 pass
             atexit.register(self.save_history, histfile)
