@@ -866,8 +866,8 @@ species_group_list:
     - HPANS = PANS - PAN
     - NTRS = RNO3 + XN
     - NXOY = NO3 + N2O5
-    - CH3CO3 = MECO3
-    - CH3CnO3 = MACO3 + RCO3 + BZCO3
+    - CH3CO3 = MECO3 + xMECO3
+    - CH3CnO3 = MACO3 + xMACO3 + RCO3 + xRCO3 + BZCO3
     - CH3OOH = COOH
     - CH3CHO = CCHO
     - CH3COCH3 = ACETONE
