@@ -2,7 +2,8 @@ from numpy import ndarray, \
                   array, \
                   newaxis, \
                   float64, \
-                  vectorize
+                  vectorize, \
+                  rollaxis
 
 from utils import AttrDict
 from SpeciesGroup import Species
@@ -228,16 +229,31 @@ class Reaction(AttrDict):
         species = self.species()
         values = [self[spc] for spc in species]
         # Using native dict getitem for speed
+
         roles = array([val.role for val in values])
-        values = array(values)[:,newaxis]*array(irrs).view(ndarray)
-        stoic = StoicArray(values,roles[:, newaxis]).swapaxes(0,1)
+        factor = array(irrs).view(ndarray)
+        values = array(values).reshape([-1]+[1]*factor.ndim)
+        roles = array(roles).reshape([-1]+[1]*factor.ndim)
+        values = values*factor
+        stoic = StoicArray(values,roles)
+        stoic = stoic.transpose()
+        # pre-transpose dims: spc, dim0, dim1, ... dimN
+        # post-transpose dims: dimN, ..., dim1, dim0, spc
+
+        # Fix N dimension order:
+        # for each non-species/process dimension
+        #   move the dimension to the front
+        # post-fix dims: dim0, dim1, ..., dimN, spc
+        for dim in range(1,len(stoic.shape)-1):
+            stoic = rollaxis(stoic, dim, start = 0)
+        
         #stoic = (array([dict.__getitem__(self,k) for k in species], dtype = object)[:,newaxis]*array(irrs).view(ndarray)).swapaxes(0,1)
 
         rct_dict = dict(reaction_type = self.reaction_type)
         if not isinstance(irrs, ndarray):
             result = Reaction(**return_updated_dict(dict(zip(species,stoic[0])), rct_dict))
         else:
-            result = ReactionArray([Reaction(return_updated_dict(dict(zip(species,stc)), rct_dict)) for stc in stoic], dtype = Reaction)
+            result = ReactionArray([Reaction(return_updated_dict(dict(zip(species,stc)), rct_dict)) for stc in stoic.reshape(-1,len(species))], dtype = Reaction).reshape(factor.shape)
             
         return result
 
