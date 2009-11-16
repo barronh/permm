@@ -170,7 +170,13 @@ class Species(ndarray):
     
     def __neg__(self):
         return Species(self, name = 'x%s' % self.name, exclude = not self.exclude)
-        
+    
+    def __contains__(self, lhs):
+        if isinstance(lhs, Species):
+            return len(set(lhs.dtype.names).intersection(self.dtype.names)) > 0
+        elif isinstance(lhs, str):
+            return lhs in self.dtype.names
+            
     def __rmul__(self, y):
         return self.__mul__(y)
 
@@ -212,10 +218,10 @@ def species_sum(species_list):
 
     for next_species in species_list[1:]:
         if out_exclude ^ next_species.exclude:
-            out_name += '+' + next_species.name
+            out_name += ' + ' + next_species.name
             out_names = out_names.difference(next_species.dtype.names)
         else:
-            out_name += '+' + next_species.name
+            out_name += ' + ' + next_species.name
             out_names.update(next_species.dtype.names)
         
         out_exclude = out_exclude and next_species.exclude
