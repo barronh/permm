@@ -1,204 +1,207 @@
+species_list:
+    'CL': IGNORE
+
 reaction_list:
-    IRR_1: O2 =j> 2*O
-    IRR_2: O3 =j> O1D {+ O2}
-    IRR_3: O3 =j> O {+ O2}
-    IRR_4: N2O =j> O1D {+ N2}
-    IRR_5: NO2 =j> NO + O
-    IRR_6: N2O5 =j> NO2 + NO3 + DUMMY
-    IRR_7: HNO3 =j> NO2 + OH
-    IRR_8: NO3 =j> .89*NO2 + .11*NO + .89*O3
-    IRR_9: HO2NO2 =j> .33*OH + .33*NO3 + .66*NO2 + .66*HO2
-    IRR_10: CH3OOH =j> CH2O + HO2 + OH
-    IRR_11: CH2O =j> CO + 2 * HO2
-    IRR_12: CH2O =j> CO {+ H2}
-    IRR_13: H2O2 =j> 2*OH
-    IRR_14: CH3CHO =j> CH3O2 + CO + HO2
-    IRR_15: POOH =j> CH3CHO + CH2O + HO2 + OH
-    IRR_16: CH3COOOH =j> CH3O2 + OH {+ CO2}
-    IRR_17: PAN =j> .6*CH3CO3 + .6*NO2 + .4*CH3O2 + .4*NO3 {+ .4*CO2}
-    IRR_18: MPAN =j> MCO3 + NO2 + DUMMY
-    IRR_19: MACR =j> .67*HO2 + .33*MCO3 + .67*CH2O + .67*CH3CO3 + .33*OH + .67*CO
-    IRR_20: MVK =j> .7 * C3H6 + .7 * CO + .3 * CH3O2 + .3 * CH3CO3
-    IRR_21: C2H5OOH =j> CH3CHO + HO2 + OH
-    IRR_22: C3H7OOH =j> 0.82 * CH3COCH3 + OH + HO2
-    IRR_23: ROOH =j> CH3CO3 + CH2O + OH
-    IRR_24: CH3COCH3 =j> CH3CO3 + CH3O2
-    IRR_25: CH3COCHO =j> CH3CO3 + CO + HO2
-    IRR_26: XOOH =j> OH
-    IRR_27: ONITR =j> HO2 + CO + NO2 + CH2O
-    IRR_28: ISOPOOH =j> .402 * MVK + .288 * MACR + .69 * CH2O + HO2
-    IRR_29: HYAC =j> CH3CO3 + HO2 + CH2O
-    IRR_30: GLYALD =j> 2 * HO2 + CO + CH2O
-    IRR_31: MEK =j> CH3CO3 + C2H5O2
-    IRR_32: BIGALD =j> .45*CO + .13*GLYOXAL + .56*HO2 + .13*CH3CO3 + .18*CH3COCHO
-    IRR_33: GLYOXAL =j> 2*CO + 2*HO2
-    IRR_34: ALKOOH =j> .4*CH3CHO + .1*CH2O + .25*CH3COCH3 + .9*HO2 + .8*MEK + OH
-    IRR_35: MEKOOH =j> OH + CH3CO3 + CH3CHO
-    IRR_36: TOLOOH =j> OH + .45*GLYOXAL + .45*CH3COCHO + .9*BIGALD
-    IRR_37: TERPOOH =j> OH + .1*CH3COCH3 + HO2 + MVK + MACR
-    IRR_38: O + O2 + M =k> O3 + M
-    IRR_39: O + O3 =k> 2*O2 + DUMMY
-    IRR_40: O1D + N2 =k> O + N2
-    IRR_41: O1D + O2 =k> O + O2 + DUMMY
-    IRR_42: O1D + H2O =k> 2*OH
-    IRR_43: O1D =k> HO2 + OH
-    IRR_44: OH =k> H2O + HO2
-    IRR_45: O + OH =k> HO2 + O2
-    IRR_46: HO2 + O =k> OH + O2
-    IRR_47: OH + O3 =k> HO2 + O2
-    IRR_48: HO2 + O3 =k> OH + 2*O2
-    IRR_49: HO2 + HO2 =k> H2O2 + O2
-    IRR_50: H2O2 + OH =k> H2O + HO2
-    IRR_51: OH + HO2 =k> H2O + O2 + DUMMY
-    IRR_52: OH + OH =k> H2O + O
-    IRR_53: OH + OH + M =k> H2O2 + M
-    IRR_54: O1D =k> N2 + O2 + DUMMY
-    IRR_55: O1D =k> 2*NO
-    IRR_56: NO + HO2 =k> NO2 + OH
-    IRR_57: NO + O3 =k> NO2 + O2
-    IRR_58: NO2 + O =k> NO + O2
-    IRR_59: NO2 + O3 =k> NO3 + O2
-    IRR_60: NO3 + HO2 =k> OH + NO2
-    IRR_61: NO2 + NO3 + M =k> N2O5 + M
-    IRR_62: N2O5 + M =k> NO2 + NO3 + M
-    IRR_63: NO2 + OH + M =k> HNO3 + M
-    IRR_64: HNO3 + OH =k> NO3 + H2O
-    IRR_65: NO3 + NO =k> 2*NO2
-    IRR_66: NO2 + HO2 + M =k> HO2NO2 + M
-    IRR_67: HO2NO2 + OH =k> H2O + NO2 + O2
-    IRR_68: HO2NO2 + M =k> HO2 + NO2 + M
-    IRR_69: OH =k> CH3O2 + H2O
-    IRR_70: O1D =k> .75*CH3O2 + .75*OH + .25*CH2O + .4*HO2 + .05*H2
-    IRR_71: CH3O2 + NO =k> CH2O + NO2 + HO2
-    IRR_72: CH3O2 + CH3O2 =k> 2 * CH2O + 2 * HO2
-    IRR_73: CH3O2 + CH3O2 =k> CH2O + CH3OH
-    IRR_74: CH3O2 + HO2 =k> CH3OOH + O2
-    IRR_75: CH3OOH + OH =k> .7 * CH3O2 + .3 * OH + .3 * CH2O + H2O
-    IRR_76: CH2O + NO3 =k> CO + HO2 + HNO3
-    IRR_77: CH2O + OH =k> CO + H2O + HO2
-    IRR_78: CO + OH =k> CO2 + HO2
-    IRR_79: CH3OH + OH =k> HO2 + CH2O
-    IRR_80: C2H4 + OH + M =k> .75*EO2 + .5*CH2O + .25*HO2 + M
-    IRR_81: C2H4 + O3 =k> CH2O + .12 * HO2 + .5 * CO + .12 * OH + .25 * CH3COOH
-    IRR_82: EO2 + NO =k> EO + NO2
-    IRR_83: EO + O2 =k> GLYALD + HO2
-    IRR_84: EO =k> 2 * CH2O + HO2
-    IRR_85: C2H6 + OH =k> C2H5O2 + H2O
-    IRR_86: C2H5O2 + NO =k> CH3CHO + HO2 + NO2
-    IRR_87: C2H5O2 + HO2 =k> C2H5OOH + O2
-    IRR_88: C2H5O2 + CH3O2 =k> .7 * CH2O + .8 * CH3CHO + HO2 + .3 * CH3OH + .2 * C2H5OH
-    IRR_89: C2H5O2 + C2H5O2 =k> 1.6 * CH3CHO + 1.2 * HO2 + .4 * C2H5OH
-    IRR_90: C2H5OOH + OH =k> .5 * C2H5O2 + .5 * CH3CHO + .5 * OH
-    IRR_91: CH3CHO + OH =k> CH3CO3 + H2O
-    IRR_92: CH3CHO + NO3 =k> CH3CO3 + HNO3
-    IRR_93: CH3CO3 + NO =k> CH3O2 + CO2 + NO2
-    IRR_94: CH3CO3 + NO2 + M =k> PAN + M
-    IRR_95: CH3CO3 + HO2 =k> .75*CH3COOOH + .25*CH3COOH + .25*O3
-    IRR_96: CH3CO3 + CH3O2 =k> .9*CH3O2 + CH2O + .9*HO2 + .9*CO2 + .1*CH3COOH
-    IRR_97: CH3COOOH + OH =k> .5*CH3CO3 + .5*CH2O + .5*CO2 + H2O
-    IRR_98: PAN + OH =k> CH2O + NO3 + CO2
-    IRR_99: PAN + M =k> CH3CO3 + NO2 + M
-    IRR_100: CH3CO3 + CH3CO3 =k> 2*CH3O2 + 2*CO2
-    IRR_101: GLYALD + OH =k> HO2 + .2*GLYOXAL + .8*CH2O + .8*CO2
-    IRR_102: GLYOXAL + OH =k> HO2 + CO + CO2
-    IRR_103: CH3COOH + OH =k> CH3O2 + CO2 + H2O
-    IRR_104: C2H5OH + OH =k> HO2 + CH3CHO
-    IRR_105: C3H6 + OH + M =k> PO2 + M
-    IRR_106: C3H6 + O3 =k> .54*CH2O + .19*HO2 + .33*OH + .08*CH4 + .56*CO + .5*CH3CHO + .31*CH3O2 + .25*CH3COOH
-    IRR_107: C3H6 + NO3 =k> ONIT
-    IRR_108: PO2 + NO =k> CH3CHO + CH2O + HO2 + NO2
-    IRR_109: PO2 + HO2 =k> POOH + O2
-    IRR_110: POOH + OH =k> .5*PO2 + .5*OH + .5*HYAC + H2O
-    IRR_111: C3H8 + OH =k> C3H7O2 + H2O
-    IRR_112: C3H7O2 + NO =k> .82 * CH3COCH3 + NO2 + HO2 + .27 * CH3CHO
-    IRR_113: C3H7O2 + HO2 =k> C3H7OOH + O2
-    IRR_114: C3H7O2 + CH3O2 =k> CH2O + HO2 + .82 * CH3COCH3
-    IRR_115: C3H7OOH + OH =k> H2O + C3H7O2
-    IRR_116: CH3COCH3 + OH =k> MZRO2 + H2O
-    IRR_117: MZRO2 + NO =k> CH3CO3 + CH2O + NO2
-    IRR_118: MZRO2 + HO2 =k> ROOH + O2
-    IRR_119: MZRO2 + CH3O2 =k> .3*CH3CO3 + .8*CH2O + .3*HO2 + .2*HYAC + .5*CH3COCHO + .5*CH3OH
-    IRR_120: ROOH + OH =k> MZRO2 + H2O
-    IRR_121: ONIT + OH =k> NO2 + CH3COCHO
-    IRR_122: CH3COCHO + OH =k> CH3CO3 + CO + H2O
-    IRR_123: CH3COCHO + NO3 =k> HNO3 + CO + CH3CO3
-    IRR_124: HYAC + OH =k> CH3COCHO + HO2
-    IRR_125: BIGENE + OH =k> ENEO2
-    IRR_126: ENEO2 + NO =k> CH3CHO + .5*CH2O + .5*CH3COCH3 + HO2 + NO2
-    IRR_127: MEK + OH =k> MEKO2
-    IRR_128: MEKO2 + NO =k> CH3CO3 + CH3CHO + NO2
-    IRR_129: MEKO2 + HO2 =k> MEKOOH
-    IRR_130: MEKOOH + OH =k> MEKO2
-    IRR_131: MPAN + OH =k> .5*HYAC + .5*NO3 + .5*CH2O + .5*HO2 + .5*CO2
-    IRR_132: BIGALK + OH =k> ALKO2
-    IRR_133: ALKO2 + NO =k> .4*CH3CHO + .1*CH2O + .25*CH3COCH3 + .9*HO2 + .75*MEK + .9*NO2 + .1*ONIT
-    IRR_134: ALKO2 + HO2 =k> ALKOOH
-    IRR_135: ALKOOH + OH =k> ALKO2
-    IRR_136: ISOP + OH =k> ISOPO2
-    IRR_137: ISOP + O3 =k> .4 * MACR + .2 * MVK + .07 * C3H6 + .27 * OH + .06 * HO2 + .6 * CH2O + .3 * CO + .1 * O3 + .2 * MCO3 + .2 * CH3COOH
-    IRR_138: ISOPO2 + NO =k> .08 * ONITR + .92 * NO2 + HO2 + .55 * CH2O + .23 * MACR + .32 * MVK + .37 * HYDRALD
-    IRR_139: ISOPO2 + NO3 =k> HO2 + NO2 + .6 * CH2O + .25 * MACR + .35 * MVK + .4 * HYDRALD
-    IRR_140: ISOPO2 + HO2 =k> ISOPOOH
-    IRR_141: ISOPOOH + OH =k> .5 * XO2 + .5 * ISOPO2
-    IRR_142: ISOPO2 + CH3O2 =k> .25 * CH3OH + HO2 + 1.2 * CH2O + .19 * MACR + .26 * MVK + .3 * HYDRALD
-    IRR_143: ISOPO2 + CH3CO3 =k> CH3O2 + HO2 + .6 * CH2O + CO2 + .25 * MACR + .35 * MVK + .4 * HYDRALD
-    IRR_144: ISOP + NO3 =k> ISOPNO3
-    IRR_145: ISOPNO3 + NO =k> 1.206 * NO2 + .794 * HO2 + .072 * CH2O + .167 * MACR + .039 * MVK + .794 * ONITR
-    IRR_146: ISOPNO3 + NO3 =k> 1.206 * NO2 + .072 * CH2O + .167 * MACR + .039 * MVK + .794 * ONITR + .794 * HO2
-    IRR_147: ISOPNO3 + HO2 =k> .206 * NO2 + .794 * HO2 + .008 * CH2O + .167 * MACR + .039 * MVK + .794 * ONITR
-    IRR_148: MVK + OH =k> MACRO2
-    IRR_149: MVK + O3 =k> .8 * CH2O + .95 * CH3COCHO + .08 * OH + .2 * O3 + .06 * HO2 + .05 * CO + .04 * CH3CHO
-    IRR_150: MACR + OH =k> .5 * MACRO2 + .5 * H2O + .5 * MCO3
-    IRR_151: MACR + O3 =k> .8 * CH3COCHO + .275 * HO2 + .2 * CO + .2 * O3 + .7 * CH2O + .215 * OH
-    IRR_152: MACRO2 + NO =k> NO2 + .47 * HO2 + .25 * CH2O + .25 * CH3COCHO + .53 * CH3CO3 + .53 * GLYALD + .22 * HYAC + .22 * CO
-    IRR_153: MACRO2 + NO =k> 0.8*ONITR
-    IRR_154: MACRO2 + NO3 =k> NO2 + .47*HO2 + .25*CH2O + .25*CH3COCHO + .22*CO + .53*GLYALD + .22*HYAC + .53*CH3CO3
-    IRR_155: MACRO2 + HO2 =k> MACROOH
-    IRR_156: MACRO2 + CH3O2 =k> .73*HO2 + .88*CH2O + .11*CO + .24*CH3COCHO + .26*GLYALD + .26*CH3CO3 + .25*CH3OH + .23*HYAC
-    IRR_157: MACRO2 + CH3CO3 =k> .25*CH3COCHO + CH3O2 + .22*CO + .47*HO2 + CO2 + .53*GLYALD + .22*HYAC + .25*CH2O + .53*CH3CO3
-    IRR_158: MACROOH + OH =k> .5 * MCO3 + .2*MACRO2 + .1*OH + .2*HO2
-    IRR_159: MCO3 + NO =k> NO2 + CH2O + CH3CO3 + CO2
-    IRR_160: MCO3 + NO3 =k> NO2 + CH2O + CH3CO3 + CO2
-    IRR_161: MCO3 + HO2 =k> .25*O3 + .25*CH3COOH + .75*CH3COOOH + .75*O2
-    IRR_162: MCO3 + CH3O2 =k> 2 * CH2O + HO2 + CO2 + CH3CO3
-    IRR_163: MCO3 + CH3CO3 =k> 2 * CO2 + CH3O2 + CH2O + CH3CO3
-    IRR_164: MCO3 + MCO3 =k> 2 * CO2 + 2 * CH2O + 2 * CH3CO3
-    IRR_165: MCO3 + NO2 + M =k> MPAN + M
-    IRR_166: MPAN + M =k> MCO3 + NO2 + M
-    IRR_167: ONITR + OH =k> HYDRALD + .4*NO2 + HO2
-    IRR_168: ONITR + NO3 =k> HYDRALD + NO2 + HO2
-    IRR_169: HYDRALD + OH =k> XO2
-    IRR_170: XO2 + NO =k> NO2 + 1.5*HO2 + CO + .25*HYAC + .25*CH3COCHO + .25*GLYALD
-    IRR_171: XO2 + NO3 =k> NO2 + 1.5*HO2 + CO + .25*HYAC + .25*CH3COCHO + .25*GLYALD
-    IRR_172: XO2 + HO2 =k> XOOH
-    IRR_173: XO2 + CH3O2 =k> .3 * CH3OH + HO2 + .7 * CH2O + .4 * CO + .1 * HYAC + .1 * CH3COCHO + .1 * GLYALD
-    IRR_174: XO2 + CH3CO3 =k> CO + CH3O2 + 1.5 * HO2 + CO2 + .25 * HYAC + .25 * CH3COCHO + .25 * GLYALD
-    IRR_175: XOOH + OH =k> H2O + XO2
-    IRR_176: XOOH + OH =k> H2O + OH
-    IRR_177: TOLUENE + OH =k> .25*CRESOL + .25*HO2 + .7*TOLO2
-    IRR_178: CRESOL + OH =k> XOH
-    IRR_179: XOH + NO2 =k> .7*NO2 + .7*BIGALD + .7*HO2
-    IRR_180: TOLO2 + NO =k> .45*GLYOXAL + .45*CH3COCHO +.9*BIGALD + .9*NO2 + .9*HO2
-    IRR_181: TOLO2 + HO2 =k> TOLOOH
-    IRR_182: TOLOOH + OH =k> TOLO2
-    IRR_183: C10H16 + OH =k> TERPO2
-    IRR_184: C10H16 + O3 =k> .7*OH + MVK + MACR + HO2
-    IRR_185: C10H16 + NO3 =k> TERPO2 + NO2
-    IRR_186: TERPO2 + NO =k> .1*CH3COCH3 + HO2 + MVK + MACR + NO2
-    IRR_187: TERPO2 + HO2 =k> TERPOOH
-    IRR_188: TERPOOH + OH =k> TERPO2
-    IRR_189: Rn =k> Pb
-    IRR_190: N2O5 =k> 2 * HNO3
-    IRR_191: NO3 =k> HNO3
-    IRR_192: NO2 =k> 0.5*OH + 0.5*NO + 0.5*HNO3
-    IRR_193: CB1 =k> CB2
-    IRR_194: SO2 + OH =k> SO4
-    IRR_195: DMS + OH =k> SO2
-    IRR_196: DMS + OH =k> .5 * SO2 + .5 * HO2
-    IRR_197: DMS + NO3 =k> SO2 + HNO3
-    IRR_198: NH3 + OH =k> H2O + DUMMY
-    IRR_199: OC1 =k> OC2
-    IRR_200: HO2 =k> 0.5*H2O2 + DUMMY
+    IRR_1: O2 ->[j] 2*O
+    IRR_2: O3 ->[j] O1D {+ O2}
+    IRR_3: O3 ->[j] O {+ O2}
+    IRR_4: N2O ->[j] O1D {+ N2}
+    IRR_5: NO2 ->[j] NO + O
+    IRR_6: N2O5 ->[j] NO2 + NO3 + DUMMY
+    IRR_7: HNO3 ->[j] NO2 + OH
+    IRR_8: NO3 ->[j] .89*NO2 + .11*NO + .89*O3
+    IRR_9: HO2NO2 ->[j] .33*OH + .33*NO3 + .66*NO2 + .66*HO2
+    IRR_10: CH3OOH ->[j] CH2O + HO2 + OH
+    IRR_11: CH2O ->[j] CO + 2 * HO2
+    IRR_12: CH2O ->[j] CO {+ H2}
+    IRR_13: H2O2 ->[j] 2*OH
+    IRR_14: CH3CHO ->[j] CH3O2 + CO + HO2
+    IRR_15: POOH ->[j] CH3CHO + CH2O + HO2 + OH
+    IRR_16: CH3COOOH ->[j] CH3O2 + OH {+ CO2}
+    IRR_17: PAN ->[j] .6*CH3CO3 + .6*NO2 + .4*CH3O2 + .4*NO3 {+ .4*CO2}
+    IRR_18: MPAN ->[j] MCO3 + NO2 + DUMMY
+    IRR_19: MACR ->[j] .67*HO2 + .33*MCO3 + .67*CH2O + .67*CH3CO3 + .33*OH + .67*CO
+    IRR_20: MVK ->[j] .7 * C3H6 + .7 * CO + .3 * CH3O2 + .3 * CH3CO3
+    IRR_21: C2H5OOH ->[j] CH3CHO + HO2 + OH
+    IRR_22: C3H7OOH ->[j] 0.82 * CH3COCH3 + OH + HO2
+    IRR_23: ROOH ->[j] CH3CO3 + CH2O + OH
+    IRR_24: CH3COCH3 ->[j] CH3CO3 + CH3O2
+    IRR_25: CH3COCHO ->[j] CH3CO3 + CO + HO2
+    IRR_26: XOOH ->[j] OH
+    IRR_27: ONITR ->[j] HO2 + CO + NO2 + CH2O
+    IRR_28: ISOPOOH ->[j] .402 * MVK + .288 * MACR + .69 * CH2O + HO2
+    IRR_29: HYAC ->[j] CH3CO3 + HO2 + CH2O
+    IRR_30: GLYALD ->[j] 2 * HO2 + CO + CH2O
+    IRR_31: MEK ->[j] CH3CO3 + C2H5O2
+    IRR_32: BIGALD ->[j] .45*CO + .13*GLYOXAL + .56*HO2 + .13*CH3CO3 + .18*CH3COCHO
+    IRR_33: GLYOXAL ->[j] 2*CO + 2*HO2
+    IRR_34: ALKOOH ->[j] .4*CH3CHO + .1*CH2O + .25*CH3COCH3 + .9*HO2 + .8*MEK + OH
+    IRR_35: MEKOOH ->[j] OH + CH3CO3 + CH3CHO
+    IRR_36: TOLOOH ->[j] OH + .45*GLYOXAL + .45*CH3COCHO + .9*BIGALD
+    IRR_37: TERPOOH ->[j] OH + .1*CH3COCH3 + HO2 + MVK + MACR
+    IRR_38: O + O2 + M ->[k] O3 + M
+    IRR_39: O + O3 ->[k] 2*O2 + DUMMY
+    IRR_40: O1D + N2 ->[k] O + N2
+    IRR_41: O1D + O2 ->[k] O + O2 + DUMMY
+    IRR_42: O1D + H2O ->[k] 2*OH
+    IRR_43: O1D ->[k] HO2 + OH
+    IRR_44: OH ->[k] H2O + HO2
+    IRR_45: O + OH ->[k] HO2 + O2
+    IRR_46: HO2 + O ->[k] OH + O2
+    IRR_47: OH + O3 ->[k] HO2 + O2
+    IRR_48: HO2 + O3 ->[k] OH + 2*O2
+    IRR_49: HO2 + HO2 ->[k] H2O2 + O2
+    IRR_50: H2O2 + OH ->[k] H2O + HO2
+    IRR_51: OH + HO2 ->[k] H2O + O2 + DUMMY
+    IRR_52: OH + OH ->[k] H2O + O
+    IRR_53: OH + OH + M ->[k] H2O2 + M
+    IRR_54: O1D ->[k] N2 + O2 + DUMMY
+    IRR_55: O1D ->[k] 2*NO
+    IRR_56: NO + HO2 ->[k] NO2 + OH
+    IRR_57: NO + O3 ->[k] NO2 + O2
+    IRR_58: NO2 + O ->[k] NO + O2
+    IRR_59: NO2 + O3 ->[k] NO3 + O2
+    IRR_60: NO3 + HO2 ->[k] OH + NO2
+    IRR_61: NO2 + NO3 + M ->[k] N2O5 + M
+    IRR_62: N2O5 + M ->[k] NO2 + NO3 + M
+    IRR_63: NO2 + OH + M ->[k] HNO3 + M
+    IRR_64: HNO3 + OH ->[k] NO3 + H2O
+    IRR_65: NO3 + NO ->[k] 2*NO2
+    IRR_66: NO2 + HO2 + M ->[k] HO2NO2 + M
+    IRR_67: HO2NO2 + OH ->[k] H2O + NO2 + O2
+    IRR_68: HO2NO2 + M ->[k] HO2 + NO2 + M
+    IRR_69: OH ->[k] CH3O2 + H2O
+    IRR_70: O1D ->[k] .75*CH3O2 + .75*OH + .25*CH2O + .4*HO2 + .05*H2
+    IRR_71: CH3O2 + NO ->[k] CH2O + NO2 + HO2
+    IRR_72: CH3O2 + CH3O2 ->[k] 2 * CH2O + 2 * HO2
+    IRR_73: CH3O2 + CH3O2 ->[k] CH2O + CH3OH
+    IRR_74: CH3O2 + HO2 ->[k] CH3OOH + O2
+    IRR_75: CH3OOH + OH ->[k] .7 * CH3O2 + .3 * OH + .3 * CH2O + H2O
+    IRR_76: CH2O + NO3 ->[k] CO + HO2 + HNO3
+    IRR_77: CH2O + OH ->[k] CO + H2O + HO2
+    IRR_78: CO + OH ->[k] CO2 + HO2
+    IRR_79: CH3OH + OH ->[k] HO2 + CH2O
+    IRR_80: C2H4 + OH + M ->[k] .75*EO2 + .5*CH2O + .25*HO2 + M
+    IRR_81: C2H4 + O3 ->[k] CH2O + .12 * HO2 + .5 * CO + .12 * OH + .25 * CH3COOH
+    IRR_82: EO2 + NO ->[k] EO + NO2
+    IRR_83: EO + O2 ->[k] GLYALD + HO2
+    IRR_84: EO ->[k] 2 * CH2O + HO2
+    IRR_85: C2H6 + OH ->[k] C2H5O2 + H2O
+    IRR_86: C2H5O2 + NO ->[k] CH3CHO + HO2 + NO2
+    IRR_87: C2H5O2 + HO2 ->[k] C2H5OOH + O2
+    IRR_88: C2H5O2 + CH3O2 ->[k] .7 * CH2O + .8 * CH3CHO + HO2 + .3 * CH3OH + .2 * C2H5OH
+    IRR_89: C2H5O2 + C2H5O2 ->[k] 1.6 * CH3CHO + 1.2 * HO2 + .4 * C2H5OH
+    IRR_90: C2H5OOH + OH ->[k] .5 * C2H5O2 + .5 * CH3CHO + .5 * OH
+    IRR_91: CH3CHO + OH ->[k] CH3CO3 + H2O
+    IRR_92: CH3CHO + NO3 ->[k] CH3CO3 + HNO3
+    IRR_93: CH3CO3 + NO ->[k] CH3O2 + CO2 + NO2
+    IRR_94: CH3CO3 + NO2 + M ->[k] PAN + M
+    IRR_95: CH3CO3 + HO2 ->[k] .75*CH3COOOH + .25*CH3COOH + .25*O3
+    IRR_96: CH3CO3 + CH3O2 ->[k] .9*CH3O2 + CH2O + .9*HO2 + .9*CO2 + .1*CH3COOH
+    IRR_97: CH3COOOH + OH ->[k] .5*CH3CO3 + .5*CH2O + .5*CO2 + H2O
+    IRR_98: PAN + OH ->[k] CH2O + NO3 + CO2
+    IRR_99: PAN + M ->[k] CH3CO3 + NO2 + M
+    IRR_100: CH3CO3 + CH3CO3 ->[k] 2*CH3O2 + 2*CO2
+    IRR_101: GLYALD + OH ->[k] HO2 + .2*GLYOXAL + .8*CH2O + .8*CO2
+    IRR_102: GLYOXAL + OH ->[k] HO2 + CO + CO2
+    IRR_103: CH3COOH + OH ->[k] CH3O2 + CO2 + H2O
+    IRR_104: C2H5OH + OH ->[k] HO2 + CH3CHO
+    IRR_105: C3H6 + OH + M ->[k] PO2 + M
+    IRR_106: C3H6 + O3 ->[k] .54*CH2O + .19*HO2 + .33*OH + .08*CH4 + .56*CO + .5*CH3CHO + .31*CH3O2 + .25*CH3COOH
+    IRR_107: C3H6 + NO3 ->[k] ONIT
+    IRR_108: PO2 + NO ->[k] CH3CHO + CH2O + HO2 + NO2
+    IRR_109: PO2 + HO2 ->[k] POOH + O2
+    IRR_110: POOH + OH ->[k] .5*PO2 + .5*OH + .5*HYAC + H2O
+    IRR_111: C3H8 + OH ->[k] C3H7O2 + H2O
+    IRR_112: C3H7O2 + NO ->[k] .82 * CH3COCH3 + NO2 + HO2 + .27 * CH3CHO
+    IRR_113: C3H7O2 + HO2 ->[k] C3H7OOH + O2
+    IRR_114: C3H7O2 + CH3O2 ->[k] CH2O + HO2 + .82 * CH3COCH3
+    IRR_115: C3H7OOH + OH ->[k] H2O + C3H7O2
+    IRR_116: CH3COCH3 + OH ->[k] MZRO2 + H2O
+    IRR_117: MZRO2 + NO ->[k] CH3CO3 + CH2O + NO2
+    IRR_118: MZRO2 + HO2 ->[k] ROOH + O2
+    IRR_119: MZRO2 + CH3O2 ->[k] .3*CH3CO3 + .8*CH2O + .3*HO2 + .2*HYAC + .5*CH3COCHO + .5*CH3OH
+    IRR_120: ROOH + OH ->[k] MZRO2 + H2O
+    IRR_121: ONIT + OH ->[k] NO2 + CH3COCHO
+    IRR_122: CH3COCHO + OH ->[k] CH3CO3 + CO + H2O
+    IRR_123: CH3COCHO + NO3 ->[k] HNO3 + CO + CH3CO3
+    IRR_124: HYAC + OH ->[k] CH3COCHO + HO2
+    IRR_125: BIGENE + OH ->[k] ENEO2
+    IRR_126: ENEO2 + NO ->[k] CH3CHO + .5*CH2O + .5*CH3COCH3 + HO2 + NO2
+    IRR_127: MEK + OH ->[k] MEKO2
+    IRR_128: MEKO2 + NO ->[k] CH3CO3 + CH3CHO + NO2
+    IRR_129: MEKO2 + HO2 ->[k] MEKOOH
+    IRR_130: MEKOOH + OH ->[k] MEKO2
+    IRR_131: MPAN + OH ->[k] .5*HYAC + .5*NO3 + .5*CH2O + .5*HO2 + .5*CO2
+    IRR_132: BIGALK + OH ->[k] ALKO2
+    IRR_133: ALKO2 + NO ->[k] .4*CH3CHO + .1*CH2O + .25*CH3COCH3 + .9*HO2 + .75*MEK + .9*NO2 + .1*ONIT
+    IRR_134: ALKO2 + HO2 ->[k] ALKOOH
+    IRR_135: ALKOOH + OH ->[k] ALKO2
+    IRR_136: ISOP + OH ->[k] ISOPO2
+    IRR_137: ISOP + O3 ->[k] .4 * MACR + .2 * MVK + .07 * C3H6 + .27 * OH + .06 * HO2 + .6 * CH2O + .3 * CO + .1 * O3 + .2 * MCO3 + .2 * CH3COOH
+    IRR_138: ISOPO2 + NO ->[k] .08 * ONITR + .92 * NO2 + HO2 + .55 * CH2O + .23 * MACR + .32 * MVK + .37 * HYDRALD
+    IRR_139: ISOPO2 + NO3 ->[k] HO2 + NO2 + .6 * CH2O + .25 * MACR + .35 * MVK + .4 * HYDRALD
+    IRR_140: ISOPO2 + HO2 ->[k] ISOPOOH
+    IRR_141: ISOPOOH + OH ->[k] .5 * XO2 + .5 * ISOPO2
+    IRR_142: ISOPO2 + CH3O2 ->[k] .25 * CH3OH + HO2 + 1.2 * CH2O + .19 * MACR + .26 * MVK + .3 * HYDRALD
+    IRR_143: ISOPO2 + CH3CO3 ->[k] CH3O2 + HO2 + .6 * CH2O + CO2 + .25 * MACR + .35 * MVK + .4 * HYDRALD
+    IRR_144: ISOP + NO3 ->[k] ISOPNO3
+    IRR_145: ISOPNO3 + NO ->[k] 1.206 * NO2 + .794 * HO2 + .072 * CH2O + .167 * MACR + .039 * MVK + .794 * ONITR
+    IRR_146: ISOPNO3 + NO3 ->[k] 1.206 * NO2 + .072 * CH2O + .167 * MACR + .039 * MVK + .794 * ONITR + .794 * HO2
+    IRR_147: ISOPNO3 + HO2 ->[k] .206 * NO2 + .794 * HO2 + .008 * CH2O + .167 * MACR + .039 * MVK + .794 * ONITR
+    IRR_148: MVK + OH ->[k] MACRO2
+    IRR_149: MVK + O3 ->[k] .8 * CH2O + .95 * CH3COCHO + .08 * OH + .2 * O3 + .06 * HO2 + .05 * CO + .04 * CH3CHO
+    IRR_150: MACR + OH ->[k] .5 * MACRO2 + .5 * H2O + .5 * MCO3
+    IRR_151: MACR + O3 ->[k] .8 * CH3COCHO + .275 * HO2 + .2 * CO + .2 * O3 + .7 * CH2O + .215 * OH
+    IRR_152: MACRO2 + NO ->[k] NO2 + .47 * HO2 + .25 * CH2O + .25 * CH3COCHO + .53 * CH3CO3 + .53 * GLYALD + .22 * HYAC + .22 * CO
+    IRR_153: MACRO2 + NO ->[k] 0.8*ONITR
+    IRR_154: MACRO2 + NO3 ->[k] NO2 + .47*HO2 + .25*CH2O + .25*CH3COCHO + .22*CO + .53*GLYALD + .22*HYAC + .53*CH3CO3
+    IRR_155: MACRO2 + HO2 ->[k] MACROOH
+    IRR_156: MACRO2 + CH3O2 ->[k] .73*HO2 + .88*CH2O + .11*CO + .24*CH3COCHO + .26*GLYALD + .26*CH3CO3 + .25*CH3OH + .23*HYAC
+    IRR_157: MACRO2 + CH3CO3 ->[k] .25*CH3COCHO + CH3O2 + .22*CO + .47*HO2 + CO2 + .53*GLYALD + .22*HYAC + .25*CH2O + .53*CH3CO3
+    IRR_158: MACROOH + OH ->[k] .5 * MCO3 + .2*MACRO2 + .1*OH + .2*HO2
+    IRR_159: MCO3 + NO ->[k] NO2 + CH2O + CH3CO3 + CO2
+    IRR_160: MCO3 + NO3 ->[k] NO2 + CH2O + CH3CO3 + CO2
+    IRR_161: MCO3 + HO2 ->[k] .25*O3 + .25*CH3COOH + .75*CH3COOOH + .75*O2
+    IRR_162: MCO3 + CH3O2 ->[k] 2 * CH2O + HO2 + CO2 + CH3CO3
+    IRR_163: MCO3 + CH3CO3 ->[k] 2 * CO2 + CH3O2 + CH2O + CH3CO3
+    IRR_164: MCO3 + MCO3 ->[k] 2 * CO2 + 2 * CH2O + 2 * CH3CO3
+    IRR_165: MCO3 + NO2 + M ->[k] MPAN + M
+    IRR_166: MPAN + M ->[k] MCO3 + NO2 + M
+    IRR_167: ONITR + OH ->[k] HYDRALD + .4*NO2 + HO2
+    IRR_168: ONITR + NO3 ->[k] HYDRALD + NO2 + HO2
+    IRR_169: HYDRALD + OH ->[k] XO2
+    IRR_170: XO2 + NO ->[k] NO2 + 1.5*HO2 + CO + .25*HYAC + .25*CH3COCHO + .25*GLYALD
+    IRR_171: XO2 + NO3 ->[k] NO2 + 1.5*HO2 + CO + .25*HYAC + .25*CH3COCHO + .25*GLYALD
+    IRR_172: XO2 + HO2 ->[k] XOOH
+    IRR_173: XO2 + CH3O2 ->[k] .3 * CH3OH + HO2 + .7 * CH2O + .4 * CO + .1 * HYAC + .1 * CH3COCHO + .1 * GLYALD
+    IRR_174: XO2 + CH3CO3 ->[k] CO + CH3O2 + 1.5 * HO2 + CO2 + .25 * HYAC + .25 * CH3COCHO + .25 * GLYALD
+    IRR_175: XOOH + OH ->[k] H2O + XO2
+    IRR_176: XOOH + OH ->[k] H2O + OH
+    IRR_177: TOLUENE + OH ->[k] .25*CRESOL + .25*HO2 + .7*TOLO2
+    IRR_178: CRESOL + OH ->[k] XOH
+    IRR_179: XOH + NO2 ->[k] .7*NO2 + .7*BIGALD + .7*HO2
+    IRR_180: TOLO2 + NO ->[k] .45*GLYOXAL + .45*CH3COCHO +.9*BIGALD + .9*NO2 + .9*HO2
+    IRR_181: TOLO2 + HO2 ->[k] TOLOOH
+    IRR_182: TOLOOH + OH ->[k] TOLO2
+    IRR_183: C10H16 + OH ->[k] TERPO2
+    IRR_184: C10H16 + O3 ->[k] .7*OH + MVK + MACR + HO2
+    IRR_185: C10H16 + NO3 ->[k] TERPO2 + NO2
+    IRR_186: TERPO2 + NO ->[k] .1*CH3COCH3 + HO2 + MVK + MACR + NO2
+    IRR_187: TERPO2 + HO2 ->[k] TERPOOH
+    IRR_188: TERPOOH + OH ->[k] TERPO2
+    IRR_189: Rn ->[k] Pb
+    IRR_190: N2O5 ->[k] 2 * HNO3
+    IRR_191: NO3 ->[k] HNO3
+    IRR_192: NO2 ->[k] 0.5*OH + 0.5*NO + 0.5*HNO3
+    IRR_193: CB1 ->[k] CB2
+    IRR_194: SO2 + OH ->[k] SO4
+    IRR_195: DMS + OH ->[k] SO2
+    IRR_196: DMS + OH ->[k] .5 * SO2 + .5 * HO2
+    IRR_197: DMS + NO3 ->[k] SO2 + HNO3
+    IRR_198: NH3 + OH ->[k] H2O + DUMMY
+    IRR_199: OC1 ->[k] OC2
+    IRR_200: HO2 ->[k] 0.5*H2O2 + DUMMY
 species_group_list:
     - NOx = NO + NO2
     - NOX = NOx + NO3 + N2O5 + HO2NO2
@@ -216,7 +219,7 @@ species_group_list:
 
     - Ox = O3 + NO2 + 2*NO3 + 3*N2O5 + HNO3 + 2*HO2NO2
     - Oy = Ox + RNO3 + PANS
-     
+    - CH3CH2OH = C2H5OH     
     - HPANS = PANS - PAN
     - NTRS = RNO3
     - NXOY = NO3 + N2O5
