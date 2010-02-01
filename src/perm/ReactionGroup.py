@@ -85,13 +85,13 @@ def ReactionFromString(rxn_str):
     roles = {}
     species = ()
     
-    reaction_re = re.compile("(?P<reactants>.*)=(?P<rxn_type>[kj])[>]\s*(?P<products>.*)")
+    reaction_re = re.compile("(?P<reactants>.*)->\[(?P<rxn_type>[kj])\]\s*(?P<products>.*)")
 
-    species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d{0,1}(\.(\d{1,3}(E\d{2})?)?)?)\*)?(?P<name>[xyA-Z]\w*)(?:[ +=]|$)+",re.M)
+    species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d{0,1}(\.(\d{1,3}(E\d{2})?)?)?)\*)?(?P<name>[a-zA-Z]\w*)(?:[ +=]|$)+",re.M)
     
     reaction_match = reaction_re.match(rxn_str)
     if reaction_match is None:
-        raise SyntaxError, "Reactions must match the following patter\n\n<%d> stoic*spc ([+-] stoic*spc)* =[kju]= [stoic*spc] ([+-] stoic*spc)*"
+        raise SyntaxError, "Reactions must match the following patter\n\n<%%d> stoic*spc ([+-] stoic*spc)* =[kju]> [stoic*spc] ([+-] stoic*spc)*\n\n%s" % (rxn_str,)
 
     reactants = reaction_match.groupdict()['reactants']
     reaction_type = reaction_match.groupdict()['rxn_type']
@@ -234,23 +234,9 @@ class Reaction(object):
             try:
                 return self._stoic[item.name]
             except KeyError, (e):
-                species = set(item.names()).intersection(self._species)
-                if len(species) == 0:
-                    raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
-                
-                value = 0
-                for spc in species:
-                    value = value + item[spc][0] * self._stoic[spc]
-                first_spc_role = self._roles[species.pop()]
-                same_role = all([first_spc_role == self._roles[spc] for spc in species])
-                
-                if same_role:
-                    role = first_spc_role
-                else:
-                    role = 'u'
-                return Stoic(value, role = role)
+                return self.get_spc(item)
         elif isinstance(item, str):
-            return Stoic(self._stoic[item], role = self._role)
+            return Stoic(self._stoic[item], role = self._roles[item])
         else:
             return Reaction(roles = self._roles, reaction_type = self.reaction_type, **dict([(k,v[item]) for k, v in self._stoic.iteritems()]))
     
@@ -305,7 +291,7 @@ class Reaction(object):
         if len(products) > nspc:
             product_str += ' + ...'
 
-        return '%s =%s> %s' % (reactant_str, self.reaction_type, product_str)
+        return '%s ->[%s] %s' % (reactant_str, self.reaction_type, product_str)
         
     def __add__(self,rhs):
         """
@@ -419,8 +405,44 @@ class Reaction(object):
             return self.__getitem__(item)
         except:
             return default
-            
 
+    def get_spc(self, item, role = 'rpu'):
+        species_list = ()
+        if 'r' in role:
+            species_list = species_list + self._reactants
+        if 'p' in role:
+            species_list = species_list + self._products
+        if 'u' in role:
+            species_list = species_list + self._unspecified
+
+        species = set(item.names()).intersection(species_list)
+        if len(species) == 0:
+            raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
+        
+        value = 0
+        for spc in species:
+            value = value + item[spc] * self._stoic[spc]
+        first_spc_role = self._roles[species.pop()]
+        same_role = all([first_spc_role == self._roles[spc] for spc in species])
+        
+        if same_role:
+            role = first_spc_role
+        else:
+            role = 'u'
+        return Stoic(value, role = role)
+        
+    def produces(self, item):
+        try:
+            return self.get_spc(item, role = 'pu')
+        except KeyError:
+            return 0 * self[(self._products+self._reactants)[0]]
+
+    def consumes(self, item):
+        try:
+            return -self.get_spc(item, role = 'ru')
+        except KeyError:
+            return 0 * self[(self._reactants+self._products)[0]]
+    
     def has_spc(self,spc_grp):
         return spc_in_list(spc_grp,self._species)
         
