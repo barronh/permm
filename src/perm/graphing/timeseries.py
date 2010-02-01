@@ -151,7 +151,7 @@ def irr_plot(
         rxn_sum = rxn.sum()
         reaction_label = rxn.display(digits = None)
         options['label'] = reaction_label
-        if rcParams['text.usetex']: options['label'] = '\ce{' + options['label'].replace('>', ']').replace('=', '->[') + '}'
+        if rcParams['text.usetex']: options['label'] = '\ce{' + options['label'] + '}'
         
         plot_date(date_objs, data.repeat(2,0), **options)
 
@@ -245,7 +245,7 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
     else:
         ax = gca()
     
-    tax = ax
+    tax = twinx(ax)
     grid(True)
     pylabtitle(title_str % locals())
     options = kwds.get('CONC',line_settings.copy())
@@ -272,7 +272,7 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
         options.setdefault('label', process_label)
         data = mech('(%s)' % (process,))[species].array().repeat(2,0) * factor
         if data.nonzero()[0].any() or not filter:
-            plot_date(date_objs, data, **options)
+            ax.plot_date(date_objs, data, **options)
             
     xlabel('Time')
     ylabel(units)
@@ -284,7 +284,7 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
         ax.set_xlim(*xlim)
 
     fig.autofmt_xdate()
-    legend(ncol = ncol, loc = (1.05,0), prop = FontProperties(size=10))
+    ax.legend(ncol = ncol, loc = (1.05,0), prop = FontProperties(size=10))
     return fig
 
 def phy_plots(conf, filter = True, fmt = 'pdf', fig_append = 'IPR'):
