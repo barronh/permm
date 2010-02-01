@@ -2,13 +2,12 @@ from numpy import dtype, \
                   zeros, \
                   ndarray, \
                   array
-
 import operator
 
 ReactionGroup = str
 __all__ = ['Species']
 
-class Species(ndarray):
+class Species(dict):
     """
     Species is a class for species groups.  The simplest case
     is a single species group with a stoichiometry of 1.
@@ -19,6 +18,12 @@ class Species(ndarray):
                 name = '<name for the species>',
                 names = [<species name1>, ..., <species nameN>],
                 stoic = [<factor1>, ..., <factorN>],
+                atom_dict = {<species name1> = dict(C=[<factor1>, ..., <factorN>],
+                                                N=[<factor1>, ..., <factorN>],
+                                                ...)
+                         ...
+                         <species nameN> = {...}
+                         }
                 exclude = <boolean>
                )
     
@@ -111,19 +116,19 @@ class Species(ndarray):
               exclude = False    
     """
     
-    def __new__(subtype, *args, **kwds):
+    def __new__(cls, *args, **kwds):
         if kwds.has_key('names') and kwds.has_key('stoic'):
-            n_names = len(kwds['names'])
-
-            species_type = dtype(dict(names = kwds['names'], formats = 'd' * n_names))
-            
-            result = zeros((1,), dtype = species_type).view(type = subtype)
-
-            for name,stoic in zip(kwds['names'],kwds['stoic']):
-                result[name] += stoic
-                
+            # n_names = len(kwds['names'])
+            #
+            # species_type = dtype(dict(names = kwds['names'], formats = 'd' * n_names))
+            #
+            # result = zeros((1,), dtype = species_type).view(type = subtype)
+            #
+            # for name,stoic in zip(kwds['names'],kwds['stoic']):
+            #     result[name] += stoic
+            result = dict.__new__(cls,*args, **kwds)
         else:
-            args_are_species_groups = reduce(operator.and_,[True]+map(lambda x: isinstance(x, Species),args))
+            args_are_species_groups = all(map(lambda x: isinstance(x, Species),args))
 
             if args == () or not args_are_species_groups:
                 raise ValueError, "Species requires either names and stoic or arguments of type Species"
@@ -133,21 +138,32 @@ class Species(ndarray):
                     result = Species(name = arg.name, names = arg.names(), stoic = [arg[n] for n in arg.names()])
                 else:
                     result = reduce(operator.add,args)
-
-        result.name = kwds['name']
+        result.atom_dict = kwds.pop('atom_dict', {}).copy()
+        try:
+            result.name = kwds['name']
+        except:
+            # Assume that result already has a name
+            pass
         result.exclude = kwds.get('exclude', False)
         result.__roles = kwds.get('roles',['u']*len(result.names()))
         return result
-    
+        
+    def __init__(self, *args, **kwds):
+        if kwds.has_key('names') and kwds.has_key('stoic'):
+            self.update(dict(zip(kwds['names'], kwds['stoic'])))
+
+        
     def __getitem__(self,item):
+        """Test"""
         if isinstance(item,Species):
-            if self.has_key(item.name):
+            if item.name in self.keys():
+                n = item.name
                 return item[n]*self[n]
             else:
                 return sum([item[n]*self[n] for n in item.names()])
         else:
-            result = ndarray.__getitem__(self,item)
-            return result.view(ndarray)
+            result = dict.__getitem__(self,item)
+            return result
             
     def __str__(self):
         if len(self.names()) == 1:
@@ -166,16 +182,16 @@ class Species(ndarray):
         #return ndarray.__repr__(self)+'\n      exclude = '+exclude
         
     def names(self):
-        return [n for n in self.dtype.names]
+        return [n for n in self.keys()]
     
     def __neg__(self):
         return Species(self, name = 'x%s' % self.name, exclude = not self.exclude)
     
     def __contains__(self, lhs):
         if isinstance(lhs, Species):
-            return len(set(lhs.dtype.names).intersection(self.dtype.names)) > 0
+            return len(set(lhs.keys()).intersection(self.keys())) > 0
         elif isinstance(lhs, str):
-            return lhs in self.dtype.names
+            return lhs in self.keys()
             
     def __rmul__(self, y):
         return self.__mul__(y)
@@ -185,11 +201,12 @@ class Species(ndarray):
         is_reaction = isinstance(y,ReactionGroup)
         
         if is_number:
-            new_stoic = array(self.tolist()[0]) * y
+            new_name_stoic = [(k, v * y) for k, v in self.iteritems()]
+            new_stoic = [v for k, v in new_name_stoic]
             new_name = "%s * %f" % (self.name,float(y))
-            new_names = [n for n in self.names()]
+            new_names = [k for k, v in new_name_stoic]
             new_exclude = y <= 0
-            return Species(name = new_name, names = new_names, stoic = new_stoic, exclude = new_exclude)
+            return Species(name = new_name, names = new_names, stoic = new_stoic, exclude = new_exclude, atom_dict = self.atom_dict.copy())
         elif is_reaction:
             raise FutureWarning, "Working on it"
         else:
@@ -200,39 +217,57 @@ class Species(ndarray):
         
     def __add__(self, other_species):
         return species_sum([self, other_species])
+    
+    def atoms(self, atom):
+        from mechanisms import atoms
+        if atom in atoms:
+            name_stoic = [(n, self.atom_dict[n][atom]) for n in self.names() if self.atom_dict.get(n, {}).has_key(atom)]
+            if name_stoic == []:
+                raise KeyError, "Atom provided (%s) is not in %s" % (atom, self.name)
+            else:
+                return Species(name = self.name + ':' + atom, names = [n for n, s in name_stoic], stoic = [s for n, s in name_stoic])
+        else:
+            raise KeyError, "Atom provided (%s) is not an atom" % atom
+    
+    def copy(self):
+        result =  1*self
+        result.name = self.name
+        return result
 
 def species_sum(species_list):
     if not all([isinstance(spc,Species) for spc in species_list]):
         raise TypeError, "Can only add SpeciesGroups"
         
-    out_species = species_list[0]
-    out_names = set(out_species.dtype.names)
+    out_species = species_list[0].copy()
+    out_names = set(out_species.keys())
     out_name = out_species.name
     out_exclude = out_species.exclude
     out_stoic = {}
-    for spc in out_species.dtype.names:
+    out_atoms = out_species.atom_dict.copy()
+    for spc in out_species.keys():
         try:
             out_stoic[spc] += out_species[spc]
         except:
-            out_stoic[spc] = out_species[spc].copy()
-
+            out_stoic[spc] = float(out_species[spc])
+    
     for next_species in species_list[1:]:
         if out_exclude ^ next_species.exclude:
             out_name += ' + ' + next_species.name
-            out_names = out_names.difference(next_species.dtype.names)
+            out_names = out_names.difference(next_species.keys())
         else:
             out_name += ' + ' + next_species.name
-            out_names.update(next_species.dtype.names)
+            out_names.update(next_species.keys())
         
         out_exclude = out_exclude and next_species.exclude
         
-        for spc in next_species.dtype.names:
+        for spc in next_species.keys():
             try:
                 out_stoic[spc] += next_species[spc]
             except:
                 out_stoic[spc] = next_species[spc]
-    
+        out_atoms.update(next_species.atom_dict)
+        
     out_names = list(out_names)
     out_stoic = [out_stoic[name] for name in out_names]
     return Species(name = out_name, names = out_names, \
-                    stoic = out_stoic, exclude = out_exclude)
+                    stoic = out_stoic, exclude = out_exclude, atom_dict = out_atoms)
