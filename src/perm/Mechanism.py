@@ -13,8 +13,9 @@ from IPRArray import IPR
 from graphing.timeseries import irr_plot, phy_plot, plot as tplot
 from Shell import load_environ
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
-
 __all__ = ['Mechanism']
+
+spc_def_re = re.compile(r'(?P<stoic>[-+]?[0-9]*\.?[0-9]+)(?P<atom>\S+)(?=\s*\+\s*)?')
 
 class Mechanism(object):
     """
@@ -54,9 +55,13 @@ class Mechanism(object):
         self.__yaml_file = yaml_file
         self.species_dict = AttrDict()
         if yaml_file.has_key('species_list'):
-            for spc in yaml_file.species_list:
-                self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
-        
+            for spc, spc_def in yaml_file.species_list.iteritems():
+                if spc_def == 'IGNORE':
+                    self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
+                else:
+                    spc_atoms = dict([(atom, eval(stoic)) for stoic, atom in spc_def_re.findall(spc_def)])
+                    self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1], atom_dict = {spc: spc_atoms})
+                        
         self.reaction_dict = AttrDict()
         reaction_species = []
         for rxn_name, rxn_str in yaml_file.reaction_list.iteritems():
@@ -369,13 +374,8 @@ class Mechanism(object):
         line_settings - properties for all lines; dictionary of keywords
                         for matplotlib plot_date function
         """
-        def ensure_list(x):
-            if isinstance(x, Species):
-                return [x]
-            else:
-                return x
         if plot_spc is None:
-            plot_spc = (ensure_list(products)+ensure_list(reactants))[0]
+            plot_spc = (_ensure_list(products)+_ensure_list(reactants))[0]
         reactions = self.find_rxns(reactants, products, logical_and, reaction_type)
         
         if reactions == []:
@@ -409,7 +409,7 @@ class Mechanism(object):
                                   line_settings = line_settings, fig = fig, cmap = cmap, ncol = ncol
                                  )
         
-    def print_irrs(self, reactants = [], products = [], logical_and = True, reaction_type = None, factor = 1.):
+    def print_irrs(self, reactants = [], products = [], logical_and = True, reaction_type = None, factor = 1., sortby = None, reverse = False, slice = None):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         print the reaction summed for the entire timeseries.
@@ -418,8 +418,18 @@ class Mechanism(object):
         """
         if not hasattr(self,'irr_dict'):
             raise ValueError, "Net reactions are only available when IRR has been loaded"
-        for rxn in self.find_rxns(reactants, products, logical_and, reaction_type):
-            print rxn, self.irr_dict[rxn].sum() * factor
+            
+        rxns = self.find_rxns(reactants, products, logical_and, reaction_type)
+        irrs = [(rxn, self.irr_dict[rxn][slice].sum()) for rxn in rxns]
+        if sortby is None:
+            sortby = (_ensure_list(products)+_ensure_list(reactants))[0]
+        
+        irrs = [(irr[sortby], rxn, irr) for rxn, irr in irrs]
+        irrs.sort(reverse = reverse)
+        irrs = [(rxn, irr) for mass, rxn, irr in irrs]
+
+        for rxn, irr in irrs:
+            print rxn, irr * factor
         
     def set_mrg(self,mrg, use_net_rxns = True, use_irr = True, use_ipr = True):
         """
@@ -502,6 +512,7 @@ class Mechanism(object):
         if hasattr(self, 'irr_dict'):
             self.irr_dict[rxn_key] = ReactionFromString(rxn_str)
             self.irr_dict[rxn_key] *= self.irr[rxn_key]
+        load_environ(self, self.__eval_environment)
     
     def plot_proc(self, species, path = None, **kwds):
         """
@@ -539,3 +550,9 @@ class Mechanism(object):
 
     def globalize(self, env):
         load_environ(self, env)
+
+def _ensure_list(x):
+    if isinstance(x, Species):
+        return [x]
+    else:
+        return x
