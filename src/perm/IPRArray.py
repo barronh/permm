@@ -135,7 +135,7 @@ class IPR(PseudoNetCDFVariable):
             proc_size = len(self.dtype[0].names)
 
             result = array( \
-                [ndarray.__getitem__(self, spc_name).copy().view(self.__dtype).reshape(self.shape + (proc_size,))*item[spc_name][0] for spc_name in species_names]
+                [ndarray.__getitem__(self, spc_name).copy().view(self.__dtype).reshape(self.shape + (proc_size,))*item[spc_name] for spc_name in species_names]
                 ).sum(0)[..., newaxis, :]
                 
             species_names = [spc for spc in species_names]
