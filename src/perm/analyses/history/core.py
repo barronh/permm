@@ -84,20 +84,43 @@ class matrix(object):
         ztemp = zeros(self.__old_shape, dtype = 'd')
 
         try:
-            HT = mech('H_Trans')[node].array()
-            VT = mech('V_Trans')[node].array()
-            M = mech('Motion')[node].array()
-            PE = mech('Emissions')[node].array()
-            LDep = mech('Deposit')[node].array()
-
-            PHT = HT.copy(); PHT[HT < 0] = 0
-            LHT = HT.copy(); LHT[HT > 0] = 0
-            PVT = VT.copy(); PVT[VT < 0] = 0
-            LVT = VT.copy(); LVT[VT > 0] = 0
-            PM = M.copy(); PM[VT < 0] = 0
-            LM = M.copy(); LM[VT > 0] = 0
+            Initial = mech('Initial')[node].array()
+            H_Trans = mech('H_Trans')[node].array()
+            V_Trans = mech('V_Trans')[node].array()
+            Motion = mech('Motion')[node].array()
+            Emissions = mech('Emissions')[node].array()
+            Deposition = mech('Deposit')[node].array()
+            
+            # Initial concentrations are production terms only for the first hour
+            rollaxis(Initial, self.__time_dim)[1:] = 0
+            ProdH_Trans = H_Trans.copy(); ProdH_Trans[H_Trans < 0] = 0
+            LossH_Trans = H_Trans.copy(); LossH_Trans[H_Trans > 0] = 0
+            ProdV_Trans = V_Trans.copy(); LossV_Trans[V_Trans < 0] = 0
+            LossV_Trans = V_Trans.copy(); LossV_Trans[V_Trans > 0] = 0
+            ProdMotion = Motion.copy(); ProdMotion[Motion < 0] = 0
+            LossMotion = Motion.copy(); LossMotion[Motion > 0] = 0
+            
+            # Populate producers dictionary for node
+            self.producers[node.name] = dict(H_Trans = ProdH_Trans,
+                                             V_Trans = ProdV_Trans,
+                                             Emissions = Emissions,
+                                             Motion = ProdMotion,
+                                             Initial = Initial,
+                                             Chemistry = ztemp.copy())
+            # Populate losses dictionary for node with physical
+            # losses
+            total_loss = self.losses[node.name] = LossH_Trans + LossV_Trans + Deposition + LossMotion
         except (KeyError, NameError), (e):
-            PM = LM = PHT = LHT = PVT = LVT = PE = LDep = ztemp.copy()
+            # Populate producers dictionary for node with zeros
+            self.producers[node.name] = dict(H_Trans = ztemp.copy(),
+                                             V_Trans = ztemp.copy(),
+                                             Emissions = ztemp.copy(),
+                                             Motion = ztemp.copy(),
+                                             Chemistry = ztemp.copy(),
+                                             Initial = ztemp.copy())
+            # Populate losses dictionary for node with physical
+            # losses
+            total_loss = self.losses[node.name] = ztemp.copy()
         
         # Add initial, final, and (if available average) concentration
         try:
@@ -108,17 +131,7 @@ class matrix(object):
             self.concentrations.setdefault(node.name,{})['Initial'] = ztemp.copy()
             self.concentrations[node.name]['Final'] = ztemp.copy()
             
-        
-        # Populate producers dictionary for node
-        self.producers[node.name] = dict(HT = PHT,
-                                     VT = PVT,
-                                     E = PE,
-                                     M = PM,
-                                     C = ztemp.copy())
-        
-        # Populate losses dictionary for node with physical
-        # losses
-        total_loss = self.losses[node.name] = LHT + LVT + LDep + LM
+                
         
         # Add chemical losses
         for rxn in consumers:
@@ -130,10 +143,10 @@ class matrix(object):
             reactants = mech.reaction_dict[rxn].reactants()
             
             # Get total net production of node by this reaction
-            produces = mech(rxn)[node]
+            produces = mech(rxn)[node].copy()
             
             # Increment chemistry process
-            self.producers[node.name]['C'] += produces
+            self.producers[node.name]['Chemistry'] += produces
             
             # Create a list of traceable species in reaction reactants
             tracers = reduce(list.__add__, [list(set(tr.names()).intersection(reactants)) for tr in self.__traceable])
@@ -162,10 +175,10 @@ class matrix(object):
                     print "Tracing", tracer, "from", mech.reaction_dict[rxn]
                     self.traced.add(mech(tracer))
                     self.add_predecessors(mech(tracer))
-        self.production[node.name] = PHT + PVT + PE + self.producers[node.name]['C']
+        self.production[node.name] = sum([prod for prod in self.producers[node.name].values()])
 
         if not self.concentrations[node.name].has_key('Average'):
-            average = self.concentrations[node.name]['Average'] = 0.5 * self.production[node.name]
+            average = self.concentrations[node.name]['Average'] = eval('.5 * (Initial + Final)', None, self.concentrations[node.name])
 
         total_loss /= average
 
@@ -174,7 +187,7 @@ class matrix(object):
         """
         mech = self.__mech
         
-        for node, origin_productions in self.producers.iteritems():
+        for node, producers in self.producers.iteritems():
             # Capture the origins of node by source
             origin_sources = self.origins[node] = {}
             # and the loss of origins by source
@@ -185,33 +198,29 @@ class matrix(object):
             origin_sources['Initial'][..., :-1] = self.concentrations[node]['Initial'][..., :]
             
             # Losses are not origin specific
-            hourly_loss = self.losses[node]
-            hourly_loss = rollaxis(hourly_loss, self.__time_dim)
+            loss_rate = self.losses[node]
+            loss_rate = rollaxis(loss_rate, self.__time_dim)
             
-            for origin, hourly_production in origin_productions.iteritems():
+            for origin, production in producers.iteritems():
                 # Create an array to house production fro this origin
                 # store it in the self.origins dictionary
-                origin_sources[origin] = hourly_origin_sources = zeros(self.__shape, dtype = 'd')
-                origin_losses[origin] = hourly_origin_losses = zeros(self.__shape, dtype = 'd')
+                origin_sources[origin] = sources = zeros(self.__shape, dtype = 'd')
+                origin_losses[origin] = losses = zeros(self.__shape, dtype = 'd')
                 
                 # Creating pointer arrays with the hour dimension first
                 # for ease of iteration
-                hourly_origin_sources = rollaxis(hourly_origin_sources,self.__time_dim)
-                hourly_origin_losses = rollaxis(hourly_origin_losses, self.__time_dim)
-                hourly_production = rollaxis(hourly_production, self.__time_dim)
+                sources = rollaxis(sources,self.__time_dim)
+                losses = rollaxis(losses, self.__time_dim)
+                production = rollaxis(production, self.__time_dim)
                 
                 for thishr in range(1, self.__ntimes+1):
                     ## Create pointers to loss and production rates
-                    loss = hourly_loss[thishr-1]
-                    prod = hourly_production[thishr-1]
+                    loss = loss_rate[thishr-1]
+                    prod = production[thishr-1]
 
                     ## Create pointers to the origin arrays
                     # the last hour's origin
-                    old_origin = hourly_origin_sources[thishr-1]
-                    # this hour's origin
-                    new_origin = hourly_origin_sources[thishr]
-                    # this hour's origin loss
-                    origin_loss = hourly_origin_losses[thishr]
+                    old_origin = sources[thishr-1]
 
                     # Debugging entry point                    
                     if origin == 'C' and False:
@@ -220,17 +229,12 @@ class matrix(object):
                     # Capture production and loss terms based on
                     # an ordinary differential equation approximation
                     # See Tonnesen 1995 Dissertation
-                    this_prod = prod/-loss * (1 - exp(loss)) +  old_origin * exp(loss)
-                    this_loss = old_origin + prod - new_origin
-                    
-                    # Update origin arrays; testing for scalar
-                    try:
-                        new_origin.itemset(this_contribution)
-                        origin_loss.itemset(this_loss)
-                    except:
-                        new_origin[...] = this_prod
-                        origin_loss[...] = this_loss
-
+                    sources[thishr] = new_origin = prod/-loss * (1 - exp(loss)) +  old_origin * exp(loss)
+                    losses[thishr] = old_origin + prod - new_origin
+    
+    def reattribute_losses(self):
+        pass
+        
     def traceback(self, node, start = -1):
         for spc in node.names():
             pass
