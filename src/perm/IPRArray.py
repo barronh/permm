@@ -1,3 +1,5 @@
+from collections import defaultdict
+from warnings import warn
 from numpy import ndarray, \
                   dtype, \
                   array, \
@@ -8,6 +10,134 @@ from SpeciesGroup import Species
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
 import sys
 
+class IPRs_dict(defaultdict):
+    def __getitem__(self, k):
+        if isinstance(k, Process):
+            if set([k.name]) == set(k.names) and not k.exclude:
+                return self[k.name]
+            else:
+                return reduce(IPR_dict.__add__, [self[key] for key in k.names if self.has_key(key)])
+        else:
+            try:
+                return dict.__getitem__(self, k)
+            except:
+                raise TypeError
+                
+class IPR_dict(defaultdict):
+    def __init__(self, name, units = None, **kwds):
+        self.name = name
+        self.__prefix = '%s_' % name
+
+        lp = len(self.__prefix)
+        if units is None:
+            self.__units = {}
+        else:
+            self.__units = units
+            
+        for k in kwds.keys():
+            if self.__prefix == k[:lp]:
+                self[k[lp:]] = kwds[k][:]
+                try:
+                    self.__units.setdefault(k[lp:], str.strip(kwds[k].units))
+                except Exception, (e):
+                    pass
+
+    def set_units(self, k, units):
+        if isinstance(k, Species):
+            if set([k.name]) == set(k.names()) and not k.exclude:
+                self.__units[k.name] = units
+            else:
+                result = set([self.__units[key] for key in k.names() if self.has_key(key)])
+                if len(result) == 1:
+                    self.__units[k.name] = units
+                else:
+                    self.__units[k.name] = 'mixed'
+        else:
+            self.__units[k] = units
+        
+    def get_units(self, k, defaultunits = None):
+        if isinstance(k, Species):
+            if self.__units.has_key(k.name):
+                return self.__units.get(k.name, defaultunits)
+            else:
+                result = set([self.__units[key] for key in k.names() if self.has_key(key)])
+                if len(result) == 1:
+                    return units
+                else:
+                    return defaultunits or 'mixed'
+        else:
+            return self.__units[k]
+        
+    def __getitem__(self, k):
+        if isinstance(k, Species):
+            if set([k.name]) == set(k.names()) and not k.exclude:
+                return self[k.name]
+            else:
+                result = reduce(ndarray.__add__, [self[key] for key in k.names() if self.has_key(key)])
+                return result
+        else:
+            return dict.__getitem__(self,k)
+                
+    def __getslice__(self, start, end):
+        """
+        Use standard ndarray.__getitem__, but retain
+        NetRxnArray type
+        """
+        result = IPR_dict(self.name, dict([(k, v.__getslice__(self, start, end)) for k, v in self.iteritems()]))
+        return result
+
+    def __generic_math_operator(self, rhs, operation):
+        operator = {'+': ndarray.__add__,
+                    '-': ndarray.__sub__,
+                    '/': ndarray.__div__,
+                    '*': ndarray.__mul__
+                   }[operation]
+        if isinstance(rhs, self.__class__):
+            result = IPR_dict(name = '%s %s %s' % (self.name, operation, rhs.name))
+            for key in self.keys():
+                result[key] = self[key].copy()
+                result.set_units(key, self.get_units(key))
+                
+            for key in rhs.keys():
+                rhs_unit = rhs.get_units(key)
+                if result.has_key(key):
+                    result[key] = operator(result[key], rhs[key])
+                    result_unit = result.get_units(key)
+                    if rhs_unit != result_unit:
+                        result.set_units(key, '%s %s %s' % (result_unit, operation, rhs_unit))
+                else:
+                    result[key] = rhs[key].copy()
+                    result.set_units(key, rhs_unit)
+        else:
+            result = IPR_dict(name = self.name, units = self.__units.copy())
+            for key in self.keys():
+                try:
+                    result[key] = operator(result[key], rhs)
+                except:
+                    raise TypeError, "It is unclear how to %s IPR and %s; scalars, arrays, species and processes should have meaningful results" % (operation, type(rhs))
+            
+        return result
+        
+    def __add__(self,rhs):
+        return self.__generic_math_operator(rhs, '+')
+        
+    def __sub__(self,rhs):
+        return self.__generic_math_operator(rhs, '-')
+        
+    def __div__(self,rhs):
+        return self.__generic_math_operator(rhs, '/')
+        
+    def __mul__(self,rhs):
+        return self.__generic_math_operator(rhs, '*')
+        
+    def sum(self):
+        """
+        Sum net reaction species over time
+        """
+        result = IPR_dict(name = self.name)
+        for key in self.keys():
+            result[key] = self[key].sum()
+    
 class IPR(PseudoNetCDFVariable):
     """
     IPR is a recarray with a field for each species
@@ -184,9 +314,9 @@ class IPR(PseudoNetCDFVariable):
                     new_prc_type = dtype(dict(names = ['%s%s%s' % (this_prc, operation, that_prc)], formats = self.__dtype))
                     new_type = dtype(dict(names = spcs, formats = [new_prc_type]*len(spcs)))
                     result = operator(self.array(), rhs.array())
-                    result = result.view(new_type)
                     
-                    result = result.view(self.__class__)
+                    result = IPR(result[:, None, None], spc_names = spcs, proc_names = ['%s %s %s' % (this_prc, operation, that_prc)], units = self.units)
+                    
                     return result
                 else:
                     raise ValueError, "Processes must contain the same number of species and processes"

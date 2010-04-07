@@ -55,7 +55,7 @@ def parse_and_run():
             mech.set_mrg(mrg_file)
            
             
-        except RuntimeError, (e):
+        except (IOError, RuntimeError), (e):
             warn("\n-------------------------------------------------------\nFirst argument was not a data file.\nAttempting to continue with first argument as a script.\n-------------------------------------------------------")
         except ValueError, (e):
             warn("\n-------------------------------------------\nAre you sure this is a %s data file?\n-------------------------------------------" % options.mechanism)

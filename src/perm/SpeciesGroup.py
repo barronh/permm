@@ -1,7 +1,8 @@
 from numpy import dtype, \
                   zeros, \
                   ndarray, \
-                  array
+                  array, \
+                  float32, float64, int8, int16, int32, int64
 import operator
 
 ReactionGroup = str
@@ -197,7 +198,7 @@ class Species(dict):
         return self.__mul__(y)
 
     def __mul__(self, y):
-        is_number = isinstance(y,(int,long,float))
+        is_number = isinstance(y,(int,long,float, float32, float64, int8, int16, int32, int64))
         is_reaction = isinstance(y,ReactionGroup)
         
         if is_number:

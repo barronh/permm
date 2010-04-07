@@ -3,8 +3,16 @@ from Mechanism import Mechanism
 def get_pure_mech(mechanism):
     from os.path import dirname, \
                         abspath, \
-                        join
-    mech_path = abspath(join(dirname(__file__),'mechanisms', mechanism,'%s.yaml' % (mechanism,)))
+                        join, \
+                        exists
+    if exists(mechanism) and '.yaml' in mechanism:
+        mech_path = mechanism
+    else:
+        mech_path = abspath(join(dirname(__file__),'mechanisms', mechanism,'%s.yaml' % (mechanism,)))
+    
+    if not exists(mech_path):
+        raise ImportError, "Mechanism you supplied is not a known mechanism and is not a file path to a definition"
+        
     return Mechanism(mech_path)
     
 def get_prepared_mech(mechanism):

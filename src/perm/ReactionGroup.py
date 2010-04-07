@@ -172,7 +172,7 @@ class Reaction(object):
             roles - dictionary of specific roles; for species whose 
                     stoichiometric sign is inconsistent with their 
                     role (i.e. X + Y =k> Z - .6*PAR)
-            reaction_type - 'k' is kinetic, 'j' is photolysis, 'u' is unknown
+            reaction_type - 'k' is kinetic, 'j' is photolysis, 'n' is net
             stoic - stoichiometry values provided as keywords by species; values
                     can be scalars or ndarrays
         """
@@ -270,20 +270,22 @@ class Reaction(object):
         """
         return self.__str__()
 
-    def display(self, digits = 5, nspc = 3):
+    def display(self, digits = 5, nspc = 3, formatter = 'g'):
         reactants = [(self._stoic[rct].sum(), rct) for rct in self.reactants()]
         reactants.sort(reverse=False)
 
         products = [(self._stoic[prd].sum(), prd) for prd in self.products()]
         products.sort(reverse=True)
-
         if digits == None:
             str_temp = '%s'
             reactant_str = ' + '.join([str_temp % rct for stoic, rct in reactants][:nspc])
             product_str = ' + '.join([str_temp % prd for stoic, prd in products][:nspc])
+        elif digits == -1:
+            reactant_str = ' + '.join(['*'.join([str(-stoic), str(rct)]) for stoic, rct in reactants][:nspc])
+            product_str = ' + '.join(['*'.join([str(stoic), str(prd)]) for stoic, prd in products][:nspc])
         else:
-            str_temp = '%%.%df*%%s' % digits
-            reactant_str = ' + '.join([str_temp % (-1*stoic,rct) for stoic, rct in reactants][:nspc])
+            str_temp = '%%.%d%s*%%s' % (digits, formatter)
+            reactant_str = ' + '.join([str_temp % (-stoic,rct) for stoic, rct in reactants][:nspc])
             product_str = ' + '.join([str_temp % (stoic,prd) for stoic, prd in products][:nspc])
 
         if len(reactants) > nspc:
@@ -308,7 +310,7 @@ class Reaction(object):
                     kwds[spc] = kwds[spc] + rhs._stoic[spc]
                 else:
                     kwds[spc] = rhs._stoic[spc]
-            roles = {}
+            kwds['roles'] = roles = {}
             for spc in set(self._species+rhs._species):
                 new_role = ''.join(set(self._roles.get(spc,'') + rhs._roles.get(spc,'')))
                 if len(new_role) == 1:
@@ -319,7 +321,7 @@ class Reaction(object):
             if self.reaction_type == rhs.reaction_type:
                 kwds['reaction_type'] = self.reaction_type
             else:
-                kwds['reaction_type'] = 'u'
+                kwds['reaction_type'] = 'n'
 
         elif isinstance(rhs,Species):
             return self.__add_if_in_spclist(rhs,self._species)
@@ -370,6 +372,17 @@ class Reaction(object):
         result = self.copy()
         for spc in result._species:
             result._stoic[spc] = self._stoic[spc].sum(axis)
+        result.shape = ()
+        result._update_roles()
+        return result
+        
+    def mean(self, axis = None):
+        """
+        Mean stoichiometries and create a scalar reaction
+        """
+        result = self.copy()
+        for spc in result._species:
+            result._stoic[spc] = self._stoic[spc].mean(axis)
         result.shape = ()
         result._update_roles()
         return result

@@ -82,22 +82,22 @@ class Mechanism(object):
             self.species_dict[grp_name].name = grp_name
 
         self.net_reaction_dict = yaml_file.get('net_reaction_list',{})
-        self.__eval_environment = {}
-        load_environ(self, self.__eval_environment)
+        self.variables = {}
+        load_environ(self, self.variables)
             
     def __call__(self, expr, env = globals()):
         """
         Evaluate string expression in the context of mechanism
         species, species groups, reactions, net reactions and processes
         """
-        return eval(expr, env, self.__eval_environment)
+        return eval(expr, env, self.variables)
     
     def __getitem__(self,item):
         """
         Provide a single getitem interface for mechanism species, species 
         groups, reactions, net reactions and processes
         """
-        return self.__eval_environment[item]
+        return self.variables[item]
         
     def __add_spc_to_reactions(self,rxn_list, spc):
         """
@@ -174,6 +174,18 @@ class Mechanism(object):
         return len(new_rxn_def)
     
     def get_rxns(self, reactants = [], products =[], logical_and = True, reaction_type = None):
+        """
+        Get reaction objects that meet the criteria specified by reactants, products and logical_and.
+        
+        reactants - filter mechanism reactions for reactions with all reactant(s)
+        products - filter mechanism reactions for reactions with all product(s)
+        logical_and - a boolean indicating how to combine reactant and product filters
+                      True: reaction is in both filters (i.e. reactants AND products)
+                      False: reaction is in either filter (i.e. reactants OR products)
+        """
+        return [self.reaction_dict[rk] for rk in self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)]
+
+    def get_irrs(self, reactants = [], products =[], logical_and = True, reaction_type = None):
         """
         Get reaction objects that meet the criteria specified by reactants, products and logical_and.
         
@@ -260,7 +272,7 @@ class Mechanism(object):
                 del self.reaction_dict[rxn]
             self.irr_dict[name] = nrxn
             self.reaction_dict[name] = nrxn.sum()
-            load_environ(self, self.__eval_environment)
+            load_environ(self, self.variables)
         
         
     def make_net_rxn(self, reactants = [], products = [], logical_and = True, reaction_type = None):
@@ -286,15 +298,26 @@ class Mechanism(object):
         
         print net_rxn
 
-    def print_rxns(self, reactants = [], products = [], logical_and = True, reaction_type = None):
+    def print_rxns(self, reactants = [], products = [], logical_and = True, reaction_type = None, sortby = None, reverse = False, digits = -1, nspc = 10000):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         print the reaction
         
         for more information see find_rxns
         """
-        for rxn in self.find_rxns(reactants, products, logical_and, reaction_type):
-            print rxn, self.reaction_dict[rxn]
+        if sortby is None:
+            sortby = ([p for p in _ensure_list(products) if not p.exclude]+[r for r in _ensure_list(reactants)  if not r.exclude])[0]
+        rxns = self.find_rxns(reactants, products, logical_and, reaction_type)
+
+        rxns = [(rxn, self.reaction_dict[rxn]) for rxn in rxns]
+        try:
+            rxns = [(rxno[sortby], rxn, rxno) for rxn, rxno in rxns]
+        except:
+            warn("Not all reactions contain %s; check query and/or explicitly define sortby species" % str(sortby))
+        rxns.sort(reverse = reverse)
+
+        for mass, rxn, rxno in rxns:
+            print rxn, rxno.display(nspc = nspc, digits = digits)
 
     def plot_rxn_list(self, reactions, plot_spc = None, path = None,
                       factor = 1, units = None, end_date = True,
@@ -409,7 +432,7 @@ class Mechanism(object):
                                   line_settings = line_settings, fig = fig, cmap = cmap, ncol = ncol
                                  )
         
-    def print_irrs(self, reactants = [], products = [], logical_and = True, reaction_type = None, factor = 1., sortby = None, reverse = False, slice = None):
+    def print_irrs(self, reactants = [], products = [], logical_and = True, reaction_type = None, factor = 1., sortby = None, reverse = False, slice = None, nspc = 100000, digits = -1, formatter = 'g'):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         print the reaction summed for the entire timeseries.
@@ -422,14 +445,17 @@ class Mechanism(object):
         rxns = self.find_rxns(reactants, products, logical_and, reaction_type)
         irrs = [(rxn, self.irr_dict[rxn][slice].sum()) for rxn in rxns]
         if sortby is None:
-            sortby = (_ensure_list(products)+_ensure_list(reactants))[0]
+            sortby = ([p for p in _ensure_list(products) if not p.exclude]+[r for r in _ensure_list(reactants)  if not r.exclude])[0]
         
-        irrs = [(irr[sortby], rxn, irr) for rxn, irr in irrs]
+        try:
+            irrs = [(irr[sortby], rxn, irr) for rxn, irr in irrs]
+        except:
+            warn("Not all reactions contain %s; check query and/or explicitly define sortby species" % str(sortby))
         irrs.sort(reverse = reverse)
         irrs = [(rxn, irr) for mass, rxn, irr in irrs]
 
         for rxn, irr in irrs:
-            print rxn, irr * factor
+            print rxn, (irr * factor).display(nspc = nspc, digits = digits)
         
     def set_mrg(self,mrg, use_net_rxns = True, use_irr = True, use_ipr = True):
         """
@@ -437,37 +463,69 @@ class Mechanism(object):
         """
         self.mrg = mrg
         if use_irr:
-            self.set_irr(mrg.variables['IRR'], mrg.Reactions.split(), use_net_rxns = use_net_rxns)
+            try:
+                self.set_irr(mrg.variables['IRR'], mrg.Reactions.split(), use_net_rxns = use_net_rxns)
+            except:
+                self.set_irr()
         if use_ipr:
-            self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
+            try:
+                self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
+            except:
+                if hasattr(mrg, 'Species'):
+                    spcs = mrg.Species.split()
+                    prcs = mrg.Processes.split()
+                    temp_var = mrg.variables['%s_%s' % (prcs[0], spcs[0])]
+                    ipr = PseudoNetCDFVariable(None, 'ipr', temp_var.dtype.char, ('TSTEP', 'SPECIES', 'PROCESS'), units = temp_var.units, values = zeros(temp_var.shape + (len(spcs), len(prcs)), temp_var.dtype))
+                    for si, spc in enumerate(spcs):
+                        for pi, prc in enumerate(prcs):
+                            ipr[..., si, pi] = mrg.variables['%s_%s' % (prc, spc)][:]
+    
+                    self.set_ipr(ipr, mrg.Species.split(), mrg.Processes.split())
+                else:
+                    warn("Unable to load IPR; missing Species and Processes attributes")
+                        
         
-        load_environ(self, self.__eval_environment)
+        load_environ(self, self.variables)
         
-    def set_irr(self,irr, ReactionNames, use_net_rxns = True):
+    def set_irr(self,irr = None, ReactionNames = None, use_net_rxns = True):
         """
         Add process analysis from a 2D merged IRR array dim(TIME,RXN)
         """
-        irr_type = dtype(dict(names = ReactionNames, formats = irr[:].dtype.char*len(ReactionNames)))
-            
-        self.irr = irr[:].view(dtype = irr_type).squeeze().view(type = PseudoNetCDFVariable)
-        self.irr.units = irr.units
+        if not irr is None:
+            irr_type = dtype(dict(names = ReactionNames, formats = irr[:].dtype.char*len(ReactionNames)))
+                
+            self.irr = irr[:].view(dtype = irr_type).squeeze().view(type = PseudoNetCDFVariable)
+            self.irr.units = irr.units
+
         self.__use_net_rxns = use_net_rxns
         self.apply_irr()
 
     def apply_irr(self):
         self.irr_dict = {}
         for rxn_name, rxn in self.reaction_dict.iteritems():
-            try:
-                self.irr_dict[rxn_name] = rxn * self.irr[rxn_name]
-            except ValueError, (e):
-                warn("IRR does not contain %s: skipped." % rxn_name)
-
+            if hasattr(self, 'irr'):
+                try:
+                    self.irr_dict[rxn_name] = rxn * self.irr[rxn_name]
+                except ValueError, (e):
+                    self.irr_dict[rxn_name] = rxn * zeros(self.irr.shape, 'f')
+                    warn("IRR does not contain %s: skipped." % rxn_name)
+            else:
+                try:
+                    self.irr_dict[rxn_name] = rxn * self.mrg.variables[rxn_name][:].view(type = PseudoNetCDFVariable)
+                except (KeyError, ValueError), (e):
+                    warn("IRR does not contain %s: skipped." % rxn_name)
+                
         self.__reaction_data = self.irr_dict
         
-        if self.__use_net_rxns:
+        if self.__use_net_rxns and len(self.irr_dict)>0:
             self.nreaction_dict = {}
             for nrxn_name, nrxn in self.net_reaction_dict.iteritems():
-                self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.irr_dict)
+                try:
+                    self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.irr_dict)
+                except Exception, (e):
+                    warn("Predefined net rxn %s is not available; %s" % (nrxn_name, str(e)))
+
+        load_environ(self, self.variables)
         
     def set_ipr(self,ipr, species, processes):
         """
@@ -491,28 +549,13 @@ class Mechanism(object):
         for name in self.ipr.dtype.names:
             if not self.species_dict.has_key(name):
                 self.species_dict[name] = Species(name = name, names = [name], stoic = [1.])
-            
-        def pa_dict(item):
-            if self.process_dict.has_key(item):
-                return self.ipr[self.process_dict[item]]
-            else:
-                return self.irr[item]
-        
-        class key_specific_default(defaultdict):
-            def __missing__(self, key):
-                if self.default_factory is None:
-                    raise KeyError(key)
-                self[key] = value = self.default_factory(key)
-                return value
-
-        self.__pa_data = key_specific_default(pa_dict)
 
     def add_rxn(self, rxn_key, rxn_str):
         self.reaction_dict[rxn_key] = ReactionFromString(rxn_str)
         if hasattr(self, 'irr_dict'):
             self.irr_dict[rxn_key] = ReactionFromString(rxn_str)
             self.irr_dict[rxn_key] *= self.irr[rxn_key]
-        load_environ(self, self.__eval_environment)
+        load_environ(self, self.variables)
     
     def plot_proc(self, species, path = None, **kwds):
         """
