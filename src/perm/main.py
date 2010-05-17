@@ -74,10 +74,6 @@ def parse_and_run():
             exec(script, globals(), console.locals)
 
 
-    if options.interactive:
-        load_environ(mech,console.locals)
-        console.interact()
-
     if options.graphical:
         console.runsource("from perm.GUI import StartGUI")
         console.runsource("StartGUI(mech)")
@@ -89,6 +85,17 @@ def parse_and_run():
         if options.analysis == "net_balance":
             console.runsource("from perm.analyses.net_balance import net_balance")
             console.runsource("net_balance('%s', '%s', '%s')" % (options.mechanism, args[0], options.output))
+        elif options.analysis == "history":
+            console.runsource("from perm.analyses.history import matrix")
+            console.runsource("history = matrix(mech, [C2O3], [HC], [])")
+            console.runsource("history.run()")
+        else:
+            raise "Unkown analysis"
+
+    if options.interactive:
+        load_environ(mech,console.locals)
+        console.interact()
+
         
 if __name__ == '__main__':
     parse_and_run()
