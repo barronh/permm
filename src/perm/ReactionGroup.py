@@ -254,6 +254,7 @@ class Reaction(object):
                 result += str(idx) + ': '
                 for spc in self._species:
                     temp._stoic[spc] = self._stoic[spc][idx]
+                temp._update_roles()
                 result += str(temp)+', \n'
             result = result[:-3]+'\n'
         sum_result = self.display(digits = 5, nspc = 1000)
