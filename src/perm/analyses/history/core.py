@@ -67,9 +67,11 @@ class matrix(object):
 
         self.update_origin_contributions()
     
-    def add_predecessors(self, node):
+    def add_predecessors(self, node, debug = False):
         """
-            Find species that lead to the production of node
+        Recursively find reactions that consume and/or produce chemical 
+        species (node)_n and attribute production to traceable reactant 
+        species (node)_{n-1}.
         """
         
         mech = self.__mech
@@ -157,33 +159,52 @@ class matrix(object):
                 produces = produces/ntracers
 
             # Create output for clarity
-            print mech.reaction_dict[rxn]
-            print " -",
+            if debug:
+                print mech.reaction_dict[rxn]
+                print " -",
 
             # For each traceable species in reactants
             for tracer in tracers:
-                print "%s," % tracer,
+                if debug:
+                    print "%s," % tracer,
+                    
+                # Attribute tracer production of node to tracer
                 node_producers = self.producers.setdefault(node.name,{})
                 if node_producers.has_key(tracer):
                     node_producers[tracer] += produces
                 else:
                     node_producers[tracer] = produces
-            print ""
             
+            if debug:
+                print ""
+            
+            # For each traceable reactant
             for tracer in tracers:
+                # Check that it has not already been traced
                 if mech(tracer) not in self.traced:
-                    print "Tracing", tracer, "from", mech.reaction_dict[rxn]
+                    if debug:
+                        print "Tracing", tracer, "from", mech.reaction_dict[rxn]
+                    
+                    # Store tracer as having been traced
                     self.traced.add(mech(tracer))
-                    self.add_predecessors(mech(tracer))
-        self.production[node.name] = sum([prod for prod in self.producers[node.name].values()])
 
+                    # Trace species
+                    self.add_predecessors(mech(tracer))
+
+        self.production[node.name] = sum([prod for prod in self.producers[node.name].values()])
+        
+        # Total 1st order loss rate is approximated by total 
+        # loss divided by average concentration
         if not self.concentrations[node.name].has_key('Average'):
             average = self.concentrations[node.name]['Average'] = eval('.5 * (Initial + Final)', None, self.concentrations[node.name])
+        else:
+            average = self.concentrations[node.name]['Average']
 
         total_loss /= average
 
     def update_origin_contributions(self):
         """
+        
         """
         mech = self.__mech
         
@@ -232,11 +253,11 @@ class matrix(object):
                     sources[thishr] = new_origin = prod/-loss * (1 - exp(loss)) +  old_origin * exp(loss)
                     losses[thishr] = old_origin + prod - new_origin
     
-    def reattribute_losses(self):
+    def reattribute_origins(self):
+        """
+        Timestep contributions from each chemical species
+        should be attributed to the fractional origin of that species
+        for each timestep.
+        """
         pass
-        
-    def traceback(self, node, start = -1):
-        for spc in node.names():
-            pass
-        raise
-            
+                    
