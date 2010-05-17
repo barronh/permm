@@ -72,8 +72,6 @@ class Mechanism(object):
         for spc in [spc for spc in reaction_species if not self.species_dict.has_key(spc)]:
             self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
 
-        self.__reaction_data = self.reaction_dict
-
         for spc_grp_def in yaml_file.get('species_group_list',[]):
             grp_name = spc_grp_def.split('=')[0].strip()
             if (spc_grp_def.count('+') + spc_grp_def.count('-')) > 4:
@@ -515,8 +513,6 @@ class Mechanism(object):
                 except (KeyError, ValueError), (e):
                     warn("IRR does not contain %s: skipped." % rxn_name)
                 
-        self.__reaction_data = self.irr_dict
-        
         if self.__use_net_rxns and len(self.irr_dict)>0:
             self.nreaction_dict = {}
             for nrxn_name, nrxn in self.net_reaction_dict.iteritems():
