@@ -8,7 +8,7 @@ import operator
 ReactionGroup = str
 __all__ = ['Species']
 
-class Species(dict):
+class Species(object):
     """
     Species is a class for species groups.  The simplest case
     is a single species group with a stoichiometry of 1.
@@ -127,7 +127,7 @@ class Species(dict):
             #
             # for name,stoic in zip(kwds['names'],kwds['stoic']):
             #     result[name] += stoic
-            result = dict.__new__(cls,*args, **kwds)
+            result = object.__new__(cls,*args, **kwds)
         else:
             args_are_species_groups = all(map(lambda x: isinstance(x, Species),args))
 
@@ -145,13 +145,14 @@ class Species(dict):
         except:
             # Assume that result already has a name
             pass
-        result.exclude = kwds.get('exclude', False)
-        result.__roles = kwds.get('roles',['u']*len(result.names()))
         return result
         
     def __init__(self, *args, **kwds):
+        self._stoic = {}
         if kwds.has_key('names') and kwds.has_key('stoic'):
-            self.update(dict(zip(kwds['names'], kwds['stoic'])))
+            self._stoic.update(dict(zip(kwds['names'], kwds['stoic'])))
+        self.exclude = kwds.get('exclude', False)
+        self.__roles = kwds.get('roles',['u']*len(self.names()))
 
         
     def __getitem__(self,item):
@@ -163,7 +164,7 @@ class Species(dict):
             else:
                 return sum([item[n]*self[n] for n in item.names()])
         else:
-            result = dict.__getitem__(self,item)
+            result = dict.__getitem__(self._stoic,item)
             return result
             
     def __str__(self):
@@ -186,7 +187,7 @@ class Species(dict):
         return [n for n in self.keys()]
     
     def __neg__(self):
-        return Species(self, name = 'x%s' % self.name, exclude = not self.exclude)
+        return Species(self, name = '-(%s)' % self.name, exclude = not self.exclude)
     
     def __contains__(self, lhs):
         if isinstance(lhs, Species):
@@ -234,6 +235,12 @@ class Species(dict):
         result =  1*self
         result.name = self.name
         return result
+    
+    def keys(self):
+        return self._stoic.keys()
+
+    def iteritems(self):
+        return self._stoic.iteritems()
 
 def species_sum(species_list):
     if not all([isinstance(spc,Species) for spc in species_list]):
