@@ -1,6 +1,6 @@
 __all__ = ['Species', 'Stoic', 'Reaction', 'Process', 'IPR', 'Mechanism', \
            'mechanisms', 'getmech', 'get_mech', 'get_pure_mech', \
-           'get_prepared_mech', 'analyses', 'graphing', 'GUI', 'Shell']
+           'get_prepared_mech', 'analyses', 'graphing', 'GUI', 'Shell', 'guis']
 
 if __name__ != '__main__':
     from SpeciesGroup import Species
