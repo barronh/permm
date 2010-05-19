@@ -6,7 +6,7 @@ from types import MethodType
 
 class PERMConsole(code.InteractiveConsole):
     def __init__(self, locals = None, filename = '<console>',
-                histfile = os.path.expanduser("~/.perm-history")):
+                histfile = os.path.expanduser("~/.permm-history")):
         code.InteractiveConsole.__init__(self)
         self.init_history(histfile)
     

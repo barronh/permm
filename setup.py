@@ -12,7 +12,7 @@ netcdf_pkgs = [('netCDF4', 'Dataset'), \
 for pkg, reader in netcdf_pkgs:
     try:
         NetCDFFile = getattr(__import__(pkg, fromlist = [reader]),reader)
-        print >> file(os.path.join('src', 'perm', 'netcdf.py'),'wb'), """
+        print >> file(os.path.join('src', 'permm', 'netcdf.py'),'wb'), """
 __all__ = ['NetCDFFile']
 __doc__ = \"\"\"
 .. _netcdf
@@ -50,10 +50,10 @@ def find_data():
     import re
     data_pattern = re.compile(r'.*(.|_)(yaml|nc|net|irr|phy|ptb|sum|voc|txt|xls|graffle)$')
     data = []
-    prefix = os.path.join(os.path.curdir,'src', 'perm')
+    prefix = os.path.join(os.path.curdir,'src', 'permm')
     walker = os.walk('src')
     for thisdir, itsdirs, itsfiles in walker:
-        if thisdir != os.path.join('src','perm.egg-info'):
+        if thisdir != os.path.join('src','permm.egg-info'):
             data.extend([os.path.join(thisdir[len(prefix)-1:],f) for f in itsfiles if data_pattern.match(f) is not None])
     
     return data
@@ -61,7 +61,7 @@ def find_data():
 packages = find_packages()
 data = find_data()
 
-setup(name = 'perm',
+setup(name = 'permm',
       version = '1.0rc',
       author = 'Barron Henderson',
       author_email = 'barronh@gmail.com',
@@ -69,6 +69,6 @@ setup(name = 'perm',
       maintainer_email = 'barronh@gmail.com',
       packages = packages,
       package_dir = {'': 'src'},
-      package_data = {'perm': data},
+      package_data = {'permm': data},
       requires = [pkg, 'numpy (>=1.2)', 'yaml']
       )

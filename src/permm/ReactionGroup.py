@@ -7,7 +7,7 @@ from numpy import ndarray, \
                   indices
 from numpy.ma import sum
 
-from perm.SpeciesGroup import Species
+from permm.SpeciesGroup import Species
 from warnings import warn
 import operator
 import re

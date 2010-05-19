@@ -2,12 +2,12 @@ def parse_and_run():
     import os
     from optparse import OptionParser
     from warnings import warn
-    from perm.mechanisms import __all__ as all_mechs
-    from perm.analyses import __all__ as all_analyses
+    from permm.mechanisms import __all__ as all_mechs
+    from permm.analyses import __all__ as all_analyses
     all_mechs = '|'.join(all_mechs)
     all_analyses = '|'.join(all_analyses)
     parser = OptionParser()
-    parser.set_usage("Usage: python -m perm [-c %s] [-g|-i|-a %s] [mrgfile]" % (all_mechs, all_analyses))
+    parser.set_usage("Usage: python -m permm [-c %s] [-g|-i|-a %s] [mrgfile]" % (all_mechs, all_analyses))
     parser.add_option("-i", "--interactive", dest="interactive", \
                         action="store_true", default=False, \
                         help="open an interactive environment", \
@@ -32,10 +32,10 @@ def parse_and_run():
     
     (options, args) = parser.parse_args()
 
-    from perm import mechanisms, \
+    from permm import mechanisms, \
                             netcdf, \
                             getmech
-    from perm.Shell import load_environ
+    from permm.Shell import load_environ
     
     get_prepared_mech = getmech.get_prepared_mech
     get_pure_mech = getmech.get_pure_mech
@@ -63,7 +63,7 @@ def parse_and_run():
         else:
             start_script = 1
 
-    from perm.Shell import PERMConsole
+    from permm.Shell import PERMConsole
     console = PERMConsole()
     load_environ(mech,console.locals)
 
@@ -75,7 +75,7 @@ def parse_and_run():
 
 
     if options.graphical:
-        console.runsource("from perm.GUI import StartGUI")
+        console.runsource("from permm.GUI import StartGUI")
         console.runsource("StartGUI(mech)")
 
     if options.analysis is not None:
@@ -83,10 +83,10 @@ def parse_and_run():
             parser.error(msg="Requires a pyPA mrg file as an argument for analysis output.  You can enter an interactive environment (-i), but will not have access to \"netted\" reactions")
 
         if options.analysis == "net_balance":
-            console.runsource("from perm.analyses.net_balance import net_balance")
+            console.runsource("from permm.analyses.net_balance import net_balance")
             console.runsource("net_balance('%s', '%s', '%s')" % (options.mechanism, args[0], options.output))
         elif options.analysis == "history":
-            console.runsource("from perm.analyses.history import matrix")
+            console.runsource("from permm.analyses.history import matrix")
             console.runsource("history = matrix(mech, [C2O3], [HC], [])")
             console.runsource("history.run()")
         else:

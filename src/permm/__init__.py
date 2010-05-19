@@ -15,5 +15,5 @@ if __name__ != '__main__':
     from getmech import get_pure_mech, get_prepared_mech
     get_mech = get_pure_mech
 else:
-    from perm.main import parse_and_run
+    from permm.main import parse_and_run
     parse_and_run()

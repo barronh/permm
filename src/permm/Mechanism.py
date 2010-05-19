@@ -555,7 +555,7 @@ class Mechanism(object):
     
     def plot_proc(self, species, path = None, **kwds):
         """
-        species - perm.SpeciesGroup.Species object
+        species - permm.SpeciesGroup.Species object
         path - path for saved figure
         kwds - * title - title
                * init - Name of initial concentration process
