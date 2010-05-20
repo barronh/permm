@@ -128,6 +128,8 @@ class Species(object):
             # for name,stoic in zip(kwds['names'],kwds['stoic']):
             #     result[name] += stoic
             result = object.__new__(cls,*args, **kwds)
+            result._stoic = {}
+            result._stoic.update(dict(zip(kwds['names'], kwds['stoic'])))
         else:
             args_are_species_groups = all(map(lambda x: isinstance(x, Species),args))
 
@@ -136,9 +138,10 @@ class Species(object):
             else:
                 if len(args) == 1:
                     arg = args[0]
-                    result = Species(name = arg.name, names = arg.names(), stoic = [arg[n] for n in arg.names()])
+                    result = Species(names = arg.names(), stoic = [arg[n] for n in arg.names()], **kwds)
                 else:
                     result = reduce(operator.add,args)
+
         result.atom_dict = kwds.pop('atom_dict', {}).copy()
         try:
             result.name = kwds['name']
@@ -148,9 +151,6 @@ class Species(object):
         return result
         
     def __init__(self, *args, **kwds):
-        self._stoic = {}
-        if kwds.has_key('names') and kwds.has_key('stoic'):
-            self._stoic.update(dict(zip(kwds['names'], kwds['stoic'])))
         self.exclude = kwds.get('exclude', False)
         self.__roles = kwds.get('roles',['u']*len(self.names()))
 
