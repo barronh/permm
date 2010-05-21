@@ -139,6 +139,11 @@ class Species(object):
                 if len(args) == 1:
                     arg = args[0]
                     result = Species(names = arg.names(), stoic = [arg[n] for n in arg.names()], **kwds)
+                    if not kwds.has_key('name'):
+                        kwds['name'] = arg.name
+                    if not kwds.has_key('atom_dict'):
+                        kwds['atom_dict'] = arg.atom_dict.copy()
+                        
                 else:
                     result = reduce(operator.add,args)
 
@@ -152,8 +157,7 @@ class Species(object):
         
     def __init__(self, *args, **kwds):
         self.exclude = kwds.get('exclude', False)
-        self.__roles = kwds.get('roles',['u']*len(self.names()))
-
+        self._roles = kwds.get('roles',['u']*len(self.names()))
         
     def __getitem__(self,item):
         """Test"""
@@ -273,9 +277,85 @@ def species_sum(species_list):
                 out_stoic[spc] += next_species[spc]
             except:
                 out_stoic[spc] = next_species[spc]
-        out_atoms.update(next_species.atom_dict)
+        for atom, atomc in next_species.atom_dict.iteritems():
+            old_atomc = out_atoms.get(atom, 0)
+            if next_species.exclude:
+                out_atoms[atom] = old_atomc - atomc
+            else:
+                out_atoms[atom] = old_atomc + atomc
         
     out_names = list(out_names)
     out_stoic = [out_stoic[name] for name in out_names]
     return Species(name = out_name, names = out_names, \
                     stoic = out_stoic, exclude = out_exclude, atom_dict = out_atoms)
+
+import unittest
+
+class SpeciesTestCase(unittest.TestCase):
+    def setUp(self):
+        self.species = dict(OH = Species(names = ['OH'], stoic = [1], exclude = False, atom_dict = dict(H = 1, O = 1), name = 'OH'),
+                            HO2 = Species(names = ['HO2'], stoic = [1], exclude = False, atom_dict = dict(H = 1, O = 2), name = 'HO2'),
+                            HOx = Species(names = ['HO2', 'OH'], stoic = [1, 1], exclude = False, atom_dict = dict(H = 2, O = 3), name = 'HOx'),
+                            O3 = Species(names = ['O3'], stoic = [1], exclude = False, atom_dict = dict(O = 3), name = 'O3'),
+                            )
+
+
+    def assertEqualSpecies(self, s1, s2, neg = False):
+        self.assertEquals(s1._stoic, s2._stoic)
+        self.assertEquals(s1.atom_dict, s2.atom_dict)
+        self.assertEquals(s1._roles, s2._roles)
+        if neg:
+            self.assertEquals(s1.exclude, not s2.exclude)
+        else:
+            self.assertEquals(s1.exclude, s2.exclude)
+        
+    def testCreate(self):
+        s1 = self.species['OH']
+        s2 = Species(s1, name = 'hydroxyl')
+        self.assertEqualSpecies(s1, s2)
+        
+    def testNeg(self):
+        s1 = self.species['OH']
+        s2 = -s1
+        self.assertEqualSpecies(s1, s2, neg = True)
+    
+    def testAdd(self):
+        s1 = self.species['OH']
+        s2 = self.species['HO2']
+        s3 = self.species['HOx']
+        s4 = s1 + s2
+        self.assertEqualSpecies(s3, s4)
+
+    def testSub(self):
+        s1 = self.species['OH']
+        s2 = self.species['HO2']
+        s3 = self.species['HOx']
+        s4 = s3 - s2
+        self.assertEqualSpecies(s4, s1)
+
+    def testGet(self):
+        s2 = self.species['HO2']
+        s3 = self.species['HOx']
+        self.assertEquals(s3['HO2'], s3[s2])
+    
+    def testMul(self):
+        s1 = self.species['OH']
+        s3 = 2 * s1
+        s2 = s1 * 2
+        self.assertEqualSpecies(s2, s3)
+        self.assertRaises(AssertionError, self.assertEqualSpecies, s1, s3)
+        
+    def testContains(self):
+        s1 = self.species['OH']
+        s2 = self.species['O3']
+        s3 = self.species['HOx']
+        self.assertTrue(s1 in s3)
+        self.assertFalse(s2 in s3)
+
+    def testCopy(self):
+        s1 = self.species['OH']
+        s2 = s1.copy()
+        self.assertEqualSpecies(s1, s2)
+
+if __name__ == '__main__':
+    unittest.main()
