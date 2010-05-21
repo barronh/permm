@@ -15,7 +15,8 @@ from Shell import load_environ
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
 __all__ = ['Mechanism']
 
-spc_def_re = re.compile(r'(?P<stoic>[-+]?[0-9]*\.?[0-9]+)(?P<atom>\S+)(?=\s*\+\s*)?')
+_spc_def_re = re.compile(r'(?P<stoic>[-+]?[0-9]*\.?[0-9]+)(?P<atom>\S+)(?=\s*\+\s*)?')
+_numre = re.compile('(\d+)')
 
 class Mechanism(object):
     """
@@ -59,7 +60,7 @@ class Mechanism(object):
                 if spc_def == 'IGNORE':
                     self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
                 else:
-                    spc_atoms = dict([(atom, eval(stoic)) for stoic, atom in spc_def_re.findall(spc_def)])
+                    spc_atoms = dict([(atom, eval(stoic)) for stoic, atom in _spc_def_re.findall(spc_def)])
                     self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1], atom_dict = {spc: spc_atoms})
                         
         self.reaction_dict = AttrDict()
@@ -303,16 +304,18 @@ class Mechanism(object):
         
         for more information see find_rxns
         """
-        if sortby is None:
-            sortby = ([p for p in _ensure_list(products) if not p.exclude]+[r for r in _ensure_list(reactants)  if not r.exclude])[0]
         rxns = self.find_rxns(reactants, products, logical_and, reaction_type)
 
         rxns = [(rxn, self.reaction_dict[rxn]) for rxn in rxns]
         try:
+            if sortby is None:
+                sortby = ([p for p in _ensure_list(products) if not p.exclude]+[r for r in _ensure_list(reactants)  if not r.exclude])[0]
             rxns = [(rxno[sortby], rxn, rxno) for rxn, rxno in rxns]
+            rxns.sort(reverse = reverse)
         except:
+            rxns = [(_rxn_ordinal(rxn), rxn, rxno) for rxn, rxno in rxns]
+            rxns.sort()
             warn("Not all reactions contain %s; check query and/or explicitly define sortby species" % str(sortby))
-        rxns.sort(reverse = reverse)
 
         for mass, rxn, rxno in rxns:
             print rxn, rxno.display(nspc = nspc, digits = digits)
@@ -442,15 +445,19 @@ class Mechanism(object):
             
         rxns = self.find_rxns(reactants, products, logical_and, reaction_type)
         irrs = [(rxn, self.irr_dict[rxn][slice].sum()) for rxn in rxns]
-        if sortby is None:
-            sortby = ([p for p in _ensure_list(products) if not p.exclude]+[r for r in _ensure_list(reactants)  if not r.exclude])[0]
         
         try:
+            if sortby is None:
+                sortby = ([p for p in _ensure_list(products) if not p.exclude]+[r for r in _ensure_list(reactants)  if not r.exclude])[0]
             irrs = [(irr[sortby], rxn, irr) for rxn, irr in irrs]
+            irrs.sort(reverse = reverse)
         except:
+            irrs = [(_rxn_ordinal(rxn), rxn, irr) for rxn, irr in irrs]
+            irrs.sort()
             warn("Not all reactions contain %s; check query and/or explicitly define sortby species" % str(sortby))
-        irrs.sort(reverse = reverse)
+
         irrs = [(rxn, irr) for mass, rxn, irr in irrs]
+
 
         for rxn, irr in irrs:
             print rxn, (irr * factor).display(nspc = nspc, digits = digits)
@@ -595,3 +602,15 @@ def _ensure_list(x):
         return [x]
     else:
         return x
+
+def _rxn_ordinal(rxnlabel):
+    result = _numre.search(rxnlabel)
+    if result is None:
+        return None
+    else:
+        val = result.groups()[0]
+        try:
+            return eval(val)
+        except:
+            return int(val)
+        
