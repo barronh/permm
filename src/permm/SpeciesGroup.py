@@ -277,12 +277,12 @@ def species_sum(species_list):
                 out_stoic[spc] += next_species[spc]
             except:
                 out_stoic[spc] = next_species[spc]
-        for atom, atomc in next_species.atom_dict.iteritems():
-            old_atomc = out_atoms.get(atom, 0)
-            if next_species.exclude:
-                out_atoms[atom] = old_atomc - atomc
-            else:
-                out_atoms[atom] = old_atomc + atomc
+
+        if next_species.exclude:
+            for spc in next_species.atom_dict.keys():
+                del out_atoms[spc]
+        else:
+            out_atoms.update(next_species.atom_dict)
         
     out_names = list(out_names)
     out_stoic = [out_stoic[name] for name in out_names]
@@ -293,10 +293,10 @@ import unittest
 
 class SpeciesTestCase(unittest.TestCase):
     def setUp(self):
-        self.species = dict(OH = Species(names = ['OH'], stoic = [1], exclude = False, atom_dict = dict(H = 1, O = 1), name = 'OH'),
-                            HO2 = Species(names = ['HO2'], stoic = [1], exclude = False, atom_dict = dict(H = 1, O = 2), name = 'HO2'),
-                            HOx = Species(names = ['HO2', 'OH'], stoic = [1, 1], exclude = False, atom_dict = dict(H = 2, O = 3), name = 'HOx'),
-                            O3 = Species(names = ['O3'], stoic = [1], exclude = False, atom_dict = dict(O = 3), name = 'O3'),
+        self.species = dict(OH = Species(names = ['OH'], stoic = [1], exclude = False, atom_dict = dict(OH = dict(H = 1, O = 1)), name = 'OH'),
+                            HO2 = Species(names = ['HO2'], stoic = [1], exclude = False, atom_dict = dict(HO2 = dict(H = 1, O = 2)), name = 'HO2'),
+                            HOx = Species(names = ['HO2', 'OH'], stoic = [1, 1], exclude = False, atom_dict = dict(HO2 = dict(H = 1, O = 2), OH = dict(H = 1, O = 1)), name = 'HOx'),
+                            O3 = Species(names = ['O3'], stoic = [1], exclude = False, atom_dict = dict(O2 = dict(O = 3)), name = 'O3'),
                             )
 
 
