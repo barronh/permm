@@ -14,10 +14,10 @@ import re
 
 ReactionGroup = str
 
-__all__ = ['Stoic', 'ReactionFromString', 'Reaction', 'ReactionArray']
+__all__ = ['Stoic', 'ReactionFromString', 'Reaction']
 
 
-class Stoic(float64):
+class Stoic(ndarray):
     """
     Stoic is a sub-class of float with a role
     property.  The role property is 'r', 'p', or 'u'.
@@ -36,27 +36,40 @@ class Stoic(float64):
         __rmul__: (Stoic|Number)*Stoic
         __add__: Stoic+(Stoic|Number)
     """
-    def __new__(subtype,f,role):
-        result = float64.__new__(subtype,f)
+    __array_priority__ = 1001.
+    def __new__(subtype, f, role):
+        result = array(f).view(subtype)
         result.role = role
         return result
+    
+    def __array_wrap__(self, obj, context = None):
+        result = obj.view(Stoic)
+        if context is not None:
+            args = context[1]
+            if len(args) > 1:
+                lhs, rhs = args[:2]
+                if hasattr(lhs, 'role'):
+                    if hasattr(rhs, 'role'):
+                        if lhs.role != rhs.role:
+                            result.role = 'u'
+                        else:
+                            result.role = lhs.role
+                    else:
+                            result.role = lhs.role                        
+                else:
+                    result.role = 'u'
 
-    def __mul__(self,rhs):
-        return Stoic(float64.__mul__(self,rhs),self.role)
-
-    def __rmul__(self,lhs):
-        return Stoic(float64.__mul__(self,lhs),self.role)
-
-    def __add__(self,rhs):
-        if isinstance(rhs, Stoic):
-            if rhs.role == self.role:
-                role = self.role
-            else:
-                role = 'u'
-        else:
-            role = self.role
+        return result
+        
+    def __repr__(self):
+        return "Stoic(%s, role = '%s')" % (str(self.asarray()), getattr(self, 'role', 'None'))
+    
+    def __str__(self):
+        return self.__repr__()
             
-        return Stoic(float64.__add__(self,rhs),role)
+    def asarray(self):
+        return self.view(ndarray)
+        
 
 StoicArray = vectorize(Stoic, otypes = [object])
 def AddRole(s1, s2):
@@ -167,6 +180,7 @@ class Reaction(object):
         add_rct_spc
         add_prd_spc
     """
+    __array_priority__ = 1000.
     def __init__(self, reaction_type = 'k', roles = {}, **stoic):
         """
             roles - dictionary of specific roles; for species whose 
@@ -433,7 +447,7 @@ class Reaction(object):
         if len(species) == 0:
             raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
         
-        value = 0
+        value = 0.
         for spc in species:
             value = value + item[spc] * self._stoic[spc]
         first_spc_role = self._roles[species.pop()]
@@ -482,3 +496,132 @@ def spc_in_list(spc_grp,local_list):
                 return True
         else:
             return False
+
+import unittest
+
+class ReactionTestCase(unittest.TestCase):
+    def setUp(self):
+        self.spcs = dict(NO2 = Species(name = 'NO2', names = ['NO2'], stoic = [1.]),
+                         NO = Species(name = 'NO', names = ['NO'], stoic = [1.]),
+                         HNO3 = Species(name = 'HNO3', names = ['HNO3'], stoic = [1.]),
+                         O = Species(name = 'O', names = ['O'], stoic = [1.]),
+                         OH = Species(name = 'OH', names = ['OH'], stoic = [1.]),
+                         HO2 = Species(name = 'HO2', names = ['HO2'], stoic = [1.]),
+                         O3 = Species(name = 'O3', names = ['O3'], stoic = [1.]),
+                         PAR = Species(name = 'PAR', names = ['PAR'], stoic = [1.]),
+                         NTR = Species(name = 'NTR', names = ['NTR'], stoic = [1.]),
+                         FORM = Species(name = 'FORM', names = ['FORM'], stoic = [1.]),
+                         ALD2 = Species(name = 'ALD2', names = ['ALD2'], stoic = [1.]),
+                         ALDX = Species(name = 'ALDX', names = ['ALDX'], stoic = [1.]),
+                         )
+        exec('NOx = NO2 + NO', globals(), self.spcs)
+        exec('ALD = ALDX + ALD2 + FORM', globals(), self.spcs)
+        rxn_strings = {'NO2hv': 'NO2 ->[j] NO + O',
+                       'OplO3': 'O + O2 + M ->[k] O3 + M',
+                       'NTRplOH': 'NTR + OH ->[k] HNO3 + HO2 + 0.330*FORM + 0.330*ALD2 + 0.330*ALDX - 0.660*PAR'
+                      }
+        self.rxns = {}
+        for label, rxn_str in rxn_strings.iteritems():
+            self.rxns[label] = ReactionFromString(rxn_str)
+        
+    def testHasSpc(self):
+        r1 = self.rxns['NO2hv']
+        spcs = [self.spcs[k] for k in ['NO2', 'NO', 'NOx']]
+        for spc in spcs:
+            self.assertTrue(r1.has_spc(spc))
+            
+    def testHasRole(self):
+        r1 = self.rxns['NO2hv']
+        rs = self.spcs['NO2']
+        ps = self.spcs['NO']
+        self.assertTrue(r1.has_rct(rs))
+        self.assertFalse(r1.has_rct(ps))
+        self.assertFalse(r1.has_prd(rs))
+        self.assertTrue(r1.has_prd(ps))
+        
+    def testConsumes(self):
+        r1 = self.rxns['NO2hv']
+        rs = self.spcs['NO2']
+        ps = self.spcs['NO']
+        ns = self.spcs['O3']
+        self.assertTrue(r1.consumes(rs) == 1)
+        self.assertTrue(r1.consumes(ps) == 0)
+        self.assertTrue(r1.consumes(ns) == 0)
+        
+    def testProduces(self):
+        r1 = self.rxns['NO2hv']
+        rs = self.spcs['NO2']
+        ps = self.spcs['NO']
+        ns = self.spcs['O3']
+        self.assertTrue(r1.produces(rs) == 0)
+        self.assertTrue(r1.produces(ps) == 1)
+        self.assertTrue(r1.produces(ns) == 0)
+        
+    def testGet(self):
+        r1 = self.rxns['NO2hv']
+        rs = self.spcs['NO2']
+        self.assertTrue(r1[rs] == -1)
+        
+    def testReactants(self):
+        r1 = self.rxns['NTRplOH']
+        self.assertEquals(set(r1.reactants()), set(('OH', 'NTR')))
+        
+        
+    def testProducts(self):
+        r1 = self.rxns['NTRplOH']
+        self.assertEquals(set(r1.products()), set(('PAR', 'FORM', 'ALD2', 'HNO3', 'HO2', 'ALDX')))
+        
+    def testMulScalar(self):
+        r1 = self.rxns['NTRplOH']
+        a = 5.83
+        r2 = r1 * a
+
+        for spcn in "NTR OH".split():
+            spc = self.spcs[spcn]
+            self.assertAlmostEqual(r2[spc], -a)
+
+        for spcn in "HNO3 HO2".split():
+            spc = self.spcs[spcn]
+            self.assertAlmostEqual(r2[spc], a)
+
+        for spcn in "FORM ALD2 ALDX".split():
+            spc = self.spcs[spcn]
+            self.assertAlmostEqual(r2[spc], a * .33)
+
+        for spcn in ["ALD"]:
+            spc = self.spcs[spcn]
+            self.assertAlmostEqual(r2[spc], a * .99)
+
+        for spcn in ["PAR"]:
+            spc = self.spcs[spcn]
+            self.assertAlmostEqual(r2[spc], -a * .66)
+        
+    def testMulArray(self):
+        from numpy import arange, round
+        a = arange(0, 60, dtype = 'd').reshape(3,4,5) + .3
+        r1 = self.rxns['NTRplOH']
+        r2 = r1 * a
+
+        for spcn in "NTR OH".split():
+            spc = self.spcs[spcn]
+            self.assertTrue((r2[spc] == -a).all())
+
+        for spcn in "HNO3 HO2".split():
+            spc = self.spcs[spcn]
+            self.assertTrue((r2[spc] == a).all())
+
+        for spcn in "FORM ALD2 ALDX".split():
+            spc = self.spcs[spcn]
+            self.assertTrue((r2[spc] == (a * float64(.33))).all())
+
+        for spcn in ["ALD"]:
+            spc = self.spcs[spcn]
+            # Value is not exact because of addition
+            self.assertTrue((round(r2[spc], decimals = 8) == round(a * float64(.99), decimals = 8)).all())
+
+        for spcn in ["PAR"]:
+            spc = self.spcs[spcn]
+            self.assertTrue((r2[spc] == (-a * .66)).all())
+        
+if __name__ == '__main__':
+    unittest.main()
