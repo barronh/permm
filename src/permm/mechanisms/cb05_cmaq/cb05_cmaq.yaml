@@ -1,4 +1,5 @@
 ---
+comment: "Carbon Bond 05 (CB05) chemical mechanism as implemented in CMAQ v4.7 (cb05cl_ae5_aq)"
 species_list:
     CL: IGNORE
     NO3: 1N

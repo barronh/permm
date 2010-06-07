@@ -1,5 +1,5 @@
 ---
-
+comment: "State Air Pollution Research Center (SAPRC) 1999 chemical mechanisms, as implemented by CMAQ v4.6"
 reaction_list:
     IRR_1: NO2 ->[j] NO + O3P
     IRR_2: O3P + O2 + M ->[k] O3

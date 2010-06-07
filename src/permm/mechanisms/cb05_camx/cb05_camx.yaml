@@ -1,4 +1,5 @@
 ---
+comment: "Carbon Bond 05 (CB05) chemical mechanism as implemented in CAMx v4"
 species_list:
     CL: IGNORE
     NXOY: 2.5N

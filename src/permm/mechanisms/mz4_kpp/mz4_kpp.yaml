@@ -1,3 +1,5 @@
+---
+comment: "Model for Ozone and Related chemical Tracers, version 4 (MOZART-4), as implemented in L. K. Emmons et al.: MOZART-4 description GMD 2009."
 species_list:
     'CL': IGNORE
 

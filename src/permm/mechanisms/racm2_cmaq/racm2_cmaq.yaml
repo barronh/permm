@@ -1,4 +1,5 @@
 ---
+comment: "Regional Atmospheric Chemistry Mechanism (RACM) version 2, in development for CMAQ v4.8"
 species_list:
     'CL': IGNORE
 
