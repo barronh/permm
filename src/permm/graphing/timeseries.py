@@ -94,7 +94,7 @@ def irr_plot(
       reactions - list of reaction objects
       species - species to plot from reactions
       end_date - dates are provided for the interval end
-      units - string for y-axis label (defaults to mech.irr.units)
+      units - string for y-axis label (defaults to mech.irr_dict.units)
       ncol - number of columns in the legend
       fig - a previous figure to plot results on
       cmap - color map to be used
@@ -118,7 +118,7 @@ def irr_plot(
     """
     
     date_objs = get_date_steps(mech.mrg, end_date)
-    units = none_defaults_to(units, mech.irr.units)
+    units = none_defaults_to(units, getattr(mech.irr_dict, 'units', 'Unknown'))
     nlines = len(reactions)
     if rcParams['text.usetex']:
         title_str = 'Plot of \ce{%s} Reactions' % (species.name, )
