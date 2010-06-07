@@ -54,6 +54,7 @@ class Mechanism(object):
         
         yaml_file = AttrDict(yaml_file)
         self.__yaml_file = yaml_file
+        self.mechanism_comment = yaml_file.get('comment', '')
         self.species_dict = AttrDict()
         if yaml_file.has_key('species_list'):
             for spc, spc_def in yaml_file.species_list.iteritems():
