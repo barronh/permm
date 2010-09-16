@@ -9,10 +9,12 @@ from warnings import warn
 from SpeciesGroup import Species, species_sum
 from ProcessGroup import Process
 from ReactionGroup import ReactionFromString
-from IPRArray import IPR
+from IPRArray import Processes_ProcDelimSpcDict
 from graphing.timeseries import irr_plot, phy_plot, plot as tplot
 from Shell import load_environ
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
+from netcdf import NetCDFVariable
+
 __all__ = ['Mechanism']
 
 _spc_def_re = re.compile(r'(?P<stoic>[-+]?[0-9]*\.?[0-9]+)(?P<atom>\S+)(?=\s*\+\s*)?')
@@ -321,22 +323,25 @@ class Mechanism(object):
         for mass, rxn, rxno in rxns:
             print rxn, rxno.display(nspc = nspc, digits = digits)
 
-    def plot_rxn_list(self, reactions, plot_spc = None, path = None,
-                      factor = 1, units = None, end_date = True,
-                      chem = 'CHEM', title = None, ylim = None, xlim = None,
-                      figure_settings = {}, axis_settings = {}, line_settings = {},
-                      fig = None, cmap = None, ncol = 2
-                    ):
+    def plot_rxn_list(self, reactions, plot_spc = None, path = None, show = False, **kwds):
+        """
+        Returns:
+            a matplotlib figure with a line for each reaction indexed by plot_spc
+        
+        Parameters:
+            reactions - list of reaction objects
+            plot_spc - species to plot
+            path - path to savefigure
+            show - try to display figure interactively
+
+        Other keywords:
+            accepts any keyword accepted by permm.graphing.timeseries.irr_plot
+        """
         if plot_spc is None:
             plot_spc = self((reactions[0][0].products() + reactions[0][0].reactants())[0])
             
-        fig = irr_plot(self, reactions = reactions, species = plot_spc,
-                       factor = factor, units = units, end_date = end_date,
-                       chem = chem, title = title, ylim = ylim, xlim = xlim,
-                       figure_settings = figure_settings, axis_settings = axis_settings, line_settings = line_settings,
-                       fig = fig, cmap = cmap, ncol = ncol
-                      )
-        if path is not None:
+        fig = irr_plot(self, reactions = reactions, species = plot_spc, **kwds)
+        if path is not None and show:
             fig.savefig(path)
         else:
             from pylab import show
@@ -344,7 +349,7 @@ class Mechanism(object):
         
         return fig
 
-    def plot(self, y, path = None, stepped = True, end_date = True, time_slice = None, figure_settings = {}, axis_settings = {}, line_settings = {}):
+    def plot(self, y, path = None, stepped = True, end_date = True, time_slice = slice(None), figure_settings = {}, axis_settings = {}, line_settings = {}):
         """
         plot creates a timeseries plot of any numerical array.
         """
@@ -358,46 +363,35 @@ class Mechanism(object):
         return fig
 
     def plot_rxns(self, reactants = [], products = [], logical_and = True, reaction_type = None,
-                  plot_spc = None, path = None,
-                  combine = [()], nlines = 8,
-                  factor = 1, units = None, end_date = True,
-                  chem = 'CHEM', title = None, ylim = None, xlim = None, 
-                  figure_settings = {}, axis_settings = {}, line_settings = {},
-                  fig = None, cmap = None, ncol = 2
-                  ):
+                  plot_spc = None, combine = [()], nlines = 8, **kwds):
         """
-        For the top nlines reactions in find_rxns(reactants, procucts, logical_and),
-        plot the production/consumption rate for plot_spc.  The top lines are selected
-        based on total mass throughput of the species being plotted (i.e. plot_spc).
-        If plot_spc is not specified, use the first product provided.  If no products, 
-        use the first reactant.
+        Creates figure of reactions
         
-        For each set of reactions in combine (i.e. combine = [('IRR_1', 'IRR_2'), ...])
-        create a net reaction and plot that instead.  For each reaction, over nlines
-        create 
+        Steps:
+        1. Query reactions using get_rxns(reactants, procucts, logical_and)
+        2. net reaction sets specified in combine (i.e. combine = [('IRR_1', 'IRR_2'), ...])
+        3. sort queried reactions by absolute plot_spc change (+/-)
+        3. combine all reactions that are not in the top (nlines - 1)
+        4. plot the plot_spc change from each (nlines - 1) individual reactions
+           and the 1 net reaction
         
-        end_date - dates are provided for the interval end
-        units - string for y-axis label (defaults to mech.irr.units)
-        ncol - number of columns in the legend
-        fig - a previous figure to plot results on
-        cmap - color map to be used
-        chem - the process name of the total chemistry or None to 
-               not plot total chemistry
-        factor - a scaling factor for process data (i.e. if data is ppm 
-                 and you want to plot ppt, factor = 1e6)
-        title - a string for the title of the figure
-        ylim - an iterable (e.g. tuple or list) of min and max values
-               for y-scale
-        xlim - an iterable (e.g. tuple or list) of min and max values
-               for x-scale
-        figure_settings - properties for the figure; dictionary of 
-                          keywords that pertain to the matplotlib
-                          figure function
-        axis_settings - properties for the figure axes; dictionary of 
-                        keywords that pertain to the matplotlib
-                        axes function
-        line_settings - properties for all lines; dictionary of keywords
-                        for matplotlib plot_date function
+        Returns:
+            matplotlib figure with each queried reaction plotted for production/consumption
+            of plot_spc.
+        
+        Parameters:
+            reactants - instance or list of Species objects to require
+            products - instance or list of Species objects to require
+            logical_and - if true, require reactants and products; false, require reactants or products
+            reaction_type - some combination of kjn: thermal (k); photolysis (j); net (n)
+            plot_spc - Species instance to be plotted, defaults to first product or reactant
+            combine - reaction keys to combine into net reactions
+            nlines - maximum reactions to plot; selected based on maximum absolute plot_spc change
+        
+        Other keywords:
+            permm.Mechanism.plot_rxn_list or 
+            permm.graphing.timeseries.irr_plot
+        
         """
         if plot_spc is None:
             plot_spc = (_ensure_list(products)+_ensure_list(reactants))[0]
@@ -427,14 +421,9 @@ class Mechanism(object):
         except:
             reactions = [self('(%s)' % (rxn, )) for rxn in reactions[:nlines-1]]
         
-        return self.plot_rxn_list(reactions = reactions, plot_spc = plot_spc, path = path,
-                                  factor = factor, units = units, end_date = end_date,
-                                  chem = chem, title = title, ylim = ylim, xlim = xlim, 
-                                  figure_settings = figure_settings, axis_settings = axis_settings,
-                                  line_settings = line_settings, fig = fig, cmap = cmap, ncol = ncol
-                                 )
+        return self.plot_rxn_list(reactions = reactions, plot_spc = plot_spc, **kwds)
         
-    def print_irrs(self, reactants = [], products = [], logical_and = True, reaction_type = None, factor = 1., sortby = None, reverse = False, slice = None, nspc = 100000, digits = -1, formatter = 'g'):
+    def print_irrs(self, reactants = [], products = [], logical_and = True, reaction_type = None, factor = 1., sortby = None, reverse = False, slice = slice(None), nspc = 100000, digits = -1, formatter = 'g'):
         """
         For each reaction in find_rxns(reactants, procucts, logical_and),
         print the reaction summed for the entire timeseries.
@@ -475,20 +464,9 @@ class Mechanism(object):
                 self.set_irr()
         if use_ipr:
             try:
-                self.set_ipr(mrg.variables['IPR'], mrg.Species.split(), mrg.Process.split())
+                self.set_ipr(mrg.variables['IPR'])
             except:
-                if hasattr(mrg, 'Species'):
-                    spcs = mrg.Species.split()
-                    prcs = mrg.Processes.split()
-                    temp_var = mrg.variables['%s_%s' % (prcs[0], spcs[0])]
-                    ipr = PseudoNetCDFVariable(None, 'ipr', temp_var.dtype.char, ('TSTEP', 'SPECIES', 'PROCESS'), units = temp_var.units, values = zeros(temp_var.shape + (len(spcs), len(prcs)), temp_var.dtype))
-                    for si, spc in enumerate(spcs):
-                        for pi, prc in enumerate(prcs):
-                            ipr[..., si, pi] = mrg.variables['%s_%s' % (prc, spc)][:]
-    
-                    self.set_ipr(ipr, mrg.Species.split(), mrg.Processes.split())
-                else:
-                    warn("Unable to load IPR; missing Species and Processes attributes")
+                self.set_ipr()
                         
         
         load_environ(self, self.variables)
@@ -531,14 +509,28 @@ class Mechanism(object):
 
         load_environ(self, self.variables)
         
-    def set_ipr(self,ipr, species, processes):
+    def set_ipr(self, ipr = None, processes = None):
         """
         Add process analysis from a 3D merged IPR array (TIME,SPC,PROC)
         """
-        self.process_dict={}
-        for proc in processes:
-            self.process_dict[proc] = Process(name = proc, names = [proc])
-        
+        if ipr is None:
+            if hasattr(self.mrg, 'Processes'):
+                processes = self.mrg.Processes.split()
+                self.process_dict = Processes_ProcDelimSpcDict(processes, self.mrg.variables)
+            else:
+                warn("Unable to load IPR; missing Species and Processes attributes")
+                return
+        elif isinstance(ipr, dict):
+            if processes is None:
+                raise ValueError, "When ipr is a dictionary, processes must be provided as a list of process names"
+            self.process_dict = Processes_ProcDelimSpcDict(processes, self.mrg.variables)
+        elif isinstance(ipr, (PseudoNetCDFVariable, NetCDFVariable)):
+            self.process_dict = {}
+            for pi, prc in enumerate(processes):
+                self.process_dict[prc] = Process(prc, default_unit = getattr(ipr, 'units', 'Unknown'), **dict([(spc, ipr[si, pi]) for si, spc in enumerate(species)]))
+        else:
+            return
+
         for prc_name, prc in self.__yaml_file.get('process_group_list', {}).iteritems():
             try:
                 self.process_dict[prc_name] = eval(prc,{},self.process_dict)
@@ -546,11 +538,10 @@ class Mechanism(object):
             except:
                 warn("Cannot create %s process group" % prc_name)
             
-        self.ipr = IPR(ipr, species, processes, ipr.units)
-        self.ipr.units = ipr.units
-        
         # Add extra species for names in IPR
-        for name in self.ipr.dtype.names:
+        spcs = set(reduce(list.__add__, [[spc for spc in proc.keys()] for proc in self.process_dict.values()]))
+        new_spcs = spcs.difference(self.species_dict.keys())
+        for name in new_spcs:
             if not self.species_dict.has_key(name):
                 self.species_dict[name] = Species(name = name, names = [name], stoic = [1.])
 
@@ -591,8 +582,9 @@ class Mechanism(object):
         if path is not None:
             fig.savefig(path)
         else:
-            from pylab import show
-            show()
+            if kwds.get('show', True):
+                from pylab import show
+                show()
         return fig
 
     def globalize(self, env):

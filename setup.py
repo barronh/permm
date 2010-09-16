@@ -6,10 +6,10 @@ except:
 import os
 import sys
 from warnings import warn
-netcdf_pkgs = [('netCDF4', 'Dataset'), \
-               ('netCDF3', 'Dataset'), \
-               ('pupynere', 'NetCDFFile')]
-for pkg, reader in netcdf_pkgs:
+netcdf_pkgs = [('netCDF4', 'Dataset', 'Variable'), \
+               ('netCDF3', 'Dataset', 'Variable'), \
+               ('pupynere', 'netcdf_file', 'netcdf_variable')]
+for pkg, reader, var in netcdf_pkgs:
     try:
         NetCDFFile = getattr(__import__(pkg, fromlist = [reader]),reader)
         print >> file(os.path.join('src', 'permm', 'netcdf.py'),'wb'), """
@@ -27,7 +27,8 @@ __doc__ = \"\"\"
 .. moduleauthor:: Barron Henderson <barronh@unc.edu>
 \"\"\"
 from %s import %s as NetCDFFile
-""" % (pkg,reader)
+from %s import %s as NetCDFVariable
+""" % (pkg, reader, pkg, var)
         break
     except ImportError, e:
         warn(e.message)

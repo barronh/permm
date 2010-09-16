@@ -10,10 +10,10 @@ __version__ = RevisionNum
 from warnings import warn
 from datetime import datetime
 from types import InstanceType
-from ..netcdf import NetCDFFile
+from permm.netcdf import NetCDFFile
 from PseudoNetCDF.sci_var import PseudoNetCDFFile
 from numpy import array, concatenate, zeros, arange, ceil, concatenate
-from pylab import figure, title as pylabtitle, plot_date, savefig, legend, axis, grid, axes, xlabel, ylabel, subplot, gca, twinx, rcParams
+from pylab import figure, title as pylabtitle, plot_date, savefig, legend, axis, twinx, rcParams
 from matplotlib.dates import DateFormatter, date2num
 from matplotlib.cm import get_cmap
 from matplotlib.font_manager import FontProperties
@@ -28,7 +28,7 @@ def add_mech(conf):
     if conf.has_key('mech'):
         mech = conf['mech']
     else:
-        from net_balance import get_pure_mech
+        from permm import get_pure_mech
         mech = conf['mech'] = get_pure_mech('_'.join([conf['mechanism'].lower(), conf['model'].lower()]))
         if isinstance(conf['mrgfile'], (PseudoNetCDFFile, InstanceType)):
             mrg_file = conf['mrgfile']
@@ -37,9 +37,9 @@ def add_mech(conf):
 
         mech.set_mrg(mrg_file)
 
-def get_dates(mrg_file, end_date = True):
+def get_dates(mrg_file, end_date = True, slice = slice(None)):
     date_ints = mrg_file.variables['TFLAG'][...,0,:].reshape(-1, 2)
-    date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints]).reshape(mrg_file.variables['TFLAG'].shape[:-2])
+    date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints]).reshape(mrg_file.variables['TFLAG'].shape[:-2])[slice]
     if end_date:
         date_objs = concatenate([date_objs[[0]]-(date_objs[-1]-date_objs[-2]), date_objs])
     else:
@@ -47,8 +47,8 @@ def get_dates(mrg_file, end_date = True):
 
     return date_objs
     
-def get_date_steps(mrg_file, end_date = True):
-    date_objs = get_dates(mrg_file, end_date)
+def get_date_steps(mrg_file, end_date = True, slice = slice(None)):
+    date_objs = get_dates(mrg_file, end_date, slice = slice)
 
     date_objs = date_objs.repeat(2,0)[1:-1]
     return date_objs
@@ -82,12 +82,12 @@ def plot(mech, y, stepped = True, end_date = True, figure_settings = {}, axis_se
     
 def irr_plot(
              mech, reactions, species,
-             factor = 1, units = None, end_date = True,
+             factor = 1, slice = slice(None), units = None, end_date = True,
              chem = 'CHEM', title = None, ylim = None, xlim = None, 
              figure_settings = {}, axis_settings = {}, line_settings = {},
              fig = None, cmap = None, ncol = 2
             ):
-    """
+    __doc__ = """
     irr_plot makes a plot with lines for each reaction object provided
     
       mech - Mechanism object
@@ -117,7 +117,7 @@ def irr_plot(
                       for matplotlib plot_date function
     """
     
-    date_objs = get_date_steps(mech.mrg, end_date)
+    date_objs = get_date_steps(mech.mrg, end_date, slice = slice)
     units = none_defaults_to(units, getattr(mech.irr_dict, 'units', 'Unknown'))
     nlines = len(reactions)
     if rcParams['text.usetex']:
@@ -134,11 +134,10 @@ def irr_plot(
         if rcParams['text.usetex']: legend_line_height = .045
         nrows = ceil(nlines/ncol)
         legend_space = (nrows + 2) * legend_line_height
-        ax = axes([.1, .1 + legend_space, .8, .8 - legend_space], **axis_settings)
+        ax = fig.add_axes([.1, .1 + legend_space, .8, .8 - legend_space], **axis_settings)
     else:
-        ax = gca()
+        ax = fig.get_axes()[-1]
         
-    grid(True)
     pylabtitle(title_str % locals())
 
     options = line_settings
@@ -152,23 +151,22 @@ def irr_plot(
         reaction_label = rxn.display(digits = None)
         options['label'] = reaction_label
         if rcParams['text.usetex']: options['label'] = '\ce{' + options['label'] + '}'
-        
-        plot_date(date_objs, data.repeat(2,0), **options)
+        ax.plot_date(date_objs, data[slice].repeat(2,0), **options)
 
     if chem is not None:
         options['color'] = 'black'
         options['marker'] = 'o'
         options['label'] = 'Total Chem'
         try:
-            data = mech('%s'  % (chem,))[species].array()
+            data = mech('%s'  % (chem,))[species][slice].array()
         except:
             warn('Using sum of reactions for %(species)s' % locals())
-            data = mech.make_net_rxn(species, species, False)[species]
+            data = mech.make_net_rxn(species, species, False)[species][slice]
     
-        plot_date(date_objs, data.repeat(2,0), **options)
+        ax.plot_date(date_objs, data.repeat(2,0), **options)
 
-    xlabel('Time')
-    ylabel(units)
+    ax.set_xlabel('Time')
+    ax.set_ylabel(units)
     ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
     ax.set_xlim(date2num(date_objs[0]), date2num(date_objs[-1]))
     if ylim is not None:
@@ -187,9 +185,10 @@ def irr_plot(
 def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date = True,
              exclude = ['UCNV', 'AVOL', 'DATE', 'TIME', 'I', 'J', 'K'], processes = None,
              units = None, ylim = None, xlim = None,
-             title = None, filter = True, fig = None, ncol = 1, cmap = None,
+             title = None, filter = True, fig = None, ax = None, secondaryconc = True, cmap = None,
              figure_settings = {}, axis_settings = {},
              line_settings = {'linestyle': '-', 'linewidth': 3, 'marker': 'None'},
+             legend_settings = {},
              **kwds):
 
     """
@@ -231,34 +230,47 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
     if isinstance(processes, (list, set)):
         processes = dict([(k,{}) for k in processes])
 
-    units = none_defaults_to(units, mech.ipr.units)
     nlines = len(processes)
     colors = iter(get_cmap(cmap)(arange(nlines, dtype = 'f')/(nlines-1)))
     
     date_objs = get_date_steps(mech.mrg, end_date)
-    legend_width = ncol * max([len(k) for k in processes.keys()]) * 10 # 10 is legend.fontsize
     
-    if fig is None:
-        fig = figure(figsize = (8,6))
-        legend_pct = legend_width / fig.bbox.get_points()[1,0]
-        ax = axes([0.1, 0.12, 0.8 - legend_pct, 0.8])
+    if ax is None:
+        if fig is None:
+            fig = figure(figsize = (8,6))
+            ax = fig.add_axes([0.1, 0.12, 0.8, 0.8])
+        else:
+            try:
+                ax = fig.get_axes()[0]
+            except:
+                ax = fig.add_axes([0.1, 0.12, 0.8, 0.8])
+            
+    
+    if isinstance(secondaryconc, bool):
+        if secondaryconc:
+            if len(fig.get_axes()) == 2:
+                tax = fig.get_axes()[-1]
+            else:
+                tax = twinx(ax)
+        else:
+            tax = ax
     else:
-        ax = gca()
-    
-    tax = twinx(ax)
-    grid(True)
-    pylabtitle(title_str % locals())
+        # Assuming secondaryconc is an axis
+        tax = secondaryconc
+        
+    ax.set_title(title_str % locals())
     options = kwds.get('CONC',line_settings.copy())
-    options.setdefault('color', 'k')
-    options.setdefault('label', 'Conc')
-    options.setdefault('linestyle', '-')
-    options.setdefault('linewidth', 3)
-    options.setdefault('marker', 'None')
-    init_vals = mech('%s'  % (init,))[species].array()
-    fconc_vals = mech('%s'  % (final,))[species].array()
-    data = concatenate([init_vals[..., :1], fconc_vals[...]], axis = -1) * factor
-    tax.plot_date(get_dates(mech.mrg), data, **options)
-    
+    if options is not None:
+        options.setdefault('color', 'k')
+        options.setdefault('label', 'Conc')
+        options.setdefault('linestyle', '-')
+        options.setdefault('linewidth', 3)
+        options.setdefault('marker', 'None')
+        init_vals = mech('%s'  % (init,))[species]
+        fconc_vals = mech('%s'  % (final,))[species]
+        data = concatenate([init_vals[..., :1], fconc_vals[...]], axis = -1) * factor
+        tax.plot_date(get_dates(mech.mrg), data, **options)
+    units = kwds.get('units', None)
     for process in processes.keys():
         options = processes[process]
         options.setdefault('color', colors.next())
@@ -270,12 +282,16 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
             process_label = process_label.replace('_', '\_')
             
         options.setdefault('label', process_label)
-        data = mech('(%s)' % (process,))[species].array().repeat(2,0) * factor
+        var = mech('(%s)' % (process,))
+        units = units or var.get_units(species)
+        data = var[species].repeat(2,0) * factor
         if data.nonzero()[0].any() or not filter:
             ax.plot_date(date_objs, data, **options)
             
-    xlabel('Time')
-    ylabel(units)
+    ax.set_xlabel('Time')
+    ax.set_ylabel('processes (%s)' % units)
+    if not tax is ax:
+        tax.set_ylabel('concentration')
     ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
     ax.set_xlim(date2num(date_objs[0]), date2num(date_objs[-1]))
     if ylim is not None:
@@ -284,7 +300,14 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
         ax.set_xlim(*xlim)
 
     fig.autofmt_xdate()
-    ax.legend(ncol = ncol, loc = (1.05,0), prop = FontProperties(size=10))
+    legend_settings.setdefault('prop', FontProperties(size=10))
+    
+    if tax == ax:
+        ax.legend(**legend_settings)
+    else:
+        legend_lines = [l for l in tax.lines + ax.lines if l.get_label()[:5] != '_line' and l.get_label() is not None]
+        legend_labels = [l.get_label() for l in legend_lines]
+        ax.legend(legend_lines, legend_labels, **legend_settings)
     return fig
 
 def phy_plots(conf, filter = True, fmt = 'pdf', fig_append = 'IPR'):
@@ -300,37 +323,58 @@ def phy_plots(conf, filter = True, fmt = 'pdf', fig_append = 'IPR'):
         except KeyError, detail:
             warn(detail)
     
+import unittest
+
+class TestPlots(unittest.TestCase):
+    def setUp(self):
+        from permm.mechanisms import small_strato
+        from PseudoNetCDF import PseudoNetCDFFile
+        from numpy import arange, newaxis
+        from numpy.random import normal, poisson, random, seed
+        
+        self.mech = small_strato()
+        mrg = self.mrg = PseudoNetCDFFile()
+        
+        mrg.createDimension('TSTEP', 10)
+        mrg.createDimension('ROW', 3)
+        mrg.createDimension('LAY', 4)
+        mrg.createDimension('COL', 5)
+        mrg.createDimension('VAR', 10)
+        mrg.createDimension('DATE-TIME', 2)
+        
+        tflag = mrg.createVariable('TFLAG', 'i', ('TSTEP', 'VAR', 'DATE-TIME'))
+        tflag.units = '<YYYYJJJ, HHMMSS>'
+        tflag.long_name = tflag.var_desc = 'time '
+        
+        tflag[:, :, 0] = 2004001
+        tflag[:, :, 1] = arange(10)[:, newaxis] * 10000
+        
+        for i in range(1, 11):
+            var = mrg.createVariable('IRR_%d' % i, 'f', ('TSTEP', 'LAY', 'ROW', 'COL'))
+            var.units = 'ppt'
+            var.long_name = var.var_desc = 'Integrated rate for IRR ordinal %d' % i
+            seed(1)
+            if i % 2 == 0:
+                data = arange(3 * i, 3 * i + 10)[:, newaxis, newaxis, newaxis].repeat(4, 1).repeat(3, 2).repeat(5, 3)
+            elif i % 1 == 0:
+                data = arange(2 * i, 2 * i + 10)[:, newaxis, newaxis, newaxis].repeat(4, 1).repeat(3, 2).repeat(5, 3)
+            else:
+                data = arange(1 * i, 1 * i + 10)[:, newaxis, newaxis, newaxis].repeat(4, 1).repeat(3, 2).repeat(5, 3)
+
+            var[:] = data * {True: -1, False: 1}[i % 2 == True]
+
+        self.mech.set_mrg(mrg)
+
+    def testIRR(self):
+        from tempfile import TemporaryFile
+        tf = TemporaryFile()
+        fig = self.mech("plot_rxns(O1D, O1D, False, slice = (slice(None), 0, 1, 2), show = False)")
+        fig.savefig(tf)
+        tf.seek(0,0)
+        tfdata = tf.read()
+        testdata = file('testdata/test1.png').read()
+        import pdb; pdb.set_trace()
+        self.assertTrue(tfdata == testdata)
+
 if __name__ == '__main__':
-    conf = dict()
-    conf['mechanism'] = 'cb05'
-    conf['model'] = 'camx'
-    conf['mrgfile'] = '/Users/barronh/Development/net_balance/src/net_balance/testdata/test.mrg.nc'
-    conf['species']  = dict(HNO3={},
-                        NO2={},
-                        NO={},
-                        NOx={},
-                        NOyN={},
-                        NTR={}
-                        )
-    conf['species'] = dict(NOyN={})
-    conf['process'] = {'H_Trans': {}, 
-                    'V_Trans': {},
-                    'Emissions': {},
-                    'Deposit': {},
-                    'Aero_Chem': {},
-                    'CHEM': {},
-                    'Motion': {},
-                    'TEMPADJ': {}
-                    }
-    conf['init'] = 'INIT'
-    conf['final'] = 'FCONC'
-    conf['chem'] = 'CHEM'
-    conf['title'] = '%(species)s IPR plot'
-    conf['outdir'] = '.'
-    conf['end_date'] = True
-    phy_plots(conf)
-#    rxn_plot(conf, combine = [('RXN_01', 'RXN_02', 'RXN_03')])
-    conf['title'] = '%(species)s IRR plot'
-    rxn_plots(conf)
-    conf['title'] = '%(species)s Chem plot'
-    chem_plots(conf)
+    unittest.main()

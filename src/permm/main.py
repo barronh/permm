@@ -87,7 +87,7 @@ def parse_and_run():
             console.runsource("net_balance('%s', '%s', '%s')" % (options.mechanism, args[0], options.output))
         elif options.analysis == "history":
             console.runsource("from permm.analyses.history import matrix")
-            console.runsource("history = matrix(mech, [C2O3], [HC], [])")
+            console.runsource("history = matrix(mech, [C2O3], [HC+Radical-OH-HO2-O1D], [])")
             console.runsource("history.run()")
         else:
             raise "Unkown analysis"

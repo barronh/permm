@@ -117,19 +117,20 @@ class Species(object):
               exclude = False    
     """
     
-    def __new__(cls, *args, **kwds):
+    def __init__(self, *args, **kwds):
         if kwds.has_key('names') and kwds.has_key('stoic'):
             # n_names = len(kwds['names'])
             #
             # species_type = dtype(dict(names = kwds['names'], formats = 'd' * n_names))
             #
-            # result = zeros((1,), dtype = species_type).view(type = subtype)
+            # self = zeros((1,), dtype = species_type).view(type = subtype)
             #
             # for name,stoic in zip(kwds['names'],kwds['stoic']):
-            #     result[name] += stoic
-            result = object.__new__(cls,*args, **kwds)
-            result._stoic = {}
-            result._stoic.update(dict(zip(kwds['names'], kwds['stoic'])))
+            #     self[name] += stoic
+            self._stoic = {}
+            self._stoic.update(dict(zip(kwds['names'], kwds['stoic'])))
+            default_atoms = {}
+            default_exclude = False
         else:
             args_are_species_groups = all(map(lambda x: isinstance(x, Species),args))
 
@@ -137,26 +138,21 @@ class Species(object):
                 raise ValueError, "Species requires either names and stoic or arguments of type Species"
             else:
                 if len(args) == 1:
-                    arg = args[0]
-                    result = Species(names = arg.names(), stoic = [arg[n] for n in arg.names()], **kwds)
-                    if not kwds.has_key('name'):
-                        kwds['name'] = arg.name
-                    if not kwds.has_key('atom_dict'):
-                        kwds['atom_dict'] = arg.atom_dict.copy()
-                        
+                    result = args[0]
                 else:
-                    result = reduce(operator.add,args)
+                    result = reduce(Species.__add__,args)
+            self._stoic = result._stoic.copy()
+            self.name = result.name
+            default_atoms = result.atom_dict
+            default_exclude = result.exclude
 
-        result.atom_dict = kwds.pop('atom_dict', {}).copy()
+        self.atom_dict = kwds.pop('atom_dict', default_atoms).copy()
         try:
-            result.name = kwds['name']
+            self.name = kwds['name']
         except:
             # Assume that result already has a name
             pass
-        return result
-        
-    def __init__(self, *args, **kwds):
-        self.exclude = kwds.get('exclude', False)
+        self.exclude = kwds.get('exclude', default_exclude)
         self._roles = kwds.get('roles',['u']*len(self.names()))
         
     def __getitem__(self,item):
@@ -356,6 +352,15 @@ class SpeciesTestCase(unittest.TestCase):
         s1 = self.species['OH']
         s2 = s1.copy()
         self.assertEqualSpecies(s1, s2)
+
+    def testNewFromSpc(self):
+        s1 = self.species['OH']
+        s2 = self.species['O3']
+        s3 = self.species['HOx']
+        s4 = Species(s1)
+        s5 = Species(s1, s2, s3)
+        self.assertEqualSpecies(s1, s4)
+        self.assertEqualSpecies(s1 + s2 + s3, s5)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,6 @@
 from pdb import set_trace
 from numpy import zeros, exp, newaxis, rollaxis
-from perm.SpeciesGroup import Species
+from permm.SpeciesGroup import Species
 
 class matrix(object):
     def __init__(self, mech, nodes, traceable, intermediates, bottomup = True):

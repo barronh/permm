@@ -34,7 +34,7 @@ def load_environ(mech, locals_dict):
     except:
         pass
     try:
-        locals_dict.update(dict([(pr_key,mech.ipr[pr]) for pr_key, pr in mech.process_dict.iteritems()]))
+        locals_dict.update(mech.process_dict)
     except:
         pass
 
