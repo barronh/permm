@@ -12,7 +12,27 @@ netcdf_pkgs = [('netCDF4', 'Dataset', 'Variable'), \
 for pkg, reader, var in netcdf_pkgs:
     try:
         NetCDFFile = getattr(__import__(pkg, fromlist = [reader]),reader)
-        print >> file(os.path.join('src', 'permm', 'netcdf.py'),'wb'), """
+        define_reader = "from %s import %s as NetCDFFile" % (pkg, reader)
+        define_variable = "from %s import %s as NetCDFVariable" % (pkg, var)
+        netcdfpkg = [pkg]
+        break
+    except ImportError, e:
+        warn(e.message)
+else:
+    warn("Did not find a 'true' NetCDFFile reader; 'true' NetCDF functionality will be disabled")
+    netcdfpkg = []
+    define_reader = """
+class NetCDFFile(object):
+    def __init__(self, *args, **kwds):
+        raise ImportError('System has no valid netCDF reader; install netcdf4-python or pupynere')
+"""
+    define_variable = """
+class NetCDFVariable(object):
+    def __init__(self, *args, **kwds):
+        raise ImportError('System has no valid netCDF variable; install netcdf4-python or pupynere')
+"""
+
+print >> file(os.path.join('src', 'permm', 'netcdf.py'),'wb'), """
 __all__ = ['NetCDFFile']
 __doc__ = \"\"\"
 .. _netcdf
@@ -26,14 +46,9 @@ __doc__ = \"\"\"
               selects it and provides it.
 .. moduleauthor:: Barron Henderson <barronh@unc.edu>
 \"\"\"
-from %s import %s as NetCDFFile
-from %s import %s as NetCDFVariable
-""" % (pkg, reader, pkg, var)
-        break
-    except ImportError, e:
-        warn(e.message)
-else:
-    raise ImportError, "Did not find a NetCDFFile object"
+%s
+%s
+""" % (define_reader, define_variable)
 
 def find_packages():
     import os
@@ -71,5 +86,5 @@ setup(name = 'permm',
       packages = packages,
       package_dir = {'': 'src'},
       package_data = {'permm': data},
-      requires = [pkg, 'numpy (>=1.2)', 'yaml']
+      requires = netcdfpkg + ['numpy (>=1.2)', 'yaml']
       )

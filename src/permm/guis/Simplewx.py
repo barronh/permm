@@ -1,6 +1,6 @@
 import sys
 import wx
-from perm.Shell import PERMConsole, load_environ
+from permm.Shell import PERMConsole, load_environ
 
 class WXAgg(wx.Panel):
     def __init__(self, parent, mech):
@@ -29,7 +29,7 @@ class WXAgg(wx.Panel):
         sizer = wx.FlexGridSizer(rows=4, cols=3, hgap=10, vgap=5)
         sizer.AddGrowableCol(3)
         sizer.AddSpacer(1) # R1, C1
-        sizer.Add(wx.StaticText(self, label="PERM")) # R1, C2
+        sizer.Add(wx.StaticText(self, label="PERMM")) # R1, C2
         sizer.AddSpacer(1) # R1, C3
         sizer.Add(wx.StaticText(self, label="Reactants")) # R2, C1
         sizer.AddSpacer(1) # R2, C2
@@ -87,6 +87,6 @@ def StartWx(mech):
     app.MainLoop()
 
 if __name__ == '__main__':
-    from perm.mechanisms import cb05_cmaq
+    from permm.mechanisms import cb05_cmaq
     mech = cb05_cmaq()
     StartWx(mech)

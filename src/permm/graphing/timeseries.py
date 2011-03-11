@@ -24,19 +24,6 @@ import os
 if rcParams['text.usetex']:
     rcParams['text.latex.preamble'] = '\usepackage[font=sf]{mhchem}'
 
-def add_mech(conf):
-    if conf.has_key('mech'):
-        mech = conf['mech']
-    else:
-        from permm import get_pure_mech
-        mech = conf['mech'] = get_pure_mech('_'.join([conf['mechanism'].lower(), conf['model'].lower()]))
-        if isinstance(conf['mrgfile'], (PseudoNetCDFFile, InstanceType)):
-            mrg_file = conf['mrgfile']
-        else:
-            mrg_file = NetCDFFile(conf['mrgfile'],'r')
-
-        mech.set_mrg(mrg_file)
-
 def get_dates(mrg_file, end_date = True, slice = slice(None)):
     date_ints = mrg_file.variables['TFLAG'][...,0,:].reshape(-1, 2)
     date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints]).reshape(mrg_file.variables['TFLAG'].shape[:-2])[slice]
@@ -192,8 +179,8 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
              **kwds):
 
     """
-    mech - perm.Mechanism.Mechanism object
-    species - perm.SpeciesGroup.Species object
+    mech - permm.Mechanism.Mechanism object
+    species - permm.SpeciesGroup.Species object
     title - title
     init - Name of initial concentration process
     final - Name of final concentration process
@@ -238,12 +225,12 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
     if ax is None:
         if fig is None:
             fig = figure(figsize = (8,6))
-            ax = fig.add_axes([0.1, 0.12, 0.8, 0.8])
+            ax = fig.add_axes([0.1, 0.12, 0.8, 0.8], **axis_settings)
         else:
             try:
                 ax = fig.get_axes()[0]
             except:
-                ax = fig.add_axes([0.1, 0.12, 0.8, 0.8])
+                ax = fig.add_axes([0.1, 0.12, 0.8, 0.8], **axis_settings)
             
     
     if isinstance(secondaryconc, bool):
@@ -288,12 +275,17 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
         if data.nonzero()[0].any() or not filter:
             ax.plot_date(date_objs, data, **options)
             
-    ax.set_xlabel('Time')
-    ax.set_ylabel('processes (%s)' % units)
+    if ax.get_xlabel() == '':
+        ax.set_xlabel('Time')
+    if ax.get_ylabel() == '':
+        ax.set_ylabel('processes (%s)' % units)
+
     if not tax is ax:
         tax.set_ylabel('concentration')
+
     ax.xaxis.set_major_formatter(DateFormatter('%jT%H'))
     ax.set_xlim(date2num(date_objs[0]), date2num(date_objs[-1]))
+
     if ylim is not None:
         ax.set_ylim(*ylim)
     if xlim is not None:
@@ -310,8 +302,21 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
         ax.legend(legend_lines, legend_labels, **legend_settings)
     return fig
 
+def _add_mech(conf):
+    if conf.has_key('mech'):
+        mech = conf['mech']
+    else:
+        from permm import get_pure_mech
+        mech = conf['mech'] = get_pure_mech('_'.join([conf['mechanism'].lower(), conf['model'].lower()]))
+        if isinstance(conf['mrgfile'], (PseudoNetCDFFile, InstanceType)):
+            mrg_file = conf['mrgfile']
+        else:
+            mrg_file = NetCDFFile(conf['mrgfile'],'r')
+
+        mech.set_mrg(mrg_file)
+
 def phy_plots(conf, filter = True, fmt = 'pdf', fig_append = 'IPR'):
-    add_mech(conf)
+    _add_mech(conf)
     
     mech = conf['mech']
     date_objs = get_date_steps(mech.mrg, conf)

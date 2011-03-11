@@ -1,6 +1,3 @@
-from ...Mechanism import Mechanism
-from ...netcdf import NetCDFFile
-
 def PtbTable(mech):
     o3 = mech('FCONC[O3].array()')
     peak_idx = (o3 == o3.max()).nonzero()

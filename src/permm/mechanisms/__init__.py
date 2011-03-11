@@ -1,5 +1,5 @@
 __all__ = ['cb05_camx', 'cb05_cmaq', 'geos_chem', 'saprc99_cmaq', 'saprc07_cmaq', 'racm2_cmaq', 'mz4_kpp', 'small_strato']
-from ..getmech import get_pure_mech
+from permm.getmech import get_pure_mech
 from yaml import load
 from os.path import dirname, \
                     abspath, \

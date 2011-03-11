@@ -1,9 +1,8 @@
 __all__ = ['cb05_camx_prep']
 
 def cb05_camx_prep(mech_object):
-    from ...Mechanism import Mechanism
-    from ...SpeciesGroup import Species
-    from pynetcdf import NetCDFFile
+    from permm.Mechanism import Mechanism
+    from permm.SpeciesGroup import Species
 
     globals().update(mech_object.species_dict)
     

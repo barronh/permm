@@ -5,7 +5,7 @@ from permm.SpeciesGroup import Species
 class matrix(object):
     def __init__(self, mech, nodes, traceable, intermediates, bottomup = True):
         """
-            mechanism - perm.Mechanism.Mechanism object
+            mechanism - permm.Mechanism.Mechanism object
             nodes - list of species to trace
             intermediates - species that should be immediately attributed to predecessors
             bottomup - trace from node to root? no, then root to node
@@ -46,7 +46,8 @@ class matrix(object):
         
         
         # Storing data about input shapes
-        self.__old_shape = mech('INIT').shape
+        tmp_init = mech('INIT')
+        self.__old_shape = tmp_init[tmp_init.keys()[0]].shape
         self.__shape = [i for i in self.__old_shape]
         self.__ntimes = mech.mrg.variables['TFLAG'].shape[-3]
         for i, s in enumerate(self.__shape):
@@ -259,5 +260,13 @@ class matrix(object):
         should be attributed to the fractional origin of that species
         for each timestep.
         """
-        pass
+        fractional_origins = {}
+        
+        for ti in range(self.__ntimes):
+            for created_spc, origins in self.origins.keys():
+                while any([_k in self.__mech.species_dict for _k in origins.keys()]):
+                    for origin_key in origins.keys():
+                        if origin_key in self.__mech.species_dict:
+                            origin_origins = self.origins.get(origin_key, {})
+                                    
                     

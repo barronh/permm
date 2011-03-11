@@ -1,6 +1,5 @@
 __all__ = ['IRRTable', 'NetTableMaker', 'PhyTableMaker', 'PtbMaker', 'SumTableMaker']
 
-from ...netcdf import NetCDFFile
 import IRRTable
 import NetTableMaker
 import PhyTableMaker
@@ -8,15 +7,15 @@ import PtbMaker
 import SumTableMaker
 
 def net_balance(mechanism, mrg_data_path, output_dir):
-    from perm.analyses.net_balance.PhyTableMaker import PhyTable
-    from perm.analyses.net_balance.SumTableMaker import SumTable
-    from perm.analyses.net_balance.NetTableMaker import NetTables
-    from perm.analyses.net_balance.PhyTableMaker import PhyTables
-    from perm.analyses.net_balance.PhyTableMaker import VOCTable
-    from perm.analyses.net_balance.PtbMaker import PtbTable
-    from perm.analyses.net_balance.IRRTable import IRRTable
-    from perm import getmech
-    from ...netcdf import NetCDFFile
+    from permm.analyses.net_balance.PhyTableMaker import PhyTable
+    from permm.analyses.net_balance.SumTableMaker import SumTable
+    from permm.analyses.net_balance.NetTableMaker import NetTables
+    from permm.analyses.net_balance.PhyTableMaker import PhyTables
+    from permm.analyses.net_balance.PhyTableMaker import VOCTable
+    from permm.analyses.net_balance.PtbMaker import PtbTable
+    from permm.analyses.net_balance.IRRTable import IRRTable
+    from permm import getmech
+    from permm.netcdf import NetCDFFile
     
     get_prepared_mech = getmech.get_prepared_mech
     get_pure_mech = getmech.get_pure_mech

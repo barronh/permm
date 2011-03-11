@@ -1,7 +1,7 @@
 __all__ = ['PhyTable']
 from numpy import where
 import warnings
-from ...SpeciesGroup import Species
+from permm.SpeciesGroup import Species
 warnings.formatwarning = lambda message, category, filename, lineno, file=None, line=None: '%s: %s\n' % ('ProcessWarning', message)
 
 

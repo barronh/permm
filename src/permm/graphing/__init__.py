@@ -24,7 +24,7 @@ else:
         parser.exit()
     else:
         import yaml
-        from perm.graphing.timeseries import phy_plots, chem_plots, rxn_plots
+        from permm.graphing.timeseries import phy_plots, chem_plots, rxn_plots
         conf = yaml.load(file(args[0]))
         phy_plots(conf)
         chem_plots(conf)

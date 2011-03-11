@@ -45,15 +45,18 @@ def MakeUniDiGraph(mech, traceable = None, slice = slice(None)):
     
     return NewG
 
-def MakeCarbonTrace(mech):
-    traceable = [spc for spcn, spc in mech.species_dict.iteritems() if spc.atom_dict.get('C', 0) > 0]
+def MakeCarbonTrace(mech, slice = slice(None), traceable = None, makes_larger = []):
+    from numpy.ma import masked_invalid
+    traceable = [spc for spcn, spc in mech.species_dict.iteritems() if spc.atom_dict.get(spc.name, {}).get('C', 0) > 0]
+    print traceable
+    #if len(traceable) == 0: traceable = mech('[eval(n) for n in HC.names()]')
     import networkx as nx
     from numpy import sum
     G = nx.MultiDiGraph()
     for spc in traceable:
         spc_C = spc.atoms('C')[spc]
         for rxn in mech.get_irrs(reactants = spc):
-            rxn_slice = rxn[slice]
+            rxn_slice = rxn[slice].sum()
             rcts = [mech(rct) for rct in rxn.reactants()]
             for prd_name in rxn.products():
                 prd = mech(prd_name)
@@ -63,9 +66,11 @@ def MakeCarbonTrace(mech):
                     # Product has no carbon
                     continue
 
-                if prd_C < spc_C:
+                if prd_C <= spc_C or spc in makes_larger:
                     if prd in traceable:
-                        rct_frac = rxn_slice[spc]/sum([rxn_slice[rct] for rct in rcts if rct.atom_dict.get('C', 0) >= prd_C], axis = 0)
-                        G.add_edge(spc, prd, (rxn_slice[prd] * rct_frac).sum())
+                        rct_frac = rxn_slice[spc]/sum([rxn_slice[rct] for rct in rcts if rct in traceable and rct.atoms('C')[rct] >= prd_C], axis = 0)
+                        spc_portion = masked_invalid(rxn_slice[prd] * rct_frac).sum()
+                        print spc, spc_C, prd, prd_C, rct_frac
+                        G.add_edge(spc, prd, weight = spc_portion)
                     
     return G

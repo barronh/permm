@@ -4,7 +4,6 @@ from warnings import warn
 from pylab import figure, title, bar, savefig, legend, grid, xlabel, ylabel, xticks, axis
 from matplotlib.cm import get_cmap
 from matplotlib.colors import rgb2hex
-from ..netcdf import NetCDFFile
 from numpy import arange, ndarray
 
 def profile_process(mech, species_group, process, loc = 1, width = .8, sort = False, fig = None, cmap = None, normalize = True, missing = None):
@@ -79,6 +78,7 @@ def profile_process(mech, species_group, process, loc = 1, width = .8, sort = Fa
 if __name__ == '__main__':
     from pyPA.utils.util import AttrDict
     from net_balance import get_pure_mech
+    from permm.netcdf import NetCDFFile
     conf = AttrDict()
     conf['mechanism'] = 'cb05'
     conf['model'] = 'camx'
