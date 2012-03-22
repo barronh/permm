@@ -328,20 +328,20 @@ process_group_list:
   Org_Aero_Chem  : ORGACHEM
   Aq_Aero_Chem   : AQACHEM
   Aero_Chem      : AQACHEM + INORGACHEM + ORGACHEM
-  W_Trans        : A_W + D_W
-  E_Trans        : A_E + D_E
-  S_Trans        : A_S + D_S
-  N_Trans        : A_N + D_N
-  B_Trans        : A_B + D_B
-  T_Trans        : A_T + D_T
-  H_Trans        : A_W + A_E + A_S + A_N + D_W + D_E + D_S + D_N
-  V_Trans        : A_T + A_B + D_B + D_T
+  W_Trans        : WADV + WDIF
+  E_Trans        : EADV + EDIF
+  S_Trans        : SADV + SDIF
+  N_Trans        : NADV + NDIF
+  B_Trans        : BADV + BDIF
+  T_Trans        : TADV + TDIF
+  H_Trans        : WADV + EADV + SADV + NADV + WDIF + EDIF + SDIF + NDIF
+  V_Trans        : TADV + BADV + BDIF + TDIF
   Motion         : DIL + HENT + VENT + HDET + VDET + EDHDIL + EDVDIL
   Entrain        : DIL + HENT + VENT + HDET + VDET + EDHDIL + EDVDIL
   Deposit        : DDEP + WDEP
-  Transport      : A_W + A_E + A_S + A_N + D_W + D_E + D_S + D_N + A_T + A_B + D_B + D_T + DDEP + WDEP
-  Phy_Loss       : A_W + A_E + A_S + A_N + D_W + D_E + D_S + D_N + A_T + A_B + D_B + D_T + DDEP + WDEP + DIL + HENT + VENT + HDET + VDET + EDHDIL + EDVDIL
-  PhyTmp_Loss    : A_W + A_E + A_S + A_N + D_W + D_E + D_S + D_N + A_T + A_B + D_B + D_T + DDEP + WDEP + EDVDIL + HENT + VENT + HDET + VDET + EDHDIL + DIL
+  Transport      : WADV + EADV + SADV + NADV + WDIF + EDIF + SDIF + NDIF + TADV + BADV + BDIF + TDIF + DDEP + WDEP
+  Phy_Loss       : WADV + EADV + SADV + NADV + WDIF + EDIF + SDIF + NDIF + TADV + BADV + BDIF + TDIF + DDEP + WDEP + DIL + HENT + VENT + HDET + VDET + EDHDIL + EDVDIL
+  PhyTmp_Loss    : WADV + EADV + SADV + NADV + WDIF + EDIF + SDIF + NDIF + TADV + BADV + BDIF + TDIF + DDEP + WDEP + EDVDIL + HENT + VENT + HDET + VDET + EDHDIL + DIL
   Final          : FCONC
-  Proc_Sum       : INIT+ A_W + A_E + A_S + A_N + D_W + D_E + D_S + D_N + A_T + A_B + D_B + D_T + DDEP + WDEP + EDVDIL + HENT + VENT + HDET + VDET + EDHDIL + DIL + EMIS + PTEMIS + PIG + CHEM + AQACHEM + INORGACHEM + ORGACHEM + TEMPADJ
+  Proc_Sum       : INIT+ WADV + EADV + SADV + NADV + WDIF + EDIF + SDIF + NDIF + TADV + BADV + BDIF + TDIF + DDEP + WDEP + EDVDIL + HENT + VENT + HDET + VDET + EDHDIL + DIL + EMIS + PTEMIS + PIG + CHEM + AQACHEM + INORGACHEM + ORGACHEM + TEMPADJ
 ...
