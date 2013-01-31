@@ -38,7 +38,7 @@ class Process(object):
         self.data = {}
         for k in kwds.keys():
             self.data[k] = kwds[k][:]
-            self.__units[k] = str.strip(getattr(kwds[k], 'units', units.get(k, default_unit or 'Unknown')))
+            self.__units[k] = (getattr(kwds[k], 'units', units.get(k, default_unit or 'Unknown'))).strip()
             
     def __getitem__(self, key):
         if isinstance(key, Species):
