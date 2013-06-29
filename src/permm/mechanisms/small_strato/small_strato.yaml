@@ -1,0 +1,22 @@
+---
+comment: "Small Stratosphere example as packaged in the Kinetic Pre-Processor v2.1"
+species_list:
+    O: O
+    O1D: O
+    O3: 3*O
+    NO: N + O
+    NO2: N + 2*O
+    M: 2*O + 2*N
+    O2: 2*O
+
+reaction_list:
+    IRR_1: O2 ->[j] 2O
+    IRR_2: O + O2 ->[k] O3
+    IRR_3: O3 ->[k] O + O2
+    IRR_4: O + O3 ->[k] 2O2
+    IRR_5: O3 ->[j] O1D + O2
+    IRR_6: O1D + M ->[k] O + M
+    IRR_7: O1D + O3 ->[k] 2O2
+    IRR_8: NO + O3 ->[k] NO2 + O2
+    IRR_9: NO2 + O ->[k] NO + O2
+    IRR_10: NO2 ->[j] NO + O

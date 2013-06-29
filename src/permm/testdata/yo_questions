@@ -1,0 +1,82 @@
+Line 1522: Net reaction for HONO+hv
+
+Why did you count rxn 59, 78, 94 as NO loss?  They are NO3+organic reactions is there reason to tie them to HONO photolysis?  And there are other NO3+organic rxns that is not included.
+
+Line 1616: Net reaction for Ox+Org
+
+XO2 formation, rxn77 should have 0.20 as coeff, instead of 0.066?
+
+Line 1619:
+
+HO2 formation, rxn93's coeff should be 0.064 instead of 0.066?
+
+Line 1661: NO3+org radical src
+
+HO2 formation.  Shouldn't coeff of rxn94 be 0.85?  the rxn has 0.925 HO2 and 0.075 XO2, so immediate HO2 should by .925-.075=.85?
+
+Line 1662:
+
+C2O3 from rxn75, it should be ir41+0.075*ir94  ir75 is not even a NO3+org rxn...
+
+Line 1664:
+
+xHO2 formation, should this be 0.80*ir78?  see line 1643 of your code.
+
+Line 1666:
+
+HNO3.  0.15*ir94, instead of 1.0*ir94?  see line 1645.
+
+Line 1693: OH+org
+
+this is not a question about your code but CB4 in general.  Do you know why this reaction (rxn70, OH+OPEN) has one radical in reactant three radicals in products?  It is a dark reaction.  so does this assume some kind of thermal decomposition into radical?
+
+ Line 1706: TO2+NO
+
+Well, i kind of being able to guess what you are doing here (let XO2 treat radicals other than OH, HO2 and C2O3).  But isn't it more simple to just treat TO2 (peroxyradical) as radical and treat HO2 as prompt HO2, instead of XO2 and xHO2 deal?  Seems to me that ROR and TO2 in CB4 are explicit radicals if i look at how it reacts with other species...  Just my thought.
+
+Line 1987: NO2+hv -> O3 prod
+
+Net O3 formation, why rxn11 is involved?  it is O1D+H2O->2OH  and it doesn't involve O3 directly.  is O1D somehow related to O3 with some assumption?  even so it still doesn't make sense to me.
+
+
+
+This is it for chemistry.  Now for NOx balance, including physical processes.
+
+ Line 3643: new NO, physical sources
+
+NO loss via ozone titration.  You counted this as loss for hourly diagram (line 3640) but not for daily.  Is there special reason for this?
+
+Line 3660:
+
+NO horiz transport as source.  I am not sure at all, but should we count only positive number and disregard negative number from summation?  I guess you paid more careful thought on this, as this might affect nox chain length a lot.  Say you have PA box on region where you have large NO source and also wind is blowing carrying away NO.  Then you are saying that part of emitted NO was not counted as NEW and treated as if it never entered the box.  I am not sure the right answer but alternative is to count only positive numbers in calculation of New NO from horiz transport. this treat net loss of NO by horizontal advection as one of killing process for NO and makes NOx chain length shorter than your calculation.
+
+Line 3678:
+
+NO vert transport as source.  Now you did similar treatment as horiz for hourly number, but for daily number, you sum them first and then took absolute value (line 3678).  This doesn't at all make sense to me...?
+
+Line 3716:
+
+NO propagation factor P_n.  Again, there is a mysterious abs() function. does {hourly|daily}_tot_not_oxid ever be negative?  if it does, i don't think you can just take absolute value, it should be like undef.
+
+Line 3880: new O3, O3 srcs/losses section
+
+This is just how you call it.  you call this number "Total O3 phy losses". Should this be called "Net O3 phy change"?  deposition(line3864), pig (line3796) will decrease ozone, but you might get net increase due to horizontal/vertical transport(3816, 3832) and entrainment (3838)
+
+ --NOx Chain Length 
+I am struggling making sense out of NOx chain lengh calculation.  I got shorter length than old fortran irr program does when i use my LPA output. (i got ~3 from old code and got 0.6 from new code) As you know nox chain length is always tricky...
+
+one of things i realized though was that in line 3734 of your net_balance.py code (version 1.5, the one i have been referring to) calculates NOx chain length as
+
+hourly_no_chain = [ r / q for (r,q) \                      
+                       in zip(hourly_recreated_no, hourly_total_new_no)]
+
+shouldnt this be something like this?
+
+hourly_no_chain = [ r / q for (r,q) \
+                      in zip(hourly_tot_no_oxid, hourly_total_new_no)]
+
+The definition of the chain length is 1+Pn+Pn^2+Pn^3+... = 1/(1-Pn)
+
+and in your python code Pn is hourly_recreated_no/hourly_tot_no_oxid, which makes sense to me.  if you plug that Pn into the defintion of chain lengh, you will get the code that i presented.
+
+actually I am confused with the way hourly_total_new_no got calculated, but this takes more time for me to follow the calcs (it is complicated)... 

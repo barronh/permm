@@ -1,0 +1,125 @@
+netcdf PA_SHAPE {
+dimensions:
+	TSTEP = UNLIMITED ; // (4 currently)
+	LAY = 3 ;
+	ROW = 4 ;
+	COL = 5 ;
+	VAR = 1 ;
+	DATE-TIME = 2 ;
+variables:
+	float SHAPE(TSTEP, LAY, ROW, COL) ;
+		SHAPE:long_name = "SHAPE           " ;
+		SHAPE:units = "ONOFF           " ;
+		SHAPE:var_desc = "Shape of PA region                                                              " ;
+	int TFLAG(TSTEP, VAR, DATE-TIME) ;
+		TFLAG:units = "<YYYYDDD,HHMMSS>" ;
+		TFLAG:long_name = "TFLAG           " ;
+		TFLAG:var_desc = "Timestep-valid flags:  (1) YYYYDDD or (2) HHMMSS                                " ;
+
+// global attributes:
+		:IOAPI_VERSION = "$Id: @(#) ioapi library version 3.0 OpenMP enabled $                            " ;
+		:EXEC_ID = "????????????????                                                                " ;
+		:FTYPE = 1 ;
+		:CDATE = 2007187 ;
+		:CTIME = 215843 ;
+		:WDATE = 2007187 ;
+		:WTIME = 215843 ;
+		:SDATE = 2001203 ;
+		:STIME = 10000 ;
+		:TSTEP = 10000 ;
+		:NTHIK = 1 ;
+		:NCOLS = 5 ;
+		:NROWS = 4 ;
+		:NLAYS = 3 ;
+		:NVARS = 23 ;
+		:GDTYP = 2 ;
+		:P_ALP = 33. ;
+		:P_BET = 45. ;
+		:P_GAM = -97. ;
+		:XCENT = -97. ;
+		:YCENT = 40. ;
+		:XORIG = 1620000. ;
+		:YORIG = 108000. ;
+		:XCELL = 36000. ;
+		:YCELL = 36000. ;
+		:VGTYP = 2 ;
+		:VGTOP = 10000.f ;
+		:VGLVLS = 1.f, 0.995f, 0.99f, 0.98f ;
+		:GDNAM = "METCRO_M_36_2001" ;
+		:UPNAM = "PA_INIT         " ;
+		:VAR-LIST = "SHAPE           " ;
+		:FILEDESC = "" ;
+		:HISTORY = "" ;
+data:
+
+ SHAPE =
+  // SHAPE(0,0,0-3, 0-4)
+    1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(0,1,0-3, 0-4)
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(0,2,0-3, 0-4)
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    
+  // SHAPE(1,0,0-3, 0-4)
+    1, 0, 0, 0, 0,
+    1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(1,1,0-3, 0-4)
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(1,2,0-3, 0-4)
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    
+  // SHAPE(2,0,0-3, 0-4)
+    1, 1, 0, 0, 0,
+    1, 1, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(2,1,0-3, 0-4)
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(2,2,0-3, 0-4)
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    
+  // SHAPE(3,0,0-3, 0-4)
+    1, 1, 0, 0, 0,
+    1, 1, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(3,1,0-3, 0-4)
+    1, 1, 0, 0, 0,
+    1, 1, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+  // SHAPE(3,2,0-3, 0-4)
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0 ;
+
+ TFLAG =
+    2001203, 10000,
+    2001203, 20000,
+    2001203, 30000,
+    2001203, 40000 ;
+}

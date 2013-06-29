@@ -1,0 +1,210 @@
+---
+'Ald+hv radical source':
+    r: ALD, -Radical, -Ox
+    p: Radical
+    logical_and: True
+    
+'ORG+hv radical source':
+    r: HC_CO, -Radical, -Ox, -PANS
+    p: Radical
+    logical_and: True
+    
+'HONO+hv radical source':
+    r: HONO
+    p: HONO
+    logical_and: False
+
+'NO3+org radical source':
+    r: NO3, VOC_CO
+    p: Radical
+    logical_and: True
+        
+'Ox+org radical source':
+    rxns: [RXN_31, RXN_32]
+    r: Ox, HC_CO, -PANS
+    p: Radical
+    logical_and: True
+        
+'OH+(organic+NO2)': 
+    rxns: [RXN_116, RXN_117, RXN_118]
+    r: OH, HC_CO_NO2+O3+H2O2+H2+O+NO3+SO2
+    logical_and: True
+
+'C2O3 -> Radical':
+    r: C2O3, -NO2
+    logical_and: True
+    
+'CXO3 -> Radical':
+    r: CXO3, -NO2
+    logical_and: True
+    
+'MEO2 -> Radical':
+    r: MEO2, -NO2
+    logical_and: True
+    
+'HO2 -> Radical':
+    r: HO2
+    logical_and: True
+    
+'HCO3 -> Radical':
+    r: HCO3
+    p: HCO3
+    logical_and: False
+    
+'XO2 -> Radical':
+    rxns: [RXN_64]
+    r: XO2, -CXO3
+    logical_and: True
+    
+'TO2 -> Radical':
+    r: TO2
+    logical_and: True
+    
+'XO2_N_TO2 -> Radical':
+    rxns: [RXN_64]
+    r: XO2_N_TO2, -CXO3
+    logical_and: True
+    
+'XO2_TO2 -> Radical':
+    rxns: [RXN_64]
+    r: XO2_TO2, -CXO3
+    logical_and: True
+    
+'XO2N -> Radical':
+    rxns: [RXN_64]
+    r: XO2N
+    logical_and: True
+    
+'XO2_N -> Radical':
+    rxns: [RXN_64]
+    r: XO2_N, -CXO3
+    logical_and: True
+    
+'C2O3 Oxidation':
+    r: C2O3, -Ox
+    p: Ox
+    logical_and: True
+
+'HO2 Oxidation':
+    r: HO2, -Ox
+    p: Ox
+    logical_and: True
+
+'MEO2 Oxidation':
+    r: MEO2, -Ox
+    p: Ox
+    logical_and: True
+
+'CXO3 Oxidation':
+    r: CXO3, -Ox
+    p: Ox
+    logical_and: True
+
+'NO+RO2 Oxidation':
+    r: NO, RO2
+    p: Ox
+    logical_and: True
+
+'O from NO2':
+    r: O, -VOC_CO
+    logical_and: True
+
+'XO2/XO2N Oxidation':
+    r: XO2_N, -Ox
+    p: Ox
+    logical_and: True
+
+'HCO3 Oxidation':
+    r: HCO3, -Ox
+    p: Ox
+    logical_and: True
+
+'TO2 Oxidation':
+    r: TO2, -Ox
+    p: Ox
+    logical_and: True
+
+'PAN Production':
+    r: PANS
+    p: PANS
+    logical_and: False
+            
+'NO2 Termination':
+    rxns: [RXN_62]
+    r: NO2
+    p: NOz
+    logical_and: True
+
+'O1D (hv) radical source':
+    r: O1D
+    p: Radical
+    logical_and: True
+
+'Total New OH':
+    r: -ROx, -Ox
+    p: ROx
+    logical_and: True
+    
+'Inorganic New Radical':
+    rxns: [RXN_11, RXN_38]
+    r: -HC_CO, -Radical
+    p: Radical
+    logical_and: True
+    
+'Organic New Radical':
+    r: HC_CO, -Radical
+    p: Radical
+    logical_and: True
+
+'NO2 Photolysis':
+    r: NO2
+    p: NO, O
+    logical_and: True
+
+'O3 from NO2 Photolysis':
+    r: O
+    p: O3
+    logical_and: True
+
+'H2O2 Created':
+    p: H2O2
+    logical_and: True
+    
+'OH recreated':
+    r: Radical
+    p: OH
+
+'H2O2 Photolysis':
+    r: H2O2, -OH, -O
+
+'Total OH Reacted':
+    r: OH
+        
+'OH+VOC':
+    r: OH, VOC
+        
+'OH+HC':
+    r: OH, HC
+        
+'OH+CO':
+    r: OH, CO
+
+'OH+NO2':
+    r: OH, NO2
+    
+'Secondary ALD':
+    p: ALD_
+        
+'Secondary FORM':
+    p: FORM
+        
+'Secondary MGLY':
+    p: MGLY
+        
+'NO2 Photolysis1':
+    r: NO2_IMMEDIATES, -HC, -RO2
+    p: NO2_IMMEDIATES, -HC
+
+'Whole_Mechanism':
+    logical_and: True
+...

@@ -1,0 +1,368 @@
+---
+comment: "Carbon Bond 05 (CB05) chemical mechanism as implemented in CMAQ v4.7 (cb05cl_ae5_aq)"
+species_list:
+    CL: IGNORE
+    NO3: 1N
+    NO2: 1N
+    'NO': 1N
+    HONO: 1N
+    HNO3: 1N
+    PNA: 1N
+    PAN: 1N + 2C
+    PANX: 1N + 3C
+    N2O5: 2N
+    NTR: 1N + 2.5C
+    PAR: 1C
+    FORM: 1C
+    MEOH: 1C
+    ETHA: 2C
+    ETOH: 2C
+    ETH: 2C
+    OLE: 2C
+    ALD2: 2C
+    ALDX: 2C
+    IOLE: 4C
+    ISOP: 5C
+    TOL: 7C
+    XYL: 8C
+    TERP: 10C
+
+reaction_list:
+    IRR_1: NO2 ->[j] NO + O 
+    IRR_2: O + O2 + M ->[k] O3 + M 
+    IRR_3: O3 + NO ->[k] NO2 
+    IRR_4: O + NO2 ->[k] NO 
+    IRR_5: O + NO2 ->[k] NO3 
+    IRR_6: O + NO ->[k] NO2 
+    IRR_7: NO2 + O3 ->[k] NO3 
+    IRR_8: O3 ->[j] O 
+    IRR_9: O3 ->[j] O1D 
+    IRR_10: O1D + M ->[k] O + M 
+    IRR_11: O1D + H2O ->[k] 2.000*OH 
+    IRR_12: O3 + OH ->[k] HO2 
+    IRR_13: O3 + HO2 ->[k] OH 
+    IRR_14: NO3 ->[j] NO2 + O 
+    IRR_15: NO3 ->[j] NO 
+    IRR_16: NO3 + NO ->[k] 2.000*NO2 
+    IRR_17: NO3 + NO2 ->[k] NO + NO2 
+    IRR_18: NO3 + NO2 ->[k] N2O5 
+    IRR_19: N2O5 + H2O ->[k] 2.000*HNO3 
+    IRR_20: N2O5 + H2O + H2O ->[k] 2.000*HNO3 
+    IRR_21: N2O5 ->[k] NO3 + NO2 
+    IRR_22: NO + NO + O2 ->[k] 2.000*NO2 
+    IRR_23: NO + NO2 + H2O ->[k] 2.000*HONO 
+    IRR_24: NO + OH ->[k] HONO 
+    IRR_25: HONO ->[j] NO + OH 
+    IRR_26: OH + HONO ->[k] NO2 
+    IRR_27: HONO + HONO ->[k] NO + NO2 
+    IRR_28: NO2 + OH ->[k] HNO3 
+    IRR_29: OH + HNO3 ->[k] NO3 
+    IRR_30: HO2 + NO ->[k] OH + NO2 
+    IRR_31: HO2 + NO2 ->[k] PNA 
+    IRR_32: PNA ->[k] HO2 + NO2 
+    IRR_33: OH + PNA ->[k] NO2 
+    IRR_34: HO2 + HO2 ->[k] H2O2 
+    IRR_35: HO2 + HO2 + H2O ->[k] H2O2 
+    IRR_36: H2O2 ->[j] 2.000*OH 
+    IRR_37: OH + H2O2 ->[k] HO2 
+    IRR_38: O1D + H2 ->[k] OH + HO2 
+    IRR_39: OH + H2 ->[k] HO2 
+    IRR_40: OH + O ->[k] HO2 
+    IRR_41: OH + OH ->[k] O 
+    IRR_42: OH + OH ->[k] H2O2 
+    IRR_43: OH + HO2 ->[k] 
+    IRR_44: HO2 + O ->[k] OH 
+    IRR_45: H2O2 + O ->[k] OH + HO2 
+    IRR_46: NO3 + O ->[k] NO2 
+    IRR_47: NO3 + OH ->[k] HO2 + NO2 
+    IRR_48: NO3 + HO2 ->[k] HNO3 
+    IRR_49: NO3 + O3 ->[k] NO2 
+    IRR_50: NO3 + NO3 ->[k] 2.000*NO2 
+    IRR_51: PNA ->[j] 0.610*HO2 + 0.610*NO2 + 0.390*OH + 0.390*NO3 
+    IRR_52: HNO3 ->[j] OH + NO2 
+    IRR_53: N2O5 ->[j] NO2 + NO3 
+    IRR_54: XO2 + NO ->[k] NO2 
+    IRR_55: XO2N + NO ->[k] NTR 
+    IRR_56: XO2 + HO2 ->[k] ROOH 
+    IRR_57: XO2N + HO2 ->[k] ROOH 
+    IRR_58: XO2 + XO2 ->[k] 
+    IRR_59: XO2N + XO2N ->[k] 
+    IRR_60: XO2 + XO2N ->[k] 
+    IRR_61: NTR + OH ->[k] HNO3 + HO2 + 0.330*FORM + 0.330*ALD2 + 0.330*ALDX - 0.660*PAR 
+    IRR_62: NTR ->[j] NO2 + HO2 + 0.330*FORM + 0.330*ALD2 + 0.330*ALDX - 0.660*PAR 
+    IRR_63: ROOH + OH ->[k] XO2 + 0.500*ALD2 + 0.500*ALDX 
+    IRR_64: ROOH ->[j] OH + HO2 + 0.500*ALD2 + 0.500*ALDX 
+    IRR_65: OH + CO ->[k] HO2 
+    IRR_66: OH + CH4 ->[k] MEO2 
+    IRR_67: MEO2 + NO ->[k] FORM + HO2 + NO2 
+    IRR_68: MEO2 + HO2 ->[k] MEPX 
+    IRR_69: MEO2 + MEO2 ->[k] 1.370*FORM + 0.740*HO2 + 0.630*MEOH 
+    IRR_70: MEPX + OH ->[k] 0.700*MEO2 + 0.300*XO2 + 0.300*HO2 
+    IRR_71: MEPX ->[j] FORM + HO2 + OH 
+    IRR_72: MEOH + OH ->[k] FORM + HO2 
+    IRR_73: FORM + OH ->[k] HO2 + CO 
+    IRR_74: FORM ->[j] 2.000*HO2 + CO 
+    IRR_75: FORM ->[j] CO 
+    IRR_76: FORM + O ->[k] OH + HO2 + CO 
+    IRR_77: FORM + NO3 ->[k] HNO3 + HO2 + CO 
+    IRR_78: FORM + HO2 ->[k] HCO3 
+    IRR_79: HCO3 ->[k] FORM + HO2 
+    IRR_80: HCO3 + NO ->[k] FACD + NO2 + HO2 
+    IRR_81: HCO3 + HO2 ->[k] MEPX 
+    IRR_82: FACD + OH ->[k] HO2 
+    IRR_83: ALD2 + O ->[k] C2O3 + OH 
+    IRR_84: ALD2 + OH ->[k] C2O3 
+    IRR_85: ALD2 + NO3 ->[k] C2O3 + HNO3 
+    IRR_86: ALD2 ->[j] MEO2 + CO + HO2 
+    IRR_87: C2O3 + NO ->[k] MEO2 + NO2 
+    IRR_88: C2O3 + NO2 ->[k] PAN 
+    IRR_89: PAN ->[k] C2O3 + NO2 
+    IRR_90: PAN ->[j] C2O3 + NO2 
+    IRR_91: C2O3 + HO2 ->[k] 0.800*PACD + 0.200*AACD + 0.200*O3 
+    IRR_92: C2O3 + MEO2 ->[k] 0.900*MEO2 + 0.900*HO2 + FORM + 0.100*AACD 
+    IRR_93: C2O3 + XO2 ->[k] 0.900*MEO2 + 0.100*AACD 
+    IRR_94: C2O3 + C2O3 ->[k] 2.000*MEO2 
+    IRR_95: PACD + OH ->[k] C2O3 
+    IRR_96: PACD ->[j] MEO2 + OH 
+    IRR_97: AACD + OH ->[k] MEO2 
+    IRR_98: ALDX + O ->[k] CXO3 + OH 
+    IRR_99: ALDX + OH ->[k] CXO3 
+    IRR_100: ALDX + NO3 ->[k] CXO3 + HNO3 
+    IRR_101: ALDX ->[j] MEO2 + CO + HO2 
+    IRR_102: CXO3 + NO ->[k] ALD2 + NO2 + HO2 + XO2 
+    IRR_103: CXO3 + NO2 ->[k] PANX 
+    IRR_104: PANX ->[k] CXO3 + NO2 
+    IRR_105: PANX ->[j] CXO3 + NO2 
+    IRR_106: PANX + OH ->[k] ALD2 + NO2 
+    IRR_107: CXO3 + HO2 ->[k] 0.800*PACD + 0.200*AACD + 0.200*O3 
+    IRR_108: CXO3 + MEO2 ->[k] 0.900*ALD2 + 0.900*XO2 + HO2 + 0.100*AACD + 0.100*FORM 
+    IRR_109: CXO3 + XO2 ->[k] 0.900*ALD2 + 0.100*AACD 
+    IRR_110: CXO3 + CXO3 ->[k] 2.000*ALD2 + 2.000*XO2 + 2.000*HO2 
+    IRR_111: CXO3 + C2O3 ->[k] MEO2 + XO2 + HO2 + ALD2 
+    IRR_112: PAR + OH ->[k] 0.870*XO2 + 0.130*XO2N + 0.110*HO2 + 0.060*ALD2 - 0.110*PAR + 0.760*ROR + 0.050*ALDX 
+    IRR_113: ROR ->[k] 0.960*XO2 + 0.600*ALD2 + 0.940*HO2 - 2.100*PAR + 0.040*XO2N + 0.020*ROR + 0.500*ALDX 
+    IRR_114: ROR ->[k] HO2 
+    IRR_115: ROR + NO2 ->[k] NTR 
+    IRR_116: O + OLE ->[k] 0.200*ALD2 + 0.300*ALDX + 0.300*HO2 + 0.200*XO2 + 0.200*CO + 0.200*FORM + 0.010*XO2N + 0.200*PAR + 0.100*OH 
+    IRR_117: OH + OLE ->[k] 0.800*FORM + 0.330*ALD2 + 0.620*ALDX + 0.800*XO2 + 0.950*HO2 - 0.700*PAR 
+    IRR_118: O3 + OLE ->[k] 0.180*ALD2 + 0.740*FORM + 0.320*ALDX + 0.220*XO2 + 0.100*OH + 0.330*CO + 0.440*HO2 - 1.000*PAR 
+    IRR_119: NO3 + OLE ->[k] NO2 + FORM + 0.910*XO2 + 0.090*XO2N + 0.560*ALDX + 0.350*ALD2 - 1.000*PAR 
+    IRR_120: O + ETH ->[k] FORM + 1.700*HO2 + CO + 0.700*XO2 + 0.300*OH 
+    IRR_121: OH + ETH ->[k] XO2 + 1.560*FORM + 0.220*ALDX + HO2 
+    IRR_122: O3 + ETH ->[k] FORM + 0.630*CO + 0.130*HO2 + 0.130*OH + 0.370*FACD 
+    IRR_123: NO3 + ETH ->[k] NO2 + XO2 + 2.0*FORM 
+    IRR_124: IOLE + O ->[k] 1.240*ALD2 + 0.660*ALDX + 0.100*HO2 + 0.100*XO2 + 0.100*CO + 0.100*PAR 
+    IRR_125: IOLE + OH ->[k] 1.300*ALD2 + 0.700*ALDX + HO2 + XO2 
+    IRR_126: IOLE + O3 ->[k] 0.650*ALD2 + 0.350*ALDX + 0.250*FORM + 0.250*CO + 0.500*O + 0.500*OH + 0.500*HO2 
+    IRR_127: IOLE + NO3 ->[k] 1.180*ALD2 + 0.640*ALDX + HO2 + NO2 
+    IRR_128: TOL + OH ->[k] 0.440*HO2 + 0.080*XO2 + 0.360*CRES + 0.560*TO2 + TOLAER 
+    IRR_129: TO2 + NO ->[k] 0.900*NO2 + 0.900*HO2 + 0.900*OPEN + 0.100*NTR 
+    IRR_130: TO2 ->[k] CRES + HO2 
+    IRR_131: OH + CRES ->[k] 0.400*CRO + 0.600*XO2 + 0.600*HO2 + 0.300*OPEN + CSLAER 
+    IRR_132: CRES + NO3 ->[k] CRO + HNO3 + CSLAER 
+    IRR_133: CRO + NO2 ->[k] NTR 
+    IRR_134: CRO + HO2 ->[k] CRES 
+    IRR_135: OPEN ->[j] C2O3 + HO2 + CO 
+    IRR_136: OPEN + OH ->[k] XO2 + 2.000*CO + 2.000*HO2 + C2O3 + FORM 
+    IRR_137: OPEN + O3 ->[k] 0.030*ALDX + 0.620*C2O3 + 0.700*FORM + 0.030*XO2 + 0.690*CO + 0.080*OH + 0.760*HO2 + 0.200*MGLY 
+    IRR_138: OH + XYL ->[k] 0.700*HO2 + 0.500*XO2 + 0.200*CRES + 0.800*MGLY + 1.100*PAR + 0.300*TO2 + XYLAER 
+    IRR_139: OH + MGLY ->[k] XO2 + C2O3 
+    IRR_140: MGLY ->[j] C2O3 + HO2 + CO 
+    IRR_141: O + ISOP ->[k] 0.750*ISPD + 0.500*FORM + 0.250*XO2 + 0.250*HO2 + 0.250*CXO3 + 0.250*PAR 
+    IRR_142: OH + ISOP ->[k] 0.912*ISPD + 0.629*FORM + 0.991*XO2 + 0.912*HO2 + 0.088*XO2N 
+    IRR_143: O3 + ISOP ->[k] 0.650*ISPD + 0.600*FORM + 0.200*XO2 + 0.066*HO2 + 0.266*OH + 0.200*CXO3 + 0.150*ALDX + 0.350*PAR + 0.066*CO 
+    IRR_144: NO3 + ISOP ->[k] 0.200*ISPD + 0.800*NTR + XO2 + 0.800*HO2 + 0.200*NO2 + 0.800*ALDX + 2.400*PAR 
+    IRR_145: OH + ISPD ->[k] 1.565*PAR + 0.167*FORM + 0.713*XO2 + 0.503*HO2 + 0.334*CO + 0.168*MGLY + 0.252*ALD2 + 0.210*C2O3 + 0.250*CXO3 + 0.120*ALDX 
+    IRR_146: O3 + ISPD ->[k] 0.114*C2O3 + 0.150*FORM + 0.850*MGLY + 0.154*HO2 + 0.268*OH + 0.064*XO2 + 0.020*ALD2 + 0.360*PAR + 0.225*CO 
+    IRR_147: NO3 + ISPD ->[k] 0.357*ALDX + 0.282*FORM + 1.282*PAR + 0.925*HO2 + 0.643*CO + 0.850*NTR + 0.075*CXO3 + 0.075*XO2 + 0.150*HNO3 
+    IRR_148: ISPD ->[j] 0.333*CO + 0.067*ALD2 + 0.900*FORM + 0.832*PAR + 1.033*HO2 + 0.700*XO2 + 0.967*C2O3 
+    IRR_149: TERP + O ->[k] 0.150*ALDX + 5.12*PAR + TERPAER 
+    IRR_150: TERP + OH ->[k] 0.750*HO2 + 1.250*XO2 + 0.250*XO2N + 0.280*FORM + 1.66* PAR + 0.470*ALDX + TERPAER 
+    IRR_151: TERP + O3 ->[k] 0.570*OH + 0.070*HO2 + 0.760*XO2 + 0.180*XO2N + 0.240*FORM + 0.001*CO + 7.000*PAR + 0.210*ALDX + 0.390*CXO3 + TERPAER 
+    IRR_152: TERP + NO3 ->[k] 0.470*NO2 + 0.280*HO2 + 1.030*XO2 + 0.250*XO2N + 0.470*ALDX + 0.530*NTR + TERPAER 
+    IRR_153: SO2 + OH ->[k] SULF + HO2 + SULAER 
+    IRR_154: OH + ETOH ->[k] HO2 + 0.900*ALD2 + 0.050*ALDX + 0.100*FORM + 0.100*XO2 
+    IRR_155: OH + ETHA ->[k] 0.991*ALD2 + 0.991*XO2 + 0.009*XO2N + HO2 
+    IRR_156: NO2 + ISOP ->[k] 0.200*ISPD + 0.800*NTR + XO2 + 0.800*HO2 + 0.200*NO + 0.800*ALDX + 2.400*PAR 
+    IRR_157: CL2 ->[j] 2.000*CL
+    IRR_158: HOCL ->[j] OH + CL
+    IRR_159: CL + O3 ->[k] CLO
+    IRR_160: CLO + CLO ->[k] 0.300*CL2 + 1.400*CL
+    IRR_161: CLO + NO ->[k] CL + NO2
+    IRR_162: CLO + HO2 ->[k] HOCL
+    IRR_163: OH + FMCL ->[k] CL + CO
+    IRR_164: FMCL ->[j] CL + CO + HO2
+    IRR_165: CL + CH4 ->[k] HCL + MEO2
+    IRR_166: CL + PAR ->[k] HCL + 0.870*XO2 + 0.130*XO2N + 0.110*HO2 + 0.060*ALD2 - 0.110*PAR + 0.760*ROR + 0.050*ALDX
+    IRR_167: CL + ETHA ->[k] HCL + 0.991*ALD2 + 0.991*XO2 + 0.009*XO2N + HO2
+    IRR_168: CL + ETH ->[k] FMCL + 2.000*XO2 + 1.000*HO2 + 1.000*FORM
+    IRR_169: CL + OLE ->[k] FMCL + 0.330*ALD2 + 0.670*ALDX + 2.000*XO2 + 1.000*HO2 - 1.000*PAR
+    IRR_170: CL + IOLE ->[k] 0.300*HCL + 0.700*FMCL + 0.450*ALD2 + 0.550*ALDX + 0.300*OLE + 0.300*PAR + 1.700*XO2 + 1.000*HO2
+    IRR_171: CL + ISOP ->[k] 0.15*HCL + 1.000*XO2 + 1.000*HO2 + 0.850*FMCL + 1.000*ISPD
+    IRR_172: CL + FORM ->[k] HCL + 1.000*HO2+ 1.000*CO
+    IRR_173: CL + ALD2 ->[k] HCL + 1.000*C2O3
+    IRR_174: CL + ALDX ->[k] HCL + 1.000*CXO3
+    IRR_175: CL + MEOH ->[k] HCL + 1.000*HO2+ 1.000*FORM
+    IRR_176: CL + ETOH ->[k] HCL + 1.000*HO2+ 1.000*ALD2
+    IRR_177: HCL + OH ->[k] CL
+    IRR_178: TOLRO2 + NO ->[k] NO + TOLNRXN
+    IRR_179: TOLRO2 + HO2 ->[k] HO2 + TOLHRXN
+    IRR_180: XYLRO2 + NO ->[k] NO + XYLNRXN
+    IRR_181: XYLRO2 + HO2 ->[k] HO2 + XYLHRXN
+    IRR_182: BENZENE + OH ->[k] OH + 0.764*BENZRO2
+    IRR_183: BENZRO2 + NO ->[k] NO + BNZNRXN
+    IRR_184: BENZRO2 + HO2 ->[k] HO2 + BNZHRXN
+    IRR_185: SESQ + O3 ->[k] O3 + SESQRXN
+    IRR_186: SESQ + OH ->[k] OH + SESQRXN
+    IRR_187: SESQ + NO3 ->[k] NO3 + SESQRXN
+
+net_reaction_list:
+    Secondary ALD: IRR_103 + IRR_107 + IRR_109 + IRR_110 + IRR_111 + IRR_112 + IRR_113 + IRR_114 + IRR_115 + IRR_116 + IRR_119 + IRR_120 + IRR_121 + IRR_122 + IRR_124 + IRR_127 + IRR_128 + IRR_129 + IRR_130 + IRR_140 + IRR_146 + IRR_147 + IRR_148 + IRR_149 + IRR_150 + IRR_151 + IRR_152 + IRR_153 + IRR_154 + IRR_155 + IRR_156 + IRR_61 + IRR_62 + IRR_64 + IRR_65
+    O3 from NO2 Photolysis: IRR_2
+    OH+VOC: IRR_100 + IRR_113 + IRR_114 + IRR_115 + IRR_120 + IRR_124 + IRR_128 + IRR_131 + IRR_141 + IRR_145 + IRR_154 + IRR_73 + IRR_74 + IRR_85
+    HO2 -> Radical: IRR_108 + IRR_13 + IRR_137 + IRR_30 + IRR_31 + IRR_34 + IRR_35 + IRR_43 + IRR_44 + IRR_48 + IRR_56 + IRR_57 + IRR_69 + IRR_79 + IRR_82 + IRR_92
+    XO2_N -> Radical: IRR_64 + IRR_54 + IRR_55 + IRR_56 + IRR_57 + IRR_58 + IRR_59 + IRR_60 + IRR_94
+    Whole_Mechanism: IRR_1 + IRR_2 + IRR_3 + IRR_4 + IRR_5 + IRR_6 + IRR_7 + IRR_8 + IRR_9 + IRR_10 + IRR_100 + IRR_101 + IRR_102 + IRR_103 + IRR_104 + IRR_105 + IRR_106 + IRR_107 + IRR_108 + IRR_109 + IRR_11 + IRR_110 + IRR_111 + IRR_112 + IRR_113 + IRR_114 + IRR_115 + IRR_116 + IRR_117 + IRR_118 + IRR_119 + IRR_12 + IRR_120 + IRR_121 + IRR_122 + IRR_123 + IRR_124 + IRR_125 + IRR_126 + IRR_127 + IRR_128 + IRR_129 + IRR_13 + IRR_130 + IRR_131 + IRR_132 + IRR_133 + IRR_134 + IRR_135 + IRR_136 + IRR_137 + IRR_138 + IRR_139 + IRR_14 + IRR_140 + IRR_141 + IRR_142 + IRR_143 + IRR_144 + IRR_145 + IRR_146 + IRR_147 + IRR_148 + IRR_149 + IRR_15 + IRR_150 + IRR_151 + IRR_152 + IRR_153 + IRR_154 + IRR_155 + IRR_156 + IRR_16 + IRR_17 + IRR_18 + IRR_19 + IRR_20 + IRR_21 + IRR_22 + IRR_23 + IRR_24 + IRR_25 + IRR_26 + IRR_27 + IRR_28 + IRR_29 + IRR_30 + IRR_31 + IRR_32 + IRR_33 + IRR_34 + IRR_35 + IRR_36 + IRR_37 + IRR_38 + IRR_39 + IRR_40 + IRR_41 + IRR_42 + IRR_43 + IRR_44 + IRR_45 + IRR_46 + IRR_47 + IRR_48 + IRR_49 + IRR_50 + IRR_51 + IRR_52 + IRR_53 + IRR_54 + IRR_55 + IRR_56 + IRR_57 + IRR_58 + IRR_59 + IRR_60 + IRR_61 + IRR_62 + IRR_63 + IRR_64 + IRR_65 + IRR_66 + IRR_67 + IRR_68 + IRR_69 + IRR_70 + IRR_71 + IRR_72 + IRR_73 + IRR_74 + IRR_75 + IRR_76 + IRR_77 + IRR_78 + IRR_79 + IRR_80 + IRR_81 + IRR_82 + IRR_83 + IRR_84 + IRR_85 + IRR_86 + IRR_87 + IRR_88 + IRR_89 + IRR_90 + IRR_91 + IRR_92 + IRR_93 + IRR_94 + IRR_95 + IRR_96 + IRR_97 + IRR_98 + IRR_99
+    C2O3 Oxidation: IRR_88 + IRR_92
+    XO2 -> Radical: IRR_64 + IRR_54 + IRR_56 + IRR_58 + IRR_60 + IRR_94
+    ORG+hv radical source: IRR_102 + IRR_138 + IRR_143 + IRR_152 + IRR_62 + IRR_65 + IRR_72 + IRR_75 + IRR_87 + IRR_97
+    OH recreated: IRR_11 + IRR_13 + IRR_30 + IRR_38 + IRR_44
+    O from NO2: IRR_2 + IRR_4 + IRR_5 + IRR_6 + IRR_40 + IRR_44 + IRR_45 + IRR_46
+    Total New OH: IRR_102 + IRR_105 + IRR_106 + IRR_138 + IRR_143 + IRR_152 + IRR_25 + IRR_36 + IRR_62 + IRR_65 + IRR_72 + IRR_75 + IRR_87 + IRR_97
+    MEO2 -> Radical: IRR_109 + IRR_68 + IRR_69 + IRR_70 + IRR_93
+    HCO3 -> Radical: IRR_79 + IRR_80 + IRR_81 + IRR_82
+    NO2 Termination: IRR_62 + IRR_104 + IRR_118 + IRR_136 + IRR_148 + IRR_28 + IRR_89
+    Secondary MGLY: IRR_140 + IRR_141 + IRR_149 + IRR_150
+    OH+NO2: IRR_28
+    PAN Production: IRR_104 + IRR_105 + IRR_106 + IRR_107 + IRR_89 + IRR_90 + IRR_91
+    CXO3 -> Radical: IRR_103 + IRR_108 + IRR_109 + IRR_110 + IRR_111 + IRR_112
+    NO+RO2 Oxidation: IRR_103 + IRR_132 + IRR_30 + IRR_54 + IRR_68 + IRR_81 + IRR_88
+    Secondary FORM: IRR_109 + IRR_114 + IRR_119 + IRR_120 + IRR_121 + IRR_122 + IRR_123 + IRR_124 + IRR_125 + IRR_126 + IRR_129 + IRR_139 + IRR_140 + IRR_144 + IRR_145 + IRR_146 + IRR_149 + IRR_150 + IRR_151 + IRR_152 + IRR_154 + IRR_155 + IRR_61 + IRR_62 + IRR_68 + IRR_70 + IRR_72 + IRR_73 + IRR_80 + IRR_93
+    XO2_TO2 -> Radical: IRR_64 + IRR_132 + IRR_133 + IRR_54 + IRR_56 + IRR_58 + IRR_60 + IRR_94
+    H2O2 Photolysis: IRR_36
+    NO2 Photolysis: IRR_1
+    OH+(organic+NO2): IRR_116 + IRR_117 + IRR_118 + IRR_100 + IRR_107 + IRR_113 + IRR_114 + IRR_115 + IRR_12 + IRR_120 + IRR_124 + IRR_128 + IRR_131 + IRR_134 + IRR_139 + IRR_141 + IRR_142 + IRR_145 + IRR_149 + IRR_154 + IRR_28 + IRR_37 + IRR_39 + IRR_40 + IRR_47 + IRR_61 + IRR_63 + IRR_64 + IRR_66 + IRR_67 + IRR_71 + IRR_73 + IRR_74 + IRR_83 + IRR_85 + IRR_96 + IRR_98
+    OH+HC: IRR_100 + IRR_107 + IRR_113 + IRR_114 + IRR_115 + IRR_120 + IRR_124 + IRR_128 + IRR_131 + IRR_134 + IRR_139 + IRR_141 + IRR_142 + IRR_145 + IRR_149 + IRR_154 + IRR_61 + IRR_64 + IRR_67 + IRR_71 + IRR_73 + IRR_74 + IRR_83 + IRR_85 + IRR_96 + IRR_98
+    Ox+org radical source: IRR_31 + IRR_32 + IRR_101 + IRR_119 + IRR_121 + IRR_122 + IRR_123 + IRR_125 + IRR_126 + IRR_127 + IRR_129 + IRR_130 + IRR_140 + IRR_144 + IRR_146 + IRR_147 + IRR_148 + IRR_150 + IRR_151 + IRR_155 + IRR_156 + IRR_77 + IRR_78 + IRR_84 + IRR_86 + IRR_99
+    HONO+hv radical source: IRR_23 + IRR_24 + IRR_25 + IRR_26 + IRR_27
+    MEO2 Oxidation: IRR_68
+    HO2 Oxidation: IRR_108 + IRR_30 + IRR_92
+    Organic New Radical: IRR_101 + IRR_102 + IRR_105 + IRR_106 + IRR_119 + IRR_121 + IRR_122 + IRR_123 + IRR_125 + IRR_126 + IRR_127 + IRR_129 + IRR_130 + IRR_138 + IRR_140 + IRR_143 + IRR_144 + IRR_146 + IRR_147 + IRR_148 + IRR_150 + IRR_151 + IRR_152 + IRR_155 + IRR_156 + IRR_62 + IRR_65 + IRR_72 + IRR_75 + IRR_77 + IRR_78 + IRR_84 + IRR_86 + IRR_87 + IRR_90 + IRR_91 + IRR_97 + IRR_99
+    Inorganic New Radical: IRR_11 + IRR_38 + IRR_9 + IRR_25 + IRR_32 + IRR_36 + IRR_45 + IRR_51 + IRR_52
+    CXO3 Oxidation: IRR_103 + IRR_108
+    Total OH Reacted: IRR_100 + IRR_107 + IRR_113 + IRR_114 + IRR_115 + IRR_12 + IRR_120 + IRR_124 + IRR_128 + IRR_131 + IRR_134 + IRR_139 + IRR_141 + IRR_142 + IRR_145 + IRR_149 + IRR_154 + IRR_24 + IRR_26 + IRR_28 + IRR_29 + IRR_33 + IRR_37 + IRR_39 + IRR_40 + IRR_41 + IRR_42 + IRR_43 + IRR_47 + IRR_61 + IRR_63 + IRR_64 + IRR_66 + IRR_67 + IRR_71 + IRR_73 + IRR_74 + IRR_83 + IRR_85 + IRR_96 + IRR_98
+    Ald+hv radical source: IRR_102 + IRR_138 + IRR_143 + IRR_152 + IRR_75 + IRR_87 + IRR_97
+    C2O3 -> Radical: IRR_112 + IRR_88 + IRR_92 + IRR_93 + IRR_94 + IRR_95
+    TO2 -> Radical: IRR_132 + IRR_133
+    TO2 Oxidation: IRR_132
+    XO2N -> Radical: IRR_64 + IRR_55 + IRR_57 + IRR_59 + IRR_60
+    HCO3 Oxidation: IRR_81
+    H2O2 Created: IRR_34 + IRR_35 + IRR_42
+    NO2 Photolysis1: IRR_1 + IRR_2 + IRR_3 + IRR_4 + IRR_5 + IRR_6 + IRR_7 + IRR_8 + IRR_9 + IRR_10 + IRR_14 + IRR_15 + IRR_16 + IRR_17 + IRR_18 + IRR_21 + IRR_22 + IRR_46 + IRR_47 + IRR_49 + IRR_50 + IRR_53
+    OH+CO: IRR_66
+    XO2/XO2N Oxidation: IRR_54
+    XO2_N_TO2 -> Radical: IRR_64 + IRR_132 + IRR_133 + IRR_54 + IRR_55 + IRR_56 + IRR_57 + IRR_58 + IRR_59 + IRR_60 + IRR_94
+    NO3+org radical source: IRR_101 + IRR_122 + IRR_126 + IRR_130 + IRR_147 + IRR_156 + IRR_78 + IRR_86
+    O1D (hv) radical source: IRR_11 + IRR_38
+
+
+species_group_list:
+    - NOz=HNO3+PAN+PANX+NTR
+    - NOx=NO+NO2
+    - NOX=NOx+NO3+N2O5+HONO+PNA
+    - NOy=NOX+NOz
+
+    - NOzN=HNO3+PAN+PANX+NTR
+    - NOxN=1*NOx
+    - NOXN=NO+NO2+NO3+2*N2O5+HONO+PNA
+    - NOyN=NOXN+NOzN
+
+    - VOC=PAR + ETHA + MEOH + ETOH + ETH + OLE + IOLE + ISOP + TERP + FORM + ALD2 + ALDX + TOL + XYL 
+    
+    - PARC=1*PAR
+    - ETHAC=2*ETHA
+    - MEOHC=MEOH
+    - ETOHC=2*ETOH
+    - ETHC=2*ETH
+    - OLEC=2*OLE
+    - IOLEC=4*IOLE
+    - ISOPC=5*ISOP
+    - TERPC=10*TERP
+    - FORMC=FORM
+    - ALD2C=2*ALD2
+    - ALDXC=2*ALDX
+    - TOLC=7*TOL
+    - XYLC=8*XYL
+    - VOCC=PARC + ETHAC + MEOHC + ETOHC + ETHC + OLEC + IOLEC + ISOPC + TERPC + FORMC + ALD2C + ALDXC + TOLC + XYLC
+    - VOC_CO=VOC+CO
+    - VOC_CO_NO2=VOC_CO + NO2 
+    - VOCm=VOC
+    - OLEC=2*OLE
+
+    - NMHC=NTR+ROOH+FORM+ALD2+ALDX+PAR+MEPX+MEOH+FACD+PAN+PACD+AACD+PANX+OLE+ETH+IOLE+TOL+CRES+OPEN+MGLY+XYL+ISOP+ISPD+ETOH+ETHA+TERP
+
+    - HC=NMHC+CH4
+    
+    - NMHC_NO2=NMHC+NO2
+
+    - HC_NO2=HC+NO2
+
+    - NMHC_CO=NMHC+CO
+
+    - HC_CO=HC+CO
+
+    - NMHC_CO_NO2=NMHC_NO2+CO
+
+    - HC_CO_NO2=HC_NO2+CO
+
+    - Radical=O1D+OH+HO2+XO2+XO2N+MEO2+HCO3+C2O3+CXO3+ROR+TO2
+
+    - RO2=XO2+MEO2+HCO3+C2O3+CXO3+ROR+TO2
+
+    - XO2_N=XO2+XO2N
+
+    - XO2_TO2=XO2+TO2
+
+    - XO2_N_TO2=XO2_N+TO2
+
+    - RO2_NO2=RO2+NO2
+
+    - Ox=O3+O+O1D+NO2+2*NO3+3*N2O5+HNO3+2*PNA+PAN
+
+    - Oy=Ox+NTR+ROOH
+
+    - ALD=ALD2+ALDX+FORM+MGLY+OPEN+ISPD+PACD
+    
+    - ALD_=ALD2+ALDX
+        
+    - ALDO3=C2O3+CXO3
+    
+    - PANS=PAN+PANX
+    
+    - NO2_IMMEDIATES=NO2+O3+O+NO3+N2O5+NO+O1D
+    
+    - HOx=OH+HO2
+    
+    - ROx=HOx+MEO2+HCO3+C2O3+CXO3+ROR+TO2
+
+    - ACYL_RAD=C2O3+CXO3
+
+    - NTRS = 1*NTR
+    - RNO3 = 1* NTRS
+    - HNO4 = 1* PNA
+    - HPANS = PANS - PAN
+    - NXOY = NO3 + N2O5
+    - CH3CO3 = 1* C2O3
+    - CH3CnO3 = 1* CXO3
+    - CH2O = 1*FORM
+    - CH3CHO = 1*ALD2
+    - CH3OOH = 1*MEPX
+    - CH3OH = 1*MEOH
+    - CH3CH2OH = 1*ETOH
+    - CH3COCH3 = 1.e-30 * ALD2
+    - CH3COOOH = 1*PACD
+    
+process_group_list:
+  Initial        : INIT
+  Final          : FINAL
+...
