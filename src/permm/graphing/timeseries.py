@@ -295,11 +295,11 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
     legend_settings.setdefault('prop', FontProperties(size=10))
     
     if tax == ax:
-        ax.legend(**legend_settings)
+        fig.legend(**legend_settings)
     else:
         legend_lines = [l for l in tax.lines + ax.lines if l.get_label()[:5] != '_line' and l.get_label() is not None]
         legend_labels = [l.get_label() for l in legend_lines]
-        ax.legend(legend_lines, legend_labels, **legend_settings)
+        fig.legend(legend_lines, legend_labels, **legend_settings)
     return fig
 
 def _add_mech(conf):
