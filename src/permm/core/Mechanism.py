@@ -1,19 +1,19 @@
-from utils import AttrDict
-from collections import defaultdict
 import operator
 import yaml
 import re
 import sys
 from numpy import * # Explicitly using dtype, array and ndarray; providing all default numpy to __call__interface
 from warnings import warn
-from SpeciesGroup import Species, species_sum
-from ProcessGroup import Process
-from ReactionGroup import ReactionFromString
-from IPRArray import Processes_ProcDelimSpcDict
-from graphing.timeseries import irr_plot, phy_plot, plot as tplot
-from Shell import load_environ
+
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
-from netcdf import NetCDFVariable
+
+from Species import Species, species_sum
+from Reaction import Reaction
+from IPRArray import Processes_ProcDelimSpcDict, Process
+
+from permm.graphing.timeseries import irr_plot, phy_plot, plot as tplot
+from permm.Shell import load_environ
+from permm.netcdf import NetCDFVariable
 
 __all__ = ['Mechanism']
 
@@ -54,27 +54,22 @@ class Mechanism(object):
         elif isinstance(yaml_path,dict):
             yaml_file = yaml_path
         
-        yaml_file = AttrDict(yaml_file)
         self.__yaml_file = yaml_file
         self.mechanism_comment = yaml_file.get('comment', '')
-        self.species_dict = AttrDict()
-        if yaml_file.has_key('species_list'):
-            for spc, spc_def in yaml_file.species_list.iteritems():
-                if spc_def == 'IGNORE':
-                    self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
-                else:
-                    spc_atoms = dict([(atom, eval(stoic)) for stoic, atom in _spc_def_re.findall(spc_def)])
-                    self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1], atom_dict = {spc: spc_atoms})
+        self.species_dict = dict()
+
+        for spc, spc_def in yaml_file.get('species_list', {}).iteritems():
+            self.species_dict[spc] = Species(spc + ': ' + spc_def)
                         
-        self.reaction_dict = AttrDict()
+        self.reaction_dict = dict()
         reaction_species = []
-        for rxn_name, rxn_str in yaml_file.reaction_list.iteritems():
-            rxn = self.reaction_dict[rxn_name] = ReactionFromString(rxn_str)
+        for rxn_name, rxn_str in yaml_file.get('reaction_list', {}).iteritems():
+            rxn = self.reaction_dict[rxn_name] = Reaction(rxn_str)
             reaction_species += rxn.species()
         
         reaction_species = set(reaction_species)
         for spc in [spc for spc in reaction_species if not self.species_dict.has_key(spc)]:
-            self.species_dict[spc] = Species(name = spc, names = [spc], stoic = [1])
+            self.species_dict[spc] = Species(spc + ': IGNORE')
 
         for spc_grp_def in yaml_file.get('species_group_list',[]):
             grp_name = spc_grp_def.split('=')[0].strip()
@@ -404,8 +399,8 @@ class Mechanism(object):
         nlines = min(nlines, len(reactions)+1)
         if combine != [()]:
             reactions = reactions + map(lambda t2: '+'.join(t2), combine)
-        
-        reactions = [ (abs(self('(%s)' % (rxn))[plot_spc]).sum(),rxn) for rxn in reactions]
+        aslice = kwds.get('slice', slice(None))
+        reactions = [ (abs(self('(%s)' % (rxn))[aslice].get_spc(plot_spc, float64(0.))).sum(),rxn) for rxn in reactions]
     
         reactions.sort(reverse = True)
 
@@ -543,12 +538,12 @@ class Mechanism(object):
         new_spcs = spcs.difference(self.species_dict.keys())
         for name in new_spcs:
             if not self.species_dict.has_key(name):
-                self.species_dict[name] = Species(name = name, names = [name], stoic = [1.])
+                self.species_dict[name] = Species(name + ': IGNORE')
 
     def add_rxn(self, rxn_key, rxn_str):
-        self.reaction_dict[rxn_key] = ReactionFromString(rxn_str)
+        self.reaction_dict[rxn_key] = Reaction(rxn_str)
         if hasattr(self, 'irr_dict'):
-            self.irr_dict[rxn_key] = ReactionFromString(rxn_str)
+            self.irr_dict[rxn_key] = Reaction(rxn_str)
             self.irr_dict[rxn_key] *= self.irr[rxn_key]
         load_environ(self, self.variables)
     
