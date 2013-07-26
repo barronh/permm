@@ -1,13 +1,10 @@
-__all__ = ['Species', 'Stoic', 'Reaction', 'Process', 'IPR', 'Mechanism', \
-           'mechanisms', 'getmech', 'get_mech', 'get_pure_mech', \
-           'get_prepared_mech', 'analyses', 'graphing', 'GUI', 'Shell', 'guis']
+__all__ = ['Mechanism', 'Species', 'Reaction', 'atoms', 'mechanism_dict']
 
 if __name__ != '__main__':
-    from SpeciesGroup import Species
-    from ReactionGroup import Reaction, Stoic
-    from ProcessGroup import Process
-    from IPRArray import IPR
-    from Mechanism import Mechanism
+    from core.Species import Species
+    from core.Reaction import Reaction
+    from core.Mechanism import Mechanism
+    from mechanisms import mechanism_dict, atoms
     import mechanisms
     import getmech
     import Shell
