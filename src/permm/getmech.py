@@ -1,4 +1,4 @@
-from Mechanism import Mechanism
+from core.Mechanism import Mechanism
 
 def get_pure_mech(mechanism):
     from os.path import dirname, \

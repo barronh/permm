@@ -9,7 +9,7 @@ def atom_parse(spc_def):
     return dict([(atom, eval(stoic)) for stoic, atom in _spc_def_re.findall(spc_def)])
 
 def atom_guess(spc_name):
-    from permm2.mechanisms import atoms as ALL_ATOMS
+    from permm.mechanisms import atoms as ALL_ATOMS
     if '+' in spc_name or spc_name[:1].isdigit(): return atom_parse(spc_name)
     lastl = ''
     atom_dict = {}
@@ -106,9 +106,6 @@ class Species(object):
         
     def names(self):
         return [n for n in self.keys()]
-    
-    def __neg__(self):
-        return Species(self, name = '-(%s)' % self.name, exclude = not self.exclude)
     
     def __contains__(self, lhs):
         if isinstance(lhs, Species):

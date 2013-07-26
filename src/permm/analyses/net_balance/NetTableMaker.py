@@ -1,4 +1,4 @@
-from permm.ReactionGroup import Stoic
+from permm.core.Reaction import Stoic
 from warnings import warn
 
 def NetTable(rxn_array, label='Unspecified'):

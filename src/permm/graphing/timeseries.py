@@ -127,7 +127,7 @@ def irr_plot(
         
     pylabtitle(title_str % locals())
 
-    options = line_settings
+    options = line_settings.copy()
     options.setdefault('linestyle', '-')
     options.setdefault('linewidth', 3)
     options.setdefault('marker', 'None')

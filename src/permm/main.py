@@ -2,9 +2,9 @@ def parse_and_run():
     import os
     from optparse import OptionParser
     from warnings import warn
-    from permm.mechanisms import __all__ as all_mechs
+    from permm import mechanism_dict, Mechanism
     from permm.analyses import __all__ as all_analyses
-    all_mechs = '|'.join(all_mechs)
+    all_mechs = '|'.join(mechanism_dict.keys())
     all_analyses = '|'.join(all_analyses)
     parser = OptionParser()
     parser.set_usage("Usage: python -m permm [-c %s] [-g|-i|-a %s] [mrgfile]" % (all_mechs, all_analyses))
@@ -32,15 +32,13 @@ def parse_and_run():
     
     (options, args) = parser.parse_args()
 
-    from permm import mechanisms, \
-                            netcdf, \
-                            getmech
+    from permm import netcdf
     from permm.Shell import load_environ
-    
-    get_prepared_mech = getmech.get_prepared_mech
-    get_pure_mech = getmech.get_pure_mech
-
-    mech = get_pure_mech(options.mechanism)
+    try:
+        mech = mechanism_dict[options.mechanism]
+    except KeyError:
+        mech = Mechanism(options.mechanism)
+        
     start_script = 0
     if len(args) > 0:
         try:

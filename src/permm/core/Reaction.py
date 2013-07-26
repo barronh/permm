@@ -494,14 +494,14 @@ class Reaction(object):
             else:
                 return args[1]
         
-        last_role = role
+        last_role = roles[-1]
         same_role = all([last_role == role for role in roles])
         
         if same_role:
             role = last_role
         else:
             role = 'u'
-        return Stoic(sum(values), role = role)
+        return Stoic(sum(values, axis = 0), role = role)
     
     def produces(self, item):
         try:
