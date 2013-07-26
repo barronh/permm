@@ -270,6 +270,34 @@ class Mechanism(object):
             self.irr_dict[name] = nrxn
             self.reaction_dict[name] = nrxn.sum()
             load_environ(self, self.variables)
+
+    def subst_these_rxns(self, rxns, name = None):
+        if all([isinstance(rxn, Reaction) for rxn in rxns]):
+            irrs = rxns
+            rxns = []
+            for irr in irrs:
+                for rxnkey, crxn in self.irr_dict.iteritems():
+                    if irr is crxn:
+                        rxns.append(rxnkey)
+                        break
+                else:
+                    raise KeyError('Could not match %s with a active reaction')
+        elif all([isinstance(rxn, str) for rxn in rxns]):
+            pass
+        else:
+            raise ValueError('Reactions must be all strings (i.e. keys) or objects')
+                
+        if len(rxns) > 1:
+            eval_str = ' + '.join(rxns)
+            if name is None:
+                name = eval_str
+            nrxn = eval(eval_str, globals(), self.irr_dict)
+            for rxn in rxns:
+                del self.irr_dict[rxn]
+                del self.reaction_dict[rxn]
+            self.irr_dict[name] = nrxn
+            self.reaction_dict[name] = nrxn.sum()
+            load_environ(self, self.variables)
         
         
     def make_net_rxn(self, reactants = [], products = [], logical_and = True, reaction_type = None):
