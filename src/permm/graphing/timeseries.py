@@ -8,11 +8,11 @@ ChangedBy  = "$LastChangedBy$"
 __version__ = RevisionNum
 
 from warnings import warn
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import InstanceType
 from permm.netcdf import NetCDFFile
 from PseudoNetCDF.sci_var import PseudoNetCDFFile
-from numpy import array, concatenate, zeros, arange, ceil, concatenate
+from numpy import array, concatenate, zeros, arange, ceil, concatenate, diff
 from pylab import figure, title as pylabtitle, plot_date, savefig, legend, axis, twinx, rcParams
 from matplotlib.dates import DateFormatter, date2num
 from matplotlib.cm import get_cmap
@@ -25,8 +25,23 @@ if rcParams['text.usetex']:
     rcParams['text.latex.preamble'] = '\usepackage[font=sf]{mhchem}'
 
 def get_dates(mrg_file, end_date = True, slice = slice(None)):
-    date_ints = mrg_file.variables['TFLAG'][...,0,:].reshape(-1, 2)
-    date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints]).reshape(mrg_file.variables['TFLAG'].shape[:-2])[slice]
+    if 'TFLAG' in mrg_file.variables:
+        date_ints = mrg_file.variables['TFLAG'][...,0,:].reshape(-1, 2)
+        date_objs = array([datetime.strptime("%iT%06i" % (d,t), "%Y%jT%H%M%S") for d,t in date_ints]).reshape(mrg_file.variables['TFLAG'].shape[:-2])[slice]
+    elif 'time' in mrg_file.variables or 'tau0' in mrg_file.variables:
+        try:
+            date_var = mrg_file.variables['time']
+            unit, start = map(lambda x: x.strip(), date_var.units.split('since'))
+            end_date = False
+        except:
+            date_var = mrg_file.variables['tau0']
+            end_date = False
+            unit, start = map(lambda x: x.strip(), date_var.units.split('since'))
+        try:
+            sdate = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+        except:
+            sdate = datetime.strptime(start, "%Y-%m-%d %H:%M:%S %Z")
+        date_objs = array([sdate + timedelta(**{unit: i}) for i in date_var[:].tolist()])
     if end_date:
         date_objs = concatenate([date_objs[[0]]-(date_objs[-1]-date_objs[-2]), date_objs])
     else:
