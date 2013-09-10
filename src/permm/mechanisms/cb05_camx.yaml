@@ -1,32 +1,55 @@
 ---
 comment: "Carbon Bond 05 (CB05) chemical mechanism as implemented in CAMx v4"
 species_list:
-    CL: IGNORE
-    NXOY: 2.5N
-    NO3: 1N
-    NO2: 1N
-    'NO': 1N
-    HONO: 1N
-    HNO3: 1N
-    PNA: 1N
-    PAN: 1N + 2C
-    PANX: 1N + 3C
-    N2O5: 2N
+    AACD: 2C + 1O + 1H
+    ALD2: 2C + 1O + 4H
+    ALDX: 2C + 1O + 4H
+    C2O3: 2C + 3O + 3H
+    CH4: 1C + 4H
+    CO: 1C + 1O
+    CRES: 7C + 8H + 1O
+    CRO: 7C + 7H + 2O
+    CXO3: 2C + 3O + 3H
+    ETH: 2C + 4H
+    ETHA: 2C + 6H
+    ETOH: 2C + 6H + 1O
+    FACD: 1C + 2H + 2O
+    FORM: 1C + 2H + 1O
+    GLY: 2C + 2H + 2O
+    H2O2: 2H + 2O
+    HCO3: 1C + 3H + 3O
+    HNO3: 1N + 3O + 1H
+    HO2: 1H + 2O
+    HONO: 1N + 2O + 1H
+    IOLE: 4C + 6H
+    ISOP: 5C + 8H
+    ISPD: IGNORE
+    MEO2: 1C + 3H + 2O
+    MEOH: 1C + 4H + 1O
+    MEPX: 1C + 4H + 2O
+    MGLY: 3C + 4H + 2O
+    N2O5: 2N + 5O
+    'NO': 1N + 1O
+    NO2: 1N + 2O
+    NO3: 1N + 3O
     NTR: 1N + 2.5C
-    PAR: 1C
-    FORM: 1C
-    MEOH: 1C
-    ETHA: 2C
-    ETOH: 2C
-    ETH: 2C
+    NXOY: 2.5N
+    O: 1O
+    O1D: 1O
+    O2: 2O
+    O3: 3O
+    OH: 1O + 1H
     OLE: 2C
-    ALD2: 2C
-    ALDX: 2C
-    IOLE: 4C
-    ISOP: 5C
-    TOL: 7C
-    XYL: 8C
+    PAN: 1N + 2C + 3O + 3H
+    PANX: 1N + 3C + 3O + 5H
+    PAR: 1C + 3H
+    PNA: 1N + 4O + 1H
+    ROOH: 2.5C + 2O + 1H
+    SO2: 1S + 2O
+    SULF: 2H + 1S + 4O
     TERP: 10C
+    TOL: 7C + 8H
+    XYL: 8C + 10H
 
 reaction_list:
     RXN_01: NO2 ->[j] NO + O
