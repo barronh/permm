@@ -25,7 +25,7 @@ def atom_guess(spc_name):
     
 class Species(object):
     def __init__(self, spc_dict, name = None, exclude = False):
-        if isinstance(spc_dict, str):
+        if isinstance(spc_dict, (str, unicode)):
             if not ':' in spc_dict:
                 spc_dict = spc_dict.strip() + ':'
             defs = yaml.load(spc_dict)
@@ -105,7 +105,7 @@ class Species(object):
             return False
         
     def names(self):
-        return [n for n in self.keys()]
+        return [n for n in self.spc_dict.keys()]
     
     def __contains__(self, lhs):
         if isinstance(lhs, Species):
