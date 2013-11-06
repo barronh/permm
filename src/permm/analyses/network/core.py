@@ -47,7 +47,7 @@ def MakeUniDiGraph(mech, traceable = None, slice = slice(None)):
 
 def MakeCarbonTrace(mech, slice = slice(None), traceable = None, makes_larger = []):
     from numpy.ma import masked_invalid
-    traceable = [spc for spcn, spc in mech.species_dict.iteritems() if spc.atom_dict.get(spc.name, {}).get('C', 0) > 0]
+    traceable = [spc for spcn, spc in mech.species_dict.iteritems() if any([spcv.get(spc.name, {}).get('C', 0) > 0 for spcv in  spc.spc_dict.values()])]
     print traceable
     #if len(traceable) == 0: traceable = mech('[eval(n) for n in HC.names()]')
     import networkx as nx
