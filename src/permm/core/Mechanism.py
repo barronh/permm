@@ -423,9 +423,10 @@ class Mechanism(object):
         if reactions == []:
             raise ValueError, "Your query didn't match any reactions; check your query and try again (try print_rxns)."
 
+        reactions1 = reactions
         reactions = [ rxn for rxn in reactions if rxn not in reduce(operator.add, combine) ]
         nlines = min(nlines, len(reactions)+1)
-        if combine != [()]:
+        if combine != [()] and reactions != reactions1:
             reactions = reactions + map(lambda t2: '+'.join(t2), combine)
         aslice = kwds.get('slice', slice(None))
         reactions = [ (abs(self('(%s)' % (rxn))[aslice].get_spc(plot_spc, float64(0.))).sum(),rxn) for rxn in reactions]
