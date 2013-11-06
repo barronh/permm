@@ -98,13 +98,13 @@ def ParseReactionString(rxn_str):
     """
     stoics = {}
     
-    reaction_re = re.compile("(?P<reactants>.*)->\[(?P<rxn_type>[kj])\]\s*(?P<products>.*)")
+    reaction_re = re.compile("(?P<reactants>.*)->\[(?P<rxn_type>[kjdeu])\]\s*(?P<products>.*)")
 
     species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d{0,1}(\.(\d{1,3}(E\d{2})?)?)?)\*)?(?P<name>[a-zA-Z]\w*)(?:[ +=]|$)+",re.M)
     
     reaction_match = reaction_re.match(rxn_str)
     if reaction_match is None:
-        raise SyntaxError, "Reactions must match the following patter\n\n<%%d> stoic*spc ([+-] stoic*spc)* =[kju]> [stoic*spc] ([+-] stoic*spc)*\n\n%s" % (rxn_str,)
+        raise SyntaxError, "Reactions must match the following patter\n\n<%%d> stoic*spc ([+-] stoic*spc)* =[kjude]> [stoic*spc] ([+-] stoic*spc)*\n\n%s" % (rxn_str,)
 
     reactants = reaction_match.groupdict()['reactants']
     reaction_type = reaction_match.groupdict()['rxn_type']
