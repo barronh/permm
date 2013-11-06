@@ -160,12 +160,12 @@ def irr_plot(
         options['marker'] = 'o'
         options['label'] = 'Total Chem'
         try:
-            data = mech('%s'  % (chem,))[species][slice].array()
+            data = array(mech('%s'  % (chem,))[species][slice])
         except:
             warn('Using sum of reactions for %(species)s' % locals())
-            data = mech.make_net_rxn(species, species, False)[species][slice]
+            data = mech.make_net_rxn(species, species, logical_and = False, reaction_type = 'kjun')[species][slice]
     
-        ax.plot_date(date_objs, data.repeat(2,0), **options)
+        ax.plot_date(date_objs, data.repeat(2,0) * factor, **options)
 
     ax.set_xlabel('Time')
     ax.set_ylabel(units)
