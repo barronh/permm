@@ -58,9 +58,10 @@ class Species(object):
             props.setdefault('atoms', {})
 
         self.exclude = exclude
+    
     def __getitem__(self, spc_key):
         if isinstance(spc_key, str):
-            test_spc = Species({spc_key: dict(stoic = 1, role = set(['r', 'p']), atoms = {})}, name = spc_key)
+            test_spc = Species({spc_key: dict(stoic = 1, role = set(['r', 'p', 'u']), atoms = {})}, name = spc_key)
             return self[test_spc]
         out_spc = {}
         for this_spc, this_props in spc_key.spc_dict.iteritems():
@@ -96,20 +97,13 @@ class Species(object):
         #except:
         #    exclude = '?'
         #return ndarray.__repr__(self)+'\n      exclude = '+exclude
-
-    def __contains__(self, lhs):
-        try:
-            self[lhs]
-            return True
-        except KeyError:
-            return False
         
     def names(self):
         return [n for n in self.spc_dict.keys()]
     
     def __contains__(self, lhs):
         if isinstance(lhs, Species):
-            return len(set(lhs.keys()).intersection(self.keys())) > 0
+            return len(set(lhs.names()).intersection(self.names())) > 0
         elif isinstance(lhs, str):
             return lhs in self.keys()
             
