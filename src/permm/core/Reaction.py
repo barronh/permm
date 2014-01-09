@@ -2,15 +2,17 @@ import operator
 import re
 from warnings import warn
 from copy import deepcopy
-
 from numpy import ndarray, \
-                  array, \
                   newaxis, \
                   float64, \
                   vectorize, \
                   rollaxis, \
-                  indices
-from numpy.ma import sum
+                  array, \
+                  indices, \
+                  equal, \
+                  greater, \
+                  less
+from numpy.ma import sum, masked_less, masked_greater
 
 from permm.core.Species import Species
 
@@ -176,7 +178,7 @@ class Reaction(object):
     """
     __array_priority__ = 1000.
 
-    def __init__(self, stoic, reaction_type = 'k'):
+    def __init__(self, stoic, reaction_type = 'k', safe = False):
         """
             roles - dictionary of specific roles; for species whose 
                     stoichiometric sign is inconsistent with their 
@@ -184,11 +186,14 @@ class Reaction(object):
             reaction_type - 'k' is kinetic, 'j' is photolysis, 'n' is net
             stoic - stoichiometry values provided as keywords by species; values
                     can be scalars or ndarrays
+            safe - when species roles are not found, find any version of
+                   that species to prevent an error
         """
         if isinstance(stoic, str):
             stoic, reaction_type = ParseReactionString(stoic)
 
         self.reaction_type = reaction_type
+        self._safe = safe
         self._stoic = deepcopy(stoic)
         self._update_roles()
         try:
@@ -198,7 +203,9 @@ class Reaction(object):
             self.shape = ()
             for k, v in self._stoic.iteritems():
                 self._stoic[k] = float64(v)
-    
+        except IndexError, (e):
+            self.shape = ()
+            
     
     def _update_roles(self):
         keys = self._stoic.keys()
@@ -477,23 +484,28 @@ class Reaction(object):
                 
                 if 'u' not in spc_roles and (spc, 'u') in self._stoic:
                     val = self._stoic[spc, 'u']
-                    if role == 'p' and greater(val, 0).all():
-                        values.append(item.spc_dict[spc]['stoic'] * self._stoic[spc, 'u'])
+                    if role == 'p':
+                        values.append(item.spc_dict[spc]['stoic'] * masked_less(val, 0).filled(0))
                         roles.append(role)
-                    elif role == 'r' and less(val, 0).all():
-                        values.append(item.spc_dict[spc]['stoic'] * self._stoic[spc, 'u'])
+                    elif role == 'r':
+                        values.append(item.spc_dict[spc]['stoic'] * masked_greater(val, 0).filled(0))
                         roles.append(role)
                     
                 
                 
         if len(values) == 0:
-            if nargs == 1:
-                if item.name in self:
-                    return self.get_spc(Species(item.name, exclude = item.exclude))
-                raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
+            if self._safe:
+                if nargs == 1:
+                    if item.name in self:
+                        warn("%s not in %s; trying all roles" % (item, self.sum()))
+                        return self.get_spc(Species(item.name, exclude = item.exclude))
+                    raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
+                else:
+                    return args[1]
             else:
-                return args[1]
-        
+                raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
+            
+                
         last_role = roles[-1]
         same_role = all([last_role == role for role in roles])
         
@@ -522,10 +534,16 @@ class Reaction(object):
         return False != spc_grp.exclude
 
     def has_rct(self,spc_grp):
-        return self.has_spc(spc_grp.reactant())
+        if self.has_spc(spc_grp.reactant()):
+            return True
+        elif not spc_grp.exclude:
+            return self.has_spc(spc_grp.unspecified())
         
     def has_prd(self,spc_grp):
-        return self.has_spc(spc_grp.product())
+        if self.has_spc(spc_grp.product()):
+            return True
+        elif not spc_grp.exclude:
+            return self.has_spc(spc_grp.unspecified())
     
     def net(self, spco = None):
         if spco is None:
