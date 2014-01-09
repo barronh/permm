@@ -87,7 +87,10 @@ class Mechanism(object):
         Evaluate string expression in the context of mechanism
         species, species groups, reactions, net reactions and processes
         """
-        return eval(expr, env, self.variables)
+        try:
+            return self.variables[expr]
+        except:
+            return eval(expr, env, self.variables)
     
     def __getitem__(self,item):
         """
@@ -182,7 +185,7 @@ class Mechanism(object):
         """
         return [self.reaction_dict[rk] for rk in self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)]
 
-    def get_irrs(self, reactants = [], products =[], logical_and = True, reaction_type = None):
+    def get_irrs(self, reactants = [], products =[], logical_and = True, reaction_type = None, sortby = None):
         """
         Get reaction objects that meet the criteria specified by reactants, products and logical_and.
         
@@ -192,7 +195,14 @@ class Mechanism(object):
                       True: reaction is in both filters (i.e. reactants AND products)
                       False: reaction is in either filter (i.e. reactants OR products)
         """
-        return [self(rk) for rk in self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)]
+        result = [self(rk) for rk in self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)]
+        if sortby is None:
+            return result
+        else:
+            result = [(r[sortby].sum(), r) for r in result]
+            result.sort()
+            result = [r for s, r in result]
+            return result
 
     def find_rxns(self, reactants = [], products =[], logical_and = True, reaction_type = None):
         """
@@ -257,16 +267,20 @@ class Mechanism(object):
                     if getattr(self.reaction_dict[rxn], method)(spc):
                         pass
     
-    def subst_net_rxn(self, reactants = [], products = [], logical_and = True, reaction_type = None, name = None):
+    def subst_net_rxn(self, reactants = [], products = [], logical_and = True, reaction_type = None, name = None, netspc = False):
         rxns = self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)
         if len(rxns) > 1:
             eval_str = ' + '.join(rxns)
             if name is None:
-                name = eval_str
+                name = eval_str.replace(' + ', 'pl')
             nrxn = eval(eval_str, globals(), self.irr_dict)
+            if netspc:
+                nrxn = nrxn.net()
+            
             for rxn in rxns:
                 del self.irr_dict[rxn]
                 del self.reaction_dict[rxn]
+                del self.variables[rxn]
             self.irr_dict[name] = nrxn
             self.reaction_dict[name] = nrxn.sum()
             load_environ(self, self.variables)
@@ -290,11 +304,12 @@ class Mechanism(object):
         if len(rxns) > 1:
             eval_str = ' + '.join(rxns)
             if name is None:
-                name = eval_str
+                name = eval_str.replace(' + ', 'pl')
             nrxn = eval(eval_str, globals(), self.irr_dict)
             for rxn in rxns:
                 del self.irr_dict[rxn]
                 del self.reaction_dict[rxn]
+                del self.variables[rxn]
             self.irr_dict[name] = nrxn
             self.reaction_dict[name] = nrxn.sum()
             load_environ(self, self.variables)
@@ -308,6 +323,8 @@ class Mechanism(object):
         for more information see find_rxns
         """
         rxns = self.find_rxns(reactants, products, logical_and, reaction_type)
+        if len(rxns) == 0:
+            return Reaction(stoic = dict())
         result = self(' + '.join(rxns))
         
         return result
