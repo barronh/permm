@@ -158,8 +158,8 @@ class TestProcess(unittest.TestCase):
                              CHEM_NO2 = PseudoNetCDFVariable(mrg, 'CHEM', 'f', ('TSTEP'), values = arange(9), units = 'ppb')
                             )
         self.processes = {}
-        self.species = dict(NO = Species(name = 'NO', stoic = [1], names = ['NO']),
-                            NO2 = Species(name = 'NO2', stoic = [1], names = ['NO2']),
+        self.species = dict(NO = Species('NO'),
+                            NO2 = Species('NO2'),
                             )
         exec('NOx = NO + NO2', None, self.species)
         self.testProcessFromCMAQ()
