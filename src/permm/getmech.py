@@ -8,8 +8,7 @@ def get_pure_mech(mechanism):
     if exists(mechanism) and '.yaml' in mechanism:
         mech_path = mechanism
     else:
-        mech_path = abspath(join(dirname(__file__),'mechanisms', mechanism,'%s.yaml' % (mechanism,)))
-    
+        mech_path = abspath(join(dirname(__file__),'mechanisms', '%s.yaml' % (mechanism,)))
     if not exists(mech_path):
         raise ImportError, "Mechanism you supplied is not a known mechanism and is not a file path to a definition"
         
