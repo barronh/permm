@@ -534,16 +534,22 @@ class Reaction(object):
         return False != spc_grp.exclude
 
     def has_rct(self,spc_grp):
-        if self.has_spc(spc_grp.reactant()):
-            return True
-        elif not spc_grp.exclude:
-            return self.has_spc(spc_grp.unspecified())
+        for name in spc_grp.names():
+            if not spc_grp.contains_species_role(name, 'r'):
+                raise TypeError('Requesting reactant role from species %s with %s that has roles %s' % (spc_grp.name, name, str(list(spc_grp.spc_dict[name]['role']))))
+        return self.has_spc(spc_grp.reactant())
         
     def has_prd(self,spc_grp):
-        if self.has_spc(spc_grp.product()):
-            return True
-        elif not spc_grp.exclude:
-            return self.has_spc(spc_grp.unspecified())
+        for name in spc_grp.names():
+            if not spc_grp.contains_species_role(name, 'p'):
+                raise TypeError('Requesting product role from species %s with %s that has roles %s' % (spc_grp.name, name, str(list(spc_grp.spc_dict[name]['role']))))
+        return self.has_spc(spc_grp.product())
+    
+    def has_unspc(self,spc_grp):
+        for name in spc_grp.names():
+            if not spc_grp.contains_species_role(name, 'u'):
+                raise TypeError('Requesting unspecified role from species %s with %s that has roles %s' % (spc_grp.name, name, str(list(spc_grp.spc_dict[name]['role']))))
+        return self.has_spc(spc_grp.unspecified())
     
     def net(self, spco = None):
         if spco is None:
