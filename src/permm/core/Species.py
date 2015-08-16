@@ -174,7 +174,10 @@ class Species(object):
             return set(first_role)
         else:
             return set('u')
-    
+
+    def contains_species_role(self, spc, role):
+        return role in self.spc_dict[spc]['role']
+        
     def reactant(self):
         new_props = deepcopy(self.spc_dict)
         for v in new_props.itervalues():
