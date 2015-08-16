@@ -40,6 +40,7 @@ species_list:
     O3: 3O
     OH: 1O + 1H
     OLE: 2C
+    PACD: 2C + 4H + 3O
     PAN: 1N + 2C + 3O + 3H
     PANX: 1N + 3C + 3O + 5H
     PAR: 1C + 3H
