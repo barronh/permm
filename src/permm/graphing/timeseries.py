@@ -163,7 +163,12 @@ def irr_plot(
             data = array(mech('%s'  % (chem,))[species][slice])
         except:
             warn('Using sum of reactions for %(species)s' % locals())
-            data = mech.make_net_rxn(species, species, logical_and = False, reaction_type = 'kjun')[species][slice]
+            reactants = products = []
+            if 'p' in species.role() or 'u' in species.role():
+                products = species
+            if 'u' in species.role() or 'u' in species.role():
+                reactants = species
+            data = mech.make_net_rxn(reactants, products, logical_and = False, reaction_type = 'kjun')[species][slice]
     
         ax.plot_date(date_objs, data.repeat(2,0) * factor, **options)
 
