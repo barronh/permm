@@ -100,7 +100,7 @@ def ParseReactionString(rxn_str):
     """
     stoics = {}
     
-    reaction_re = re.compile("(?P<reactants>.*)->\[(?P<rxn_type>[kjdeu])\]\s*(?P<products>.*)")
+    reaction_re = re.compile("(?P<reactants>.*)(?:=|->\[(?P<rxn_type>[kjdeu])\])\s*(?P<products>.*)")
 
     species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d{0,1}(\.(\d{1,3}(E\d{2})?)?)?)\*)?(?P<name>[a-zA-Z]\w*)(?:[ +=]|$)+",re.M)
     
@@ -110,6 +110,8 @@ def ParseReactionString(rxn_str):
 
     reactants = reaction_match.groupdict()['reactants']
     reaction_type = reaction_match.groupdict()['rxn_type']
+    if reaction_type is None:
+        reaction_type = 'u'
     products = reaction_match.groupdict()['products']
 
     for spc in species_re.finditer(reactants):
