@@ -6,49 +6,6 @@ except:
 import os
 import sys
 from warnings import warn
-netcdf_pkgs = [('netCDF4', 'Dataset', 'Variable'), \
-               ('netCDF3', 'Dataset', 'Variable'), \
-               ('pupynere', 'netcdf_file', 'netcdf_variable')]
-for pkg, reader, var in netcdf_pkgs:
-    try:
-        NetCDFFile = getattr(__import__(pkg, fromlist = [reader]),reader)
-        define_reader = "from %s import %s as NetCDFFile" % (pkg, reader)
-        define_variable = "from %s import %s as NetCDFVariable" % (pkg, var)
-        netcdfpkg = [pkg]
-        break
-    except ImportError, e:
-        warn(e.message)
-else:
-    warn("Did not find a 'true' NetCDFFile reader; 'true' NetCDF functionality will be disabled")
-    netcdfpkg = []
-    define_reader = """
-class NetCDFFile(object):
-    def __init__(self, *args, **kwds):
-        raise ImportError('System has no valid netCDF reader; install netcdf4-python or pupynere')
-"""
-    define_variable = """
-class NetCDFVariable(object):
-    def __init__(self, *args, **kwds):
-        raise ImportError('System has no valid netCDF variable; install netcdf4-python or pupynere')
-"""
-
-print >> file(os.path.join('src', 'permm', 'netcdf.py'),'wb'), """
-__all__ = ['NetCDFFile']
-__doc__ = \"\"\"
-.. _netcdf
-:mod:`netcdf` -- netcdf import point
-====================================
-
-.. module:: netcdf
-   :platform: Unix, Windows
-   :synopsis: Povides a single import point for a package.  If
-              a user has one of many netcdf interfaces, this module
-              selects it and provides it.
-.. moduleauthor:: Barron Henderson <barronh@unc.edu>
-\"\"\"
-%s
-%s
-""" % (define_reader, define_variable)
 
 def find_packages():
     import os
@@ -78,7 +35,7 @@ packages = find_packages()
 data = find_data()
 
 setup(name = 'permm',
-      version = '1.0rc',
+      version = '1.0',
       author = 'Barron Henderson',
       author_email = 'barronh@gmail.com',
       maintainer = 'Barron Henderson',
@@ -86,5 +43,7 @@ setup(name = 'permm',
       packages = packages,
       package_dir = {'': 'src'},
       package_data = {'permm': data},
-      requires = netcdfpkg + ['numpy (>=1.2)', 'yaml']
+      scripts = ['scripts/permm'],
+      requires = ['numpy (>=1.2)', 'yaml', 'netCDF4'],
+      url = 'http://github.com/barronh/permm/'
       )
