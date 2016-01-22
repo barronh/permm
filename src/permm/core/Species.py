@@ -6,7 +6,14 @@ from numpy import float32, float64, int8, int16, int32, int64
 _spc_def_re = re.compile(r'(?P<stoic>[-+]?[0-9]*\.?[0-9]+)(?P<atom>\S+)(?=\s*\+\s*)?')
 
 def atom_parse(spc_def):
-    return dict([(atom, eval(stoic)) for stoic, atom in _spc_def_re.findall(spc_def)])
+    atomdict = {}
+    for stoic, atom in _spc_def_re.findall(spc_def):
+        if atom not in atomdict:
+            atomdict[atom] = eval(stoic)
+        else:
+            atomdict[atom] += eval(stoic)
+    
+    return atomdict
 
 def atom_guess(spc_name):
     from permm.mechanisms import atoms as ALL_ATOMS
@@ -128,7 +135,18 @@ class Species(object):
         
     def __add__(self, other_species):
         return species_sum([self, other_species])
-
+    
+    def mass(self):
+        from permm.mechanisms import atoms as ALL_ATOMS
+        from openbabel import OBAtom
+        obatom = OBAtom()
+        mass = 0.
+        for spc, props in self.spc_dict.items():
+            for atom, count in props['atoms'].items():
+                obatom.SetAtomicNum(ALL_ATOMS[atom])
+                mass += obatom.GetAtomicMass() * count
+        return mass*self
+        
     def atoms(self, atom):
         from permm.mechanisms import atoms as ALL_ATOMS
         if atom in ALL_ATOMS:
