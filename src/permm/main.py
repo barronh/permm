@@ -1,36 +1,34 @@
 def parse_and_run():
     import os
-    from optparse import OptionParser
+    from argparse import ArgumentParser
     from warnings import warn
     from permm import mechanism_dict, Mechanism
     from permm.analyses import __all__ as all_analyses
     all_mechs = '|'.join(mechanism_dict.keys())
     all_analyses = '|'.join(all_analyses)
-    parser = OptionParser()
-    parser.set_usage("Usage: python -m permm [-c %s] [-g|-i|-a %s] [mrgfile]" % (all_mechs, all_analyses))
-    parser.add_option("-i", "--interactive", dest="interactive", \
+    from PseudoNetCDF.pncparse import getparser, pncparse
+    parser = ArgumentParser(description = "permm (Python Environment for Reaction Mechanism Mathematics)")
+    parser.add_argument("--gui", dest="graphical", \
                         action="store_true", default=False, \
-                        help="open an interactive environment", \
-                        metavar="interactive environment")
+                        help="open a graphical user interactive environment")
     
-    parser.add_option("-g", "--gui", dest="graphical", \
-                        action="store_true", default=False, \
-                        help="open a graphical user interactive environment", \
-                        metavar="graphical user interactive environment")
-    
-    parser.add_option("-c", "--mechanism", dest="mechanism", \
-                      default="cb05_camx", help="Chemical mechanisms", \
-                      metavar="MECHANISM")
+    parser.add_argument("--mechanism", dest="mechanism", \
+                      default="cb05_camx", help="Chemical mechanisms (e.g., a custom path|%s)" % all_mechs)
 
-    parser.add_option("-a", "--analysis", dest="analysis", \
-                      default=None, help="Stock analysis to perform", \
-                      metavar="ANALYSIS")
-
-    parser.add_option("-o", "--output", dest="output", \
-                      default=None, help="Base output path", \
-                      metavar="ouput base")
+    parser.add_argument("--analysis", dest="analysis", \
+                      default=None, help="Stock analysis to perform (i.e., %s)" % all_analyses)
+    parser.add_argument("--scripts", dest = "scripts", action = 'append', default = [], help = "Provide scripts to run")
+    parser.add_argument("-i", "--interactive", dest = "interactive", action = 'store_true', default = False, help = "Run interactively")
+    parser.add_argument("--input-role", dest = "inrole", action = 'append', default = [], help = "Is this a 'merge' file or a 'concentration' file or any other word indicating type?")
     
-    (options, args) = parser.parse_args()
+    parser.add_argument("pseudonetcdf", nargs = '*')
+    options = parser.parse_args()
+    if len(options.pseudonetcdf) > 0:
+        pncparser = getparser(has_ofile = False, interactive = True)
+        ifiles, pncoptions = pncparse(has_ofile = False, interactive = True, parser = pncparser, args = args.pseudonetcdf)
+    else:
+        ifiles = []
+        pncoptions = {}
 
     from permm import netcdf
     from permm.Shell import load_environ
@@ -40,32 +38,19 @@ def parse_and_run():
         mech = Mechanism(options.mechanism)
         
     start_script = 0
-    if len(args) > 0:
-        try:
-            try:
-                NetCDFFile = netcdf.NetCDFFile
-                mrg_file = NetCDFFile(args[0],'r')
-            except:
-                from PseudoNetCDF.camxfiles.Memmaps import irr
-                NetCDFFile = irr
-                mrg_file = NetCDFFile(args[0])
-
-            mech.set_mrg(mrg_file)
-           
-            
-        except (IOError, RuntimeError), (e):
-            warn("\n-------------------------------------------------------\nFirst argument was not a data file.\nAttempting to continue with first argument as a script.\n-------------------------------------------------------")
-        except ValueError, (e):
-            warn("\n-------------------------------------------\nAre you sure this is a %s data file?\n-------------------------------------------" % options.mechanism)
-            raise e
+    options.inrole += ['merge'] * (len(ifiles) - len(options.inrole))
+    for r, ifile in zip(options.inrole, ifiles):
+        if r == 'merge':
+            mech.set_mrg(ifile)
         else:
-            start_script = 1
-
+            vardict = dict([(k, v) for k, v in ifile.variables.items() if k in mech.species_dict])
+            mech.set_process(r, vardict)
+            
     from permm.Shell import PERMConsole
     console = PERMConsole()
     load_environ(mech,console.locals)
 
-    for script in args[start_script:]:
+    for script in options.scripts:
         if os.path.isfile(script):
             execfile(script, globals(), console.locals)
         else:
