@@ -44,4 +44,6 @@ First, you need to [InstallPERMM get PERMM installed].  To get a feel for the ba
 Enjoy!<br/>
 [Development The Development Team]
 
-p.s. Our logo is a networkx diagram of an atmospheric oxidation reaction mechanism.
+p.s. A citable version is available at: http://dx.doi.org/10.5281/zenodo.44396
+
+p.p.s. Our logo is a networkx diagram of an atmospheric oxidation reaction mechanism.
