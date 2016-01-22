@@ -512,16 +512,19 @@ class Mechanism(object):
         reactions.sort(reverse = True)
 
         reactions = [r for v,r in reactions]
-        for rxn in reactions[nlines-1:]:
-            try:
-                other = other + self('(%s)' % (rxn,))
-            except:
-                other = self('(%s)' % (rxn,))
+        if len(reactions) > nlines:
+            for rxn in reactions[nlines-1:]:
+                try:
+                    other = other + self('(%s)' % (rxn,))
+                except:
+                    other = self('(%s)' % (rxn,))
         
-        try:
             reactions = [self('(%s)' % (rxn, )) for rxn in reactions[:nlines-1]] + [other]
-        except:
-            reactions = [self('(%s)' % (rxn, )) for rxn in reactions[:nlines-1]]
+        reactions = [(rxn.sum()[plot_spc], rxn) for rxn in reactions]
+    
+        reactions.sort(reverse = False)
+
+        reactions = [r for v,r in reactions]
         
         return self.plot_rxn_list(reactions = reactions, plot_spc = plot_spc, **kwds)
         
@@ -610,6 +613,12 @@ class Mechanism(object):
                     warn("Predefined net rxn %s is not available; %s" % (nrxn_name, str(e)))
 
         load_environ(self, self.variables)
+    
+    def set_process(self, prc_name, variables):
+        if not hasattr(self, 'process_dict'):
+            self.process_dict = {}
+        
+        self.process_dict[prc_name] = Process(prc_name, **variables)
         
     def set_ipr(self, ipr = None, processes = None):
         """
@@ -635,10 +644,10 @@ class Mechanism(object):
 
         for prc_name, prc in self.__yaml_file.get('process_group_list', {}).iteritems():
             try:
-                self.process_dict[prc_name] = eval(prc,{},self.process_dict)
-                self.process_dict[prc_name].name = prc_name
-            except:
-                warn("Cannot create %s process group" % prc_name)
+                self.set_process(prc_name, eval(prc,{},self.process_dict))
+            except Exception, e:
+                warn('Could not evaluate %s: %s' % (prc_name, str(e)))
+
             
         # Add extra species for names in IPR
         spcs = set(reduce(list.__add__, [[spc for spc in proc.keys()] for proc in self.process_dict.values()]))
