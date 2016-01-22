@@ -40,17 +40,29 @@ class Process(object):
         self.data = {}
         for k in kwds.keys():
             self.data[k] = kwds[k][:]
-            self.__units[k] = (getattr(kwds[k], 'units', units.get(k, default_unit or 'Unknown'))).strip()
+            if k in units:
+                self.__units[k] = units[k]
+            elif hasattr(kwds[k], 'units'):
+                kwdunits = kwds[k].units
+                if isinstance(kwdunits, dict):
+                    self.__units[k] = kwdunits[k]
+                else:
+                    self.__units[k] = kwdunits
+                    
             
     def __getitem__(self, key):
+        units = self.__units
         if isinstance(key, Species):
-            values = array([self.data[spc] for spc in key.spc_dict.keys()]).sum(0)
+            values = array([self.data[spc] * prop['stoic'] for spc, prop in key.spc_dict.items()]).sum(0)
+            units = dict([(k, self.__units[k]) for k in key.spc_dict.keys()])
         elif key in self.data.keys():
             values = self.data[key]
+            units = {key: self.__units[key]}
         else:
             new_data = dict([(k, v[key]) for k, v in self.data.iteritems()])
+            units = {key: self.__units[key]}
             return Process(self.name, self.__units, **new_data)
-        return PseudoNetCDFVariable(self, self.name, values.dtype.char, ('TSTEP',), values = values, units = self.__units)
+        return PseudoNetCDFVariable(self, self.name, values.dtype.char, ('TSTEP',), values = values, units = units)
 
     def __setitem__(self, key, value):
         return self.data.__setitem__(key, value)
