@@ -10,7 +10,7 @@ default_proc_split = ['Chemistry', 'H_Trans', 'V_Trans', 'Entrain']
 
 def PhyTables(mech):
     result = ''
-    for spck, spcv in mech.species_dict.iteritems():
+    for spck, spcv in mech.species_dict.items():
         if isinstance(spcv, Species):
             result += PhyTable(mech, spck)
             result += '\n'
@@ -93,7 +93,7 @@ def display(mech, spc, process, label, condition = None, agg = lambda x: x.sum()
 
         display_values = (label,)+tuple(values.tolist())+(agg(values),)
         result = ("  %-19s"+"%11.4f"*n_vals+'\n') % display_values
-    except KeyError, strerror:
+    except KeyError as strerror:
         result = ''
         warnings.warn('%s' % (strerror))
 

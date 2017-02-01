@@ -24,7 +24,7 @@ def consolidate_dups(spc_group):
         for new_spc in new_spc_group:
             for old_spc in [old_spc for old_spc in spc_group if old_spc['name'] == new_spc['name']]:
                 if new_spc.get('sign',old_spc['sign']) != old_spc['sign']:
-                    raise ValueError, 'Math not implemented for different signs'
+                    raise ValueError('Math not implemented for different signs')
                 else:
                     new_spc['stoic'] = str(float(new_spc.get('stoic',0))+float(old_spc['stoic']))
                     new_spc['sign'] = old_spc['sign']
@@ -99,7 +99,7 @@ initial_yaml = '---\n' + \
                reaction_yaml + '\n' + \
                file('../../mechanisms/cb05_camx/cb05_camx_new_groups.yaml').read() + '\n...'
 
-print >> file('../../mechanisms/cb05_camx/cb05_camx.yaml','wb'), initial_yaml
+print(initial_yaml, file=file('../../mechanisms/cb05_camx/cb05_camx.yaml','wb'))
 initial_mech = Mechanism(initial_yaml)
 globals().update(initial_mech.species_dict)
 net_reaction_rules=yaml.load(file('../../rules.yaml'))
@@ -109,9 +109,9 @@ net_reaction_yaml='net_reaction_list:\n'
 def get_species(spc_str):
     return eval('['+spc_str+']',initial_mech.species_dict)
     
-for net_key, net_rule in net_reaction_rules.iteritems():
+for net_key, net_rule in net_reaction_rules.items():
     rxns = net_rule.get('rxns', [])
-    if net_rule.has_key('r') or net_rule.has_key('p') or not net_rule.has_key('rxns'):
+    if 'r' in net_rule or 'p' in net_rule or 'rxns' not in net_rule:
         reactants = get_species(net_rule.get('r',''))
         products = get_species(net_rule.get('p',''))
         logical_and = net_rule.get('logical_and',True)
@@ -129,4 +129,4 @@ full_yaml = '---\n' + \
                
 # + '\n' + \
 #               file('diagram.yaml').read()
-print full_yaml
+print(full_yaml)

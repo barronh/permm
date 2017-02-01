@@ -44,9 +44,9 @@ def cycles(mech, species_group, indirect = False):
         exec('total = source + prop', globals(), this_spc_cycles)
         
     if indirect:
-        for spc in this_spc_cycles.keys():
+        for spc in list(this_spc_cycles.keys()):
             this_spc_cycles = species_group_cycles[spc]
-            for prop_source, prop in this_spc_cycles['propby'].iteritems():
+            for prop_source, prop in this_spc_cycles['propby'].items():
                 propeff = species_group_cycles[prop_source]['propeff']
                 
     return species_group_cycles

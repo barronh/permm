@@ -1,4 +1,4 @@
 __all__ = ['core']
 
-from core import matrix
+from .core import matrix
 

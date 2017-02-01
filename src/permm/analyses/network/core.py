@@ -47,8 +47,8 @@ def MakeUniDiGraph(mech, traceable = None, slice = slice(None)):
 
 def MakeCarbonTrace(mech, slice = slice(None), traceable = None, makes_larger = []):
     from numpy.ma import masked_invalid
-    traceable = [spc for spcn, spc in mech.species_dict.iteritems() if any([spcv.get(spc.name, {}).get('C', 0) > 0 for spcv in  spc.spc_dict.values()])]
-    print traceable
+    traceable = [spc for spcn, spc in mech.species_dict.items() if any([spcv.get(spc.name, {}).get('C', 0) > 0 for spcv in  list(spc.spc_dict.values())])]
+    print(traceable)
     #if len(traceable) == 0: traceable = mech('[eval(n) for n in HC.names()]')
     import networkx as nx
     from numpy import sum
@@ -70,7 +70,7 @@ def MakeCarbonTrace(mech, slice = slice(None), traceable = None, makes_larger = 
                     if prd in traceable:
                         rct_frac = rxn_slice[spc]/sum([rxn_slice[rct] for rct in rcts if rct in traceable and rct.atoms('C')[rct] >= prd_C], axis = 0)
                         spc_portion = masked_invalid(rxn_slice[prd] * rct_frac).sum()
-                        print spc, spc_C, prd, prd_C, rct_frac
+                        print(spc, spc_C, prd, prd_C, rct_frac)
                         G.add_edge(spc, prd, weight = spc_portion)
                     
     return G

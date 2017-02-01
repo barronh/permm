@@ -32,7 +32,7 @@ def atom_guess(spc_name):
     
 class Species(object):
     def __init__(self, spc_dict, name = None, exclude = False):
-        if isinstance(spc_dict, (str, unicode)):
+        if isinstance(spc_dict, str):
             if not ':' in spc_dict:
                 spc_dict = spc_dict.strip() + ':'
             defs = yaml.load(spc_dict)
@@ -40,7 +40,7 @@ class Species(object):
             if len(defs) > 1:
                 raise ValueError('Species class can only initialize one object at a time')
             else:
-                (k, v), = defs.items()
+                (k, v), = list(defs.items())
                 if k is False: k = 'NO'
                 name = k
                 if v in (None, '', 'GUESS'):
@@ -57,9 +57,9 @@ class Species(object):
         else:
             sep = {False: '+', True: '-'}[exclude]
             prefix = {False: '', True: '-'}[exclude]
-            self.name = prefix + sep.join(spc_dict.keys())
+            self.name = prefix + sep.join(list(spc_dict.keys()))
             
-        for spc, props in self.spc_dict.iteritems():
+        for spc, props in self.spc_dict.items():
             props.setdefault('stoic', 1)
             props['role'] = set(props.get('role', 'rup'))
             props.setdefault('atoms', {})
@@ -71,7 +71,7 @@ class Species(object):
             test_spc = Species({spc_key: dict(stoic = 1, role = set(['r', 'p', 'u']), atoms = {})}, name = spc_key)
             return self[test_spc]
         out_spc = {}
-        for this_spc, this_props in spc_key.spc_dict.iteritems():
+        for this_spc, this_props in spc_key.spc_dict.items():
             if this_spc in self.spc_dict:
                 check_props = self.spc_dict[this_spc]
                 if this_props['role'].issubset(check_props['role']):
@@ -90,11 +90,11 @@ class Species(object):
     
     def __str__(self):
         if len(self.spc_dict) == 1:
-            (k, v), = self.spc_dict.items()
+            (k, v), = list(self.spc_dict.items())
             if k == self.name and v['stoic'] == 1.:
-                return ('%s(%s)' % (self.name, ''.join(self.spc_dict[self.name]['role']))).replace('(pru)', '')
+                return ('%s(%s)' % (self.name, ''.join(sorted(self.spc_dict[self.name]['role'])))).replace('(pru)', '')
         bool_op = (' = ', ' != ')[self.exclude]
-        result = self.name + bool_op + ' + '.join([('%.3f*%s(%s)' % (props['stoic'],spc, ''.join(props['role']))).replace('(pru)', '') for spc, props in self.spc_dict.iteritems()])
+        result = self.name + bool_op + ' + '.join([('%.3f*%s(%s)' % (props['stoic'],spc, ''.join(sorted(props['role'])))).replace('(pru)', '') for spc, props in self.spc_dict.items()])
         return result
         
     def __repr__(self):
@@ -106,29 +106,29 @@ class Species(object):
         #return ndarray.__repr__(self)+'\n      exclude = '+exclude
         
     def names(self):
-        return [n for n in self.spc_dict.keys()]
+        return [n for n in list(self.spc_dict.keys())]
     
     def __contains__(self, lhs):
         if isinstance(lhs, Species):
             return len(set(lhs.names()).intersection(self.names())) > 0
         elif isinstance(lhs, str):
-            return lhs in self.keys()
+            return lhs in list(self.keys())
             
     def __rmul__(self, y):
         return self.__mul__(y)
 
     def __mul__(self, y):
-        is_number = isinstance(y,(int,long,float, float32, float64, int8, int16, int32, int64))
+        is_number = isinstance(y,(int,float, float32, float64, int8, int16, int32, int64))
         
         if is_number:
             new_props = deepcopy(self.spc_dict)
-            for k, props in new_props.iteritems():
+            for k, props in new_props.items():
                 props['stoic'] *= y
             new_name = "%s * %f" % (self.name,float(y))
             new_exclude = y <= 0
             return Species(new_props, name = new_name, exclude = new_exclude)
         else:
-            raise TypeError, "Can only multiply species by reactions"
+            raise TypeError("Can only multiply species by reactions")
 
     def __sub__(self, other_species):
         return self.__add__(-other_species)
@@ -141,8 +141,8 @@ class Species(object):
         from openbabel import OBAtom
         obatom = OBAtom()
         mass = 0.
-        for spc, props in self.spc_dict.items():
-            for atom, count in props['atoms'].items():
+        for spc, props in list(self.spc_dict.items()):
+            for atom, count in list(props['atoms'].items()):
                 obatom.SetAtomicNum(ALL_ATOMS[atom])
                 mass += obatom.GetAtomicMass() * count
         return mass*self
@@ -151,17 +151,17 @@ class Species(object):
         from permm.mechanisms import atoms as ALL_ATOMS
         if atom in ALL_ATOMS:
             out_props = {}
-            for spc, props in self.spc_dict.iteritems():
+            for spc, props in self.spc_dict.items():
                 mul = props['atoms'].get(atom, 0)
                 if mul > 0:
                     out_props[spc] = deepcopy(props)
                     out_props[spc]['stoic'] *= mul
             if out_props == {}:
-                raise KeyError, "Atom provided (%s) is not in %s" % (atom, self.name)
+                raise KeyError("Atom provided (%s) is not in %s" % (atom, self.name))
             else:
                 return Species(out_props, name = self.name + ':' + atom, exclude = self.exclude)
         else:
-            raise KeyError, "Atom provided (%s) is not an atom" % atom
+            raise KeyError("Atom provided (%s) is not an atom" % atom)
     
     def copy(self):
         result =  1*self
@@ -172,10 +172,10 @@ class Species(object):
             spco = self
         else:
             spco = self[spc]
-        return sum(v['stoic'] for v in spco.spc_dict.itervalues())
+        return sum(v['stoic'] for v in spco.spc_dict.values())
 
     def iter_species_roles(self):
-        for spc, props in self.spc_dict.iteritems():
+        for spc, props in self.spc_dict.items():
             for role in props['role']:
                 yield spc, role
                 
@@ -184,7 +184,7 @@ class Species(object):
             spco = self
         else:
             spco = self[spc]
-        roles = [v['role'] for v in spco.spc_dict.itervalues()]
+        roles = [v['role'] for v in spco.spc_dict.values()]
 
         first_role = roles[0]
 
@@ -198,33 +198,33 @@ class Species(object):
         
     def reactant(self):
         new_props = deepcopy(self.spc_dict)
-        for v in new_props.itervalues():
+        for v in new_props.values():
             v['role'] = set('r')
         return Species(new_props, name = self.name, exclude = self.exclude)
 
     def unspecified(self):
         new_props = deepcopy(self.spc_dict)
-        for v in new_props.itervalues():
+        for v in new_props.values():
             v['role'] = set('u')
         return Species(new_props, name = self.name, exclude = self.exclude)
 
     def product(self):
         new_props = deepcopy(self.spc_dict)
-        for v in new_props.itervalues():
+        for v in new_props.values():
             v['role'] = set('p')
         return Species(new_props, name = self.name, exclude = self.exclude)
 
 def species_sum(species_list):
     if not all([isinstance(spc,Species) for spc in species_list]):
-        raise TypeError, "Can only add SpeciesGroups"
+        raise TypeError("Can only add SpeciesGroups")
         
     include_names = set()
     exclude_names = set()
     for next_species in species_list:
         if next_species.exclude:
-            exclude_names.update(next_species.spc_dict.keys())
+            exclude_names.update(list(next_species.spc_dict.keys()))
         else:
-            include_names.update(next_species.spc_dict.keys())
+            include_names.update(list(next_species.spc_dict.keys()))
     
     out_include_names = include_names.difference(exclude_names)
     out_exclude_names = exclude_names.difference(include_names)
@@ -239,7 +239,7 @@ def species_sum(species_list):
         raise ValueError('Sum of species is nothing; check exclusions')
     
     for spc in species_list:
-        for spcn, inprops in spc.spc_dict.iteritems():
+        for spcn, inprops in spc.spc_dict.items():
             if not spcn in out_names: continue
 
             outprops = out_props.setdefault(spcn, dict(stoic = 0., role = set(), atoms = {}))
@@ -247,7 +247,7 @@ def species_sum(species_list):
             outprops['role'].update(inprops['role'])
             outatoms = outprops['atoms']
             inatoms = inprops['atoms']
-            for atom, value in inatoms.iteritems():
+            for atom, value in inatoms.items():
                 try:
                     outatoms[atom] += value
                 except:
@@ -268,11 +268,11 @@ class SpeciesTestCase(unittest.TestCase):
 
 
     def assertEqualSpecies(self, s1, s2, neg = False):
-        self.assertEquals(s1.spc_dict, s2.spc_dict)
+        self.assertEqual(s1.spc_dict, s2.spc_dict)
         if neg:
-            self.assertEquals(s1.exclude, not s2.exclude)
+            self.assertEqual(s1.exclude, not s2.exclude)
         else:
-            self.assertEquals(s1.exclude, s2.exclude)
+            self.assertEqual(s1.exclude, s2.exclude)
         
     def testCreate(self):
         s1 = self.species['OH']
@@ -306,9 +306,9 @@ class SpeciesTestCase(unittest.TestCase):
     def testAtoms(self):
         s2 = self.species['HO2']
         s3 = self.species['HOx']
-        self.assertEquals(s2.atoms('O').stoic(s2), 2)
-        self.assertEquals(s3.atoms('O').stoic(s2), 2)
-        self.assertEquals(s3.atoms('O').stoic(s3), 3)
+        self.assertEqual(s2.atoms('O').stoic(s2), 2)
+        self.assertEqual(s3.atoms('O').stoic(s2), 2)
+        self.assertEqual(s3.atoms('O').stoic(s3), 3)
 
     def testMul(self):
         s1 = self.species['OH']

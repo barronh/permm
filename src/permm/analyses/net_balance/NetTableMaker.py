@@ -8,7 +8,7 @@ def NetTable(rxn_array, label='Unspecified'):
 
 def NetTables(mech):
     result = ''
-    nrxn_labels = mech.nreaction_dict.keys()
+    nrxn_labels = list(mech.nreaction_dict.keys())
     nrxn_labels.sort()
     for nrxn_label in nrxn_labels:
         nrxn = mech.nreaction_dict[nrxn_label]

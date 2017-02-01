@@ -39,7 +39,8 @@ def profile_process(mech, species_group, process, loc = 1, width = .8, sort = Fa
         species_obj = mech(species)
         try:
             vals.append((species, float(factor) * process_obj[species_obj].array().sum()))
-        except KeyError, (m):
+        except KeyError as xxx_todo_changeme:
+            (m) = xxx_todo_changeme
             warn(m)
             if missing is not None:
                 vals.append((species, missing))
@@ -62,12 +63,12 @@ def profile_process(mech, species_group, process, loc = 1, width = .8, sort = Fa
     # Plot each component value using pre-existing
     # color where possible
     for name, val in vals:
-        if used_colors.has_key(name):
+        if name in used_colors:
             color = used_colors[name]
         else:
             while True:
                 color = rgb2hex(colors.next()[:-1])
-                if color not in used_colors.values():
+                if color not in list(used_colors.values()):
                     break
             used_colors[name] = color    
         
@@ -117,7 +118,7 @@ if __name__ == '__main__':
     patches={}
     for patch in fig.axes[0].patches:
         patches.setdefault(patch.get_label(), patch)
-    names = patches.keys()
+    names = list(patches.keys())
     patches = [patches[k] for k in names]
     
     fig.legend(patches, names)

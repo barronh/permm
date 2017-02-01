@@ -6,7 +6,7 @@ class WXAgg(wx.Panel):
     def __init__(self, parent, mech):
         wx.Panel.__init__(self, parent)
         self.mech = mech
-        self.species = mech.species_dict.keys()
+        self.species = list(mech.species_dict.keys())
         self.species.sort()
 
         # A button
@@ -76,7 +76,7 @@ class WXAgg(wx.Panel):
         self.logger.AppendText(eval_str + ':\n')
         return_text = self.mech(eval_str)
         if return_text is not None:
-            print return_text
+            print(return_text)
 
 def StartWx(mech):
     app = wx.App(True)

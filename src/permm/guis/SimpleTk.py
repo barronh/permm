@@ -1,4 +1,4 @@
-from Tkinter import Checkbutton, Frame, Label, Scrollbar, Listbox, Button, IntVar, Tk, VERTICAL, EXTENDED, END, N, S
+from tkinter import Checkbutton, Frame, Label, Scrollbar, Listbox, Button, IntVar, Tk, VERTICAL, EXTENDED, END, N, S
 import os
 from types import MethodType
 
@@ -40,7 +40,7 @@ class TkApp:
         for method in method_labels:
             self.method_list.insert(END, method)
             
-        species_keys = self.mech.species_dict.keys()
+        species_keys = list(self.mech.species_dict.keys())
         species_keys.sort()
         self.species_objects = [self.mech.species_dict[spc] for spc in species_keys]
 
@@ -52,9 +52,9 @@ class TkApp:
 
     def _get_species(self, list):
         items = list.curselection()
-        try: items = map(int, items)
+        try: items = list(map(int, items))
         except: pass
-        items = map(lambda i, d = self.species_objects: d[i], items)
+        items = list(map(lambda i, d = self.species_objects: d[i], items))
         return items
         
     def get_reactants(self):
@@ -65,9 +65,9 @@ class TkApp:
         
     def get_methods(self):
         items = self.method_list.curselection()
-        try: items = map(int, items)
+        try: items = list(map(int, items))
         except: pass
-        items = map(lambda i, d = self.methods: d[i], items)
+        items = list(map(lambda i, d = self.methods: d[i], items))
         return items
         
     def execute(self):

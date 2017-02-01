@@ -10,7 +10,7 @@ class AttrDict(dict):
         
     def __init__(self,*args,**kwds):
         dict.__init__(self, *args, **kwds)
-        for k,v in self.iteritems():
+        for k,v in self.items():
             if type(v)==dict:
                 self[k]=AttrDict(v)
             else:

@@ -9,7 +9,6 @@ __version__ = RevisionNum
 
 from warnings import warn
 from datetime import datetime, timedelta
-from types import InstanceType
 from permm.netcdf import NetCDFFile
 from PseudoNetCDF.sci_var import PseudoNetCDFFile
 from numpy import array, concatenate, zeros, arange, ceil, concatenate, diff
@@ -22,7 +21,7 @@ import operator
 import os
 
 if rcParams['text.usetex']:
-    rcParams['text.latex.preamble'] = '\usepackage[font=sf]{mhchem}'
+    rcParams['text.latex.preamble'] = '\\usepackage[font=sf]{mhchem}'
 
 def get_dates(mrg_file, end_date = True, slice = slice(None)):
     if 'TFLAG' in mrg_file.variables:
@@ -31,17 +30,17 @@ def get_dates(mrg_file, end_date = True, slice = slice(None)):
     elif 'time' in mrg_file.variables or 'tau0' in mrg_file.variables:
         try:
             date_var = mrg_file.variables['time']
-            unit, start = map(lambda x: x.strip(), date_var.units.split('since'))
+            unit, start = [x.strip() for x in date_var.units.split('since')]
             end_date = False
         except:
             date_var = mrg_file.variables['tau0']
             end_date = False
-            unit, start = map(lambda x: x.strip(), date_var.units.split('since'))
+            unit, start = [x.strip() for x in date_var.units.split('since')]
         try:
             sdate = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
         except:
-            sdate = datetime.strptime(start, "%Y-%m-%d %H:%M:%S %Z")
-        date_objs = array([sdate + timedelta(**{unit: i}) for i in date_var[:].tolist()])
+            sdate = datetime.strptime(start, "%Y-%m-%d %H:%M:%S %z")
+        date_objs = array([sdate + timedelta(**{unit: i}) for i in date_var[:].tolist()])[slice]
     if end_date:
         date_objs = concatenate([date_objs[[0]]-(date_objs[-1]-date_objs[-2]), date_objs])
     else:
@@ -147,7 +146,7 @@ def irr_plot(
     options.setdefault('linewidth', 3)
     options.setdefault('marker', 'None')
     for rxn in reactions:
-        options['color'] = colors.next()
+        options['color'] = next(colors)
         data = rxn[species] * factor
         rxn_sum = rxn.sum()
         reaction_label = rxn.display(digits = None)
@@ -221,11 +220,11 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
            
            
     """
-    processes = none_defaults_to(processes, set(kwds.keys()).intersection(mech.process_dict.keys()))
+    processes = none_defaults_to(processes, set(kwds.keys()).intersection(list(mech.process_dict.keys())))
     if processes == set():
-        processes = set([k for k, v in mech.process_dict.iteritems() if len(v.names)==1 and v.names[0]==k]).difference([init, final]+exclude)
+        processes = set([k for k, v in list(mech.process_dict.items()) if len(v.names)==1 and v.names[0]==k]).difference([init, final]+exclude)
 
-    processes = dict(zip(processes, map(lambda k: kwds.get(k,line_settings.copy()), processes)))
+    processes = dict(list(zip(processes, [kwds.get(k,line_settings.copy()) for k in processes])))
             
     if rcParams['text.usetex']:
         title_str = '\ce{%s} Processes' % species.name
@@ -278,9 +277,9 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
         data = concatenate([init_vals[..., :1], fconc_vals[...]], axis = -1) * factor
         tax.plot_date(get_dates(mech.mrg), data, **options)
     units = kwds.get('units', None)
-    for process in processes.keys():
+    for process in list(processes.keys()):
         options = processes[process]
-        options.setdefault('color', colors.next())
+        options.setdefault('color', next(colors))
         options.setdefault('linestyle', '-')
         options.setdefault('linewidth', 3)
         options.setdefault('marker', 'None')
@@ -323,12 +322,12 @@ def phy_plot(mech, species, init = 'INIT', final = 'FCONC', factor = 1, end_date
     return fig
 
 def _add_mech(conf):
-    if conf.has_key('mech'):
+    if 'mech' in conf:
         mech = conf['mech']
     else:
         from permm import get_pure_mech
         mech = conf['mech'] = get_pure_mech('_'.join([conf['mechanism'].lower(), conf['model'].lower()]))
-        if isinstance(conf['mrgfile'], (PseudoNetCDFFile, InstanceType)):
+        if isinstance(conf['mrgfile'], PseudoNetCDFFile):
             mrg_file = conf['mrgfile']
         else:
             mrg_file = NetCDFFile(conf['mrgfile'],'r')
@@ -341,11 +340,11 @@ def phy_plots(conf, filter = True, fmt = 'pdf', fig_append = 'IPR'):
     mech = conf['mech']
     date_objs = get_date_steps(mech.mrg, conf)
 
-    for species, species_options in conf['species'].iteritems():
+    for species, species_options in list(conf['species'].items()):
         try:
             fig = phy_plot(conf, mech,  date_objs, species, species_options, filter = filter)
             fig.savefig(os.path.join(conf['outdir'], '%s_%s.%s' % (species, fig_append, fmt)), format = fmt)
-        except KeyError, detail:
+        except KeyError as detail:
             warn(detail)
     
 import unittest

@@ -24,7 +24,7 @@ class PERMConsole(code.InteractiveConsole):
         readline.write_history_file(histfile)
 
 def load_environ(mech, locals_dict):
-    if not locals_dict.has_key('mech'):
+    if 'mech' not in locals_dict:
         locals_dict['mech'] = mech
     locals_dict.update(mech.species_dict)
     locals_dict.update(mech.reaction_dict)

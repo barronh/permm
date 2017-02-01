@@ -12,7 +12,7 @@ from numpy import ndarray, \
 
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
 
-from Species import Species
+from .Species import Species
 
 def Processes_ProcDelimSpcDict(proc_names, variables, delim = '_'):
     return dict([(k, Process_ProcDelimSpcDict(k, variables, delim = delim)) for k in proc_names])
@@ -28,7 +28,7 @@ def Process_ProcDelimSpcDict(proc_name, variables, delim = '_'):
     """
     prefix = '%s%s' % (proc_name, delim)
     lp = len(prefix)
-    proc_keys = [k for k in variables.keys() if k[:lp] == prefix]
+    proc_keys = [k for k in list(variables.keys()) if k[:lp] == prefix]
     process_variables = dict([(k[lp:], variables[k]) for k in proc_keys])
     return Process(proc_name, **process_variables)
 
@@ -38,7 +38,7 @@ class Process(object):
         self.names = (name,)
         self.__units = units.copy()
         self.data = {}
-        for k in kwds.keys():
+        for k in list(kwds.keys()):
             self.data[k] = kwds[k][:]
             if k in units:
                 self.__units[k] = units[k]
@@ -53,13 +53,13 @@ class Process(object):
     def __getitem__(self, key):
         units = self.__units
         if isinstance(key, Species):
-            values = array([self.data[spc] * prop['stoic'] for spc, prop in key.spc_dict.items()]).sum(0)
-            units = dict([(k, self.__units[k]) for k in key.spc_dict.keys()])
-        elif key in self.data.keys():
+            values = array([self.data[spc] * prop['stoic'] for spc, prop in list(key.spc_dict.items())]).sum(0)
+            units = dict([(k, self.__units[k]) for k in list(key.spc_dict.keys())])
+        elif key in list(self.data.keys()):
             values = self.data[key]
             units = {key: self.__units[key]}
         else:
-            new_data = dict([(k, v[key]) for k, v in self.data.iteritems()])
+            new_data = dict([(k, v[key]) for k, v in self.data.items()])
             units = {key: self.__units[key]}
             return Process(self.name, self.__units, **new_data)
         return PseudoNetCDFVariable(self, self.name, values.dtype.char, ('TSTEP',), values = values, units = units)
@@ -68,14 +68,14 @@ class Process(object):
         return self.data.__setitem__(key, value)
     
     def keys(self):
-        return self.data.keys()
+        return list(self.data.keys())
         
     def set_units(self, k, units):
         if isinstance(k, Species):
             if set([k.name]) == set(k.names()) and not k.exclude:
                 self.__units[k.name] = units
             else:
-                result = set([self.__units[key] for key in k.names() if self.data.has_key(key)])
+                result = set([self.__units[key] for key in k.names() if key in self.data])
                 if len(result) == 1:
                     self.__units[k.name] = units
                 else:
@@ -85,10 +85,10 @@ class Process(object):
         
     def get_units(self, k, defaultunits = None):
         if isinstance(k, Species):
-            if self.__units.has_key(k.name):
+            if k.name in self.__units:
                 return self.__units.get(k.name, defaultunits)
             else:
-                result = set([self.__units[key] for key in k.names() if self.data.has_key(key)])
+                result = set([self.__units[key] for key in k.names() if key in self.data])
                 if len(result) == 1:
                     return result.pop()
                 else:
@@ -101,7 +101,7 @@ class Process(object):
         Use standard ndarray.__getitem__, but retain
         NetRxnArray type
         """
-        result = Process(self.name, self.__units, **dict([('%s' % (k), v.__getslice__(*args, **kwds)) for k, v in self.data.iteritems()]))
+        result = Process(self.name, self.__units, **dict([('%s' % (k), v.__getslice__(*args, **kwds)) for k, v in self.data.items()]))
         return result
 
     def __generic_math_operator(self, rhs, operation):
@@ -113,13 +113,13 @@ class Process(object):
         if isinstance(rhs, self.__class__):
             result = Process(name = '%s %s %s' % (self.name, operation, rhs.name))
             result.names = self.names + rhs.names
-            for key in self.keys():
+            for key in list(self.keys()):
                 result[key] = self.data[key].copy()
                 result.set_units(key, self.get_units(key))
                 
-            for key in rhs.keys():
+            for key in list(rhs.keys()):
                 rhs_unit = rhs.get_units(key)
-                if result.data.has_key(key):
+                if key in result.data:
                     result[key] = operator(result[key], rhs[key])
                     result_unit = result.get_units(key)
                     if rhs_unit != result_unit:
@@ -129,11 +129,11 @@ class Process(object):
                     result.set_units(key, rhs_unit)
         else:
             result = Process(name = self.name, units = self.__units.copy())
-            for key in self.keys():
+            for key in list(self.keys()):
                 try:
                     result[key] = operator(self[key], rhs)
                 except:
-                    raise TypeError, "It is unclear how to %s IPR and %s; scalars, arrays, species and processes should have meaningful results" % (operation, type(rhs))
+                    raise TypeError("It is unclear how to %s IPR and %s; scalars, arrays, species and processes should have meaningful results" % (operation, type(rhs)))
             
         return result
         
@@ -154,7 +154,7 @@ class Process(object):
         Sum species over time
         """
         result = Process(name = self.name)
-        for key in self.keys():
+        for key in list(self.keys()):
             result[key] = array(self.data[key].sum(), ndmin = 1)
         
         return result

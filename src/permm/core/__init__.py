@@ -1,5 +1,5 @@
 __all__ = ['Species', 'Reaction', 'Mechanism']
 
-import Mechanism
-import Reaction
-import Species
+from . import Mechanism
+from . import Reaction
+from . import Species

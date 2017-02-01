@@ -4,7 +4,7 @@ def parse_and_run():
     from warnings import warn
     from permm import mechanism_dict, Mechanism
     from permm.analyses import __all__ as all_analyses
-    all_mechs = '|'.join(mechanism_dict.keys())
+    all_mechs = '|'.join(list(mechanism_dict.keys()))
     all_analyses = '|'.join(all_analyses)
     from PseudoNetCDF.pncparse import getparser, pncparse
     parser = ArgumentParser(description = "permm (Python Environment for Reaction Mechanism Mathematics)")
@@ -43,7 +43,7 @@ def parse_and_run():
         if r == 'merge':
             mech.set_mrg(ifile)
         else:
-            vardict = dict([(k, v) for k, v in ifile.variables.items() if k in mech.species_dict])
+            vardict = dict([(k, v) for k, v in list(ifile.variables.items()) if k in mech.species_dict])
             mech.set_process(r, vardict)
             
     from permm.Shell import PERMConsole
@@ -52,7 +52,7 @@ def parse_and_run():
 
     for script in options.scripts:
         if os.path.isfile(script):
-            execfile(script, globals(), console.locals)
+            exec(compile(open(script).read(), script, 'exec'), globals(), console.locals)
         else:
             exec(script, globals(), console.locals)
 

@@ -1,6 +1,7 @@
 from pdb import set_trace
 from numpy import zeros, exp, newaxis, rollaxis
 from permm.core.Species import Species
+from functools import reduce
 
 class matrix(object):
     def __init__(self, mech, nodes, traceable, intermediates, bottomup = True):
@@ -47,7 +48,7 @@ class matrix(object):
         
         # Storing data about input shapes
         tmp_init = mech('INIT')
-        self.__old_shape = tmp_init[tmp_init.keys()[0]].shape
+        self.__old_shape = tmp_init[list(tmp_init.keys())[0]].shape
         self.__shape = [i for i in self.__old_shape]
         self.__ntimes = mech.mrg.variables['TFLAG'].shape[-3]
         for i, s in enumerate(self.__shape):
@@ -113,7 +114,9 @@ class matrix(object):
             # Populate losses dictionary for node with physical
             # losses
             total_loss = self.losses[node.name] = LossH_Trans + LossV_Trans + Deposition + LossMotion
-        except (KeyError, NameError), (e):
+        except (KeyError, NameError) as xxx_todo_changeme:
+            # Populate producers dictionary for node with zeros
+            (e) = xxx_todo_changeme
             # Populate producers dictionary for node with zeros
             self.producers[node.name] = dict(H_Trans = ztemp.copy(),
                                              V_Trans = ztemp.copy(),
@@ -161,30 +164,30 @@ class matrix(object):
 
             # Create output for clarity
             if debug:
-                print mech.reaction_dict[rxn]
-                print " -",
+                print(mech.reaction_dict[rxn])
+                print(" -", end=' ')
 
             # For each traceable species in reactants
             for tracer in tracers:
                 if debug:
-                    print "%s," % tracer,
+                    print("%s," % tracer, end=' ')
                     
                 # Attribute tracer production of node to tracer
                 node_producers = self.producers.setdefault(node.name,{})
-                if node_producers.has_key(tracer):
+                if tracer in node_producers:
                     node_producers[tracer] += produces
                 else:
                     node_producers[tracer] = produces
             
             if debug:
-                print ""
+                print("")
             
             # For each traceable reactant
             for tracer in tracers:
                 # Check that it has not already been traced
                 if mech(tracer) not in self.traced:
                     if debug:
-                        print "Tracing", tracer, "from", mech.reaction_dict[rxn]
+                        print("Tracing", tracer, "from", mech.reaction_dict[rxn])
                     
                     # Store tracer as having been traced
                     self.traced.add(mech(tracer))
@@ -192,11 +195,11 @@ class matrix(object):
                     # Trace species
                     self.add_predecessors(mech(tracer))
 
-        self.production[node.name] = sum([prod for prod in self.producers[node.name].values()])
+        self.production[node.name] = sum([prod for prod in list(self.producers[node.name].values())])
         
         # Total 1st order loss rate is approximated by total 
         # loss divided by average concentration
-        if not self.concentrations[node.name].has_key('Average'):
+        if 'Average' not in self.concentrations[node.name]:
             average = self.concentrations[node.name]['Average'] = eval('.5 * (Initial + Final)', None, self.concentrations[node.name])
         else:
             average = self.concentrations[node.name]['Average']
@@ -209,7 +212,7 @@ class matrix(object):
         """
         mech = self.__mech
         
-        for node, producers in self.producers.iteritems():
+        for node, producers in self.producers.items():
             # Capture the origins of node by source
             origin_sources = self.origins[node] = {}
             # and the loss of origins by source
@@ -223,7 +226,7 @@ class matrix(object):
             loss_rate = self.losses[node]
             loss_rate = rollaxis(loss_rate, self.__time_dim)
             
-            for origin, production in producers.iteritems():
+            for origin, production in producers.items():
                 # Create an array to house production fro this origin
                 # store it in the self.origins dictionary
                 origin_sources[origin] = sources = zeros(self.__shape, dtype = 'd')
@@ -263,9 +266,9 @@ class matrix(object):
         fractional_origins = {}
         
         for ti in range(self.__ntimes):
-            for created_spc, origins in self.origins.keys():
-                while any([_k in self.__mech.species_dict for _k in origins.keys()]):
-                    for origin_key in origins.keys():
+            for created_spc, origins in list(self.origins.keys()):
+                while any([_k in self.__mech.species_dict for _k in list(origins.keys())]):
+                    for origin_key in list(origins.keys()):
                         if origin_key in self.__mech.species_dict:
                             origin_origins = self.origins.get(origin_key, {})
                                     

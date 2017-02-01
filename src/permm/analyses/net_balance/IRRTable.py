@@ -1,7 +1,7 @@
 __all__ = ['IRRTable']
 
 def IRRTable(mech, delim = '_'):
-    reaction_keys = [(int(k.split(delim)[1]),k) for k in mech.reaction_dict.keys()]
+    reaction_keys = [(int(k.split(delim)[1]),k) for k in list(mech.reaction_dict.keys())]
     reaction_keys.sort()
     reaction_keys = [k[1] for k in reaction_keys]
     result = ''

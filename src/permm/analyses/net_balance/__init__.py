@@ -1,10 +1,10 @@
 __all__ = ['IRRTable', 'NetTableMaker', 'PhyTableMaker', 'PtbMaker', 'SumTableMaker']
 
-import IRRTable
-import NetTableMaker
-import PhyTableMaker
-import PtbMaker
-import SumTableMaker
+from . import IRRTable
+from . import NetTableMaker
+from . import PhyTableMaker
+from . import PtbMaker
+from . import SumTableMaker
 
 def net_balance(mechanism, mrg_data_path, output_dir):
     from permm.analyses.net_balance.PhyTableMaker import PhyTable
@@ -33,13 +33,13 @@ def net_balance(mechanism, mrg_data_path, output_dir):
     mrg_file = NetCDFFile(mrg_data_path, 'r')
     mech.set_mrg(mrg_file)
 
-    print >> file(net_data_path+'sum','wb'), SumTable(mech)
-    print >> file(net_data_path+'net','wb'), NetTables(mech)
-    print >> file(net_data_path+'phy','wb'), PhyTables(mech)
-    print >> file(net_data_path+'voc','wb'), VOCTable(mech)
-    print >> file(net_data_path+'ptb','wb'), PtbTable(mech)
+    print(SumTable(mech), file=file(net_data_path+'sum','wb'))
+    print(NetTables(mech), file=file(net_data_path+'net','wb'))
+    print(PhyTables(mech), file=file(net_data_path+'phy','wb'))
+    print(VOCTable(mech), file=file(net_data_path+'voc','wb'))
+    print(PtbTable(mech), file=file(net_data_path+'ptb','wb'))
     mech = get_pure_mech(mechanism)
     mech.set_mrg(mrg_file)
 
     
-    print >> file(net_data_path+'irr','wb'), IRRTable(mech)
+    print(IRRTable(mech), file=file(net_data_path+'irr','wb'))

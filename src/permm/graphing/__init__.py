@@ -1,7 +1,7 @@
 __all__=['timeseries', 'barplot']
 if __name__ != '__main__':
-    import timeseries
-    import barplot
+    from . import timeseries
+    from . import barplot
 else:
     from optparse import OptionParser
     parser = OptionParser()
@@ -17,7 +17,7 @@ else:
         from os.path import join,abspath,dirname
         import sys
         cmaq_template_path = join(abspath(dirname(__file__)),'defaults','template.yaml')       
-        print >> sys.stdout, file(cmaq_template_path,'r').read()
+        print(file(cmaq_template_path,'r').read(), file=sys.stdout)
         parser.exit()
     if len(args)<1:
         parser.error(msg="Requires a yaml file as an argument.  For a template use the -t option.  The template will be output to the stdout.")

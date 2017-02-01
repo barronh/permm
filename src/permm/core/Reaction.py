@@ -15,6 +15,7 @@ from numpy import ndarray, \
 from numpy.ma import sum, masked_less, masked_greater
 
 from permm.core.Species import Species
+from functools import reduce
 
 ReactionGroup = str
 
@@ -106,7 +107,7 @@ def ParseReactionString(rxn_str):
     
     reaction_match = reaction_re.match(rxn_str)
     if reaction_match is None:
-        raise SyntaxError, "Reactions must match the following patter\n\n<%%d> stoic*spc ([+-] stoic*spc)* =[kjude]> [stoic*spc] ([+-] stoic*spc)*\n\n%s" % (rxn_str,)
+        raise SyntaxError("Reactions must match the following patter\n\n<%%d> stoic*spc ([+-] stoic*spc)* =[kjude]> [stoic*spc] ([+-] stoic*spc)*\n\n%s" % (rxn_str,))
 
     reactants = reaction_match.groupdict()['reactants']
     reaction_type = reaction_match.groupdict()['rxn_type']
@@ -199,18 +200,20 @@ class Reaction(object):
         self._stoic = deepcopy(stoic)
         self._update_roles()
         try:
-            first_key = self._stoic.keys()[0]
+            first_key = list(self._stoic.keys())[0]
             self.shape = self._stoic[first_key].shape
-        except AttributeError, (e):
+        except AttributeError as xxx_todo_changeme:
+            (e) = xxx_todo_changeme
             self.shape = ()
-            for k, v in self._stoic.iteritems():
+            for k, v in self._stoic.items():
                 self._stoic[k] = float64(v)
-        except IndexError, (e):
+        except IndexError as xxx_todo_changeme1:
+            (e) = xxx_todo_changeme1
             self.shape = ()
             
     
     def _update_roles(self):
-        keys = self._stoic.keys()
+        keys = list(self._stoic.keys())
         self._species = tuple(set([spcn for spcn, role in keys]))
         self._reactants = tuple(set([spcn for spcn, role in keys if role == 'r']))
         self._products = tuple(set([spcn for spcn, role in keys if role == 'p']))
@@ -227,7 +230,7 @@ class Reaction(object):
                 roles.update('u')
                 
         elif isinstance(spc, Species):
-            roles.update(*[self.roles(spcn) for spcn in spc.spc_dict.iterkeys()])
+            roles.update(*[self.roles(spcn) for spcn in spc.spc_dict.keys()])
         
         return roles
             
@@ -240,7 +243,7 @@ class Reaction(object):
         elif isinstance(lhs, str):
             return lhs in self._species
         else:
-            raise TypeError, 'Unknown comparison: __contains__ for Reaction and %s' % str(type(lhs))
+            raise TypeError('Unknown comparison: __contains__ for Reaction and %s' % str(type(lhs)))
             
     def __getitem__(self, item):
         """
@@ -264,7 +267,7 @@ class Reaction(object):
                 
             return Stoic(outvalue, role = role)
         else:
-            return Reaction(dict([(k,v[item]) for k, v in self._stoic.iteritems()]), reaction_type = self.reaction_type)
+            return Reaction(dict([(k,v[item]) for k, v in self._stoic.items()]), reaction_type = self.reaction_type)
     
     def __str__(self):
         """
@@ -278,7 +281,7 @@ class Reaction(object):
             for idx in indices(self.shape).reshape(len(self.shape), -1).swapaxes(0,1):
                 idx = tuple(idx)
                 result += str(idx) + ': '
-                for spc in self._stoic.keys():
+                for spc in list(self._stoic.keys()):
                     temp._stoic[spc] = self._stoic[spc][idx]
                 temp._update_roles()
                 result += str(temp)+', \n'
@@ -300,7 +303,7 @@ class Reaction(object):
     def display(self, digits = 5, nspc = 3, formatter = 'g'):
         reactants = []
         products = []
-        for (spcn, role), v in self._stoic.iteritems():
+        for (spcn, role), v in self._stoic.items():
             if role == 'r':
                 reactants.append((self._stoic[spcn, role].sum(), spcn))
             elif role == 'p':
@@ -341,11 +344,11 @@ class Reaction(object):
         if isinstance(rhs,Reaction):
             kwds = {}
             
-            for key, v in self._stoic.iteritems():
+            for key, v in self._stoic.items():
                 kwds[key] = self._stoic[key].copy()
             
-            for key, v in rhs._stoic.iteritems():
-                if kwds.has_key(key):
+            for key, v in rhs._stoic.items():
+                if key in kwds:
                     kwds[key] += rhs._stoic[key].copy()
                 else:
                     kwds[key] = rhs._stoic[key].copy()
@@ -359,7 +362,7 @@ class Reaction(object):
             return self.__add_if_in_spclist(rhs,self._species)
 
         else:
-            raise TypeError, "Currently, only reactions can be added together"
+            raise TypeError("Currently, only reactions can be added together")
         
         return Reaction(kwds, reaction_type = reaction_type)
         
@@ -368,18 +371,18 @@ class Reaction(object):
         
     def __mul__(self,irrs):
         species = self._species
-        values = dict([(k,v*irrs) for k, v in self._stoic.iteritems()])
+        values = dict([(k,v*irrs) for k, v in self._stoic.items()])
         result = Reaction(values, reaction_type = self.reaction_type)
         return result
 
     def __add_if_in_spclist(self,rhs,spc_list):
         if not self.has_spc(rhs):
-            raise KeyError, 'Reaction has no components of %s' % rhs.name
+            raise KeyError('Reaction has no components of %s' % rhs.name)
         elif rhs.name in self._species:
             warn('Already has %s' % rhs.name)
             return self.copy()
         elif rhs.exclude:
-            raise ValueError, 'Exclude is not supported'
+            raise ValueError('Exclude is not supported')
         result = self.copy()
         new_stoic = result[rhs]
         
@@ -395,14 +398,14 @@ class Reaction(object):
         Create a copy of the reaction such that stoichiometry 
         are not shared
         """
-        return Reaction(dict([(k, v.copy()) for k, v in self._stoic.iteritems()]), reaction_type = self.reaction_type, )
+        return Reaction(dict([(k, v.copy()) for k, v in self._stoic.items()]), reaction_type = self.reaction_type, )
 
     def sum(self, axis = None):
         """
         Sum stoichiometries and create a scalar reaction
         """
         result = self.copy()
-        for key in result._stoic.keys():
+        for key in list(result._stoic.keys()):
             result._stoic[key] = self._stoic[key].sum(axis)
         result.shape = ()
         result._update_roles()
@@ -477,7 +480,7 @@ class Reaction(object):
                     
                 
         else:
-            for spc, props in item.spc_dict.iteritems():
+            for spc, props in item.spc_dict.items():
                 spc_roles = props['role']
                 for role in spc_roles:
                     if (spc, role) in self._stoic:
@@ -501,11 +504,11 @@ class Reaction(object):
                     if item.name in self:
                         warn("%s not in %s; trying all roles" % (item, self.sum()))
                         return self.get_spc(Species(item.name, exclude = item.exclude))
-                    raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
+                    raise KeyError("%s does not contain %s" % (str(self.sum()), str(item)))
                 else:
                     return args[1]
             else:
-                raise KeyError, "%s does not contain %s" % (str(self.sum()), str(item))
+                raise KeyError("%s does not contain %s" % (str(self.sum()), str(item)))
             
                 
         last_role = roles[-1]
@@ -521,13 +524,13 @@ class Reaction(object):
         try:
             return self.get_spc(item.product())
         except KeyError:
-            return 0 * self._stoic[self._stoic.keys()[0]]
+            return 0 * self._stoic[list(self._stoic.keys())[0]]
 
     def consumes(self, item):
         try:
             return -self.get_spc(item.reactant())
         except KeyError:
-            return 0 * self._stoic[self._stoic.keys()[0]]
+            return 0 * self._stoic[list(self._stoic.keys())[0]]
     
     def has_spc(self,spc_grp):
         for spc_role in spc_grp.iter_species_roles():
@@ -560,7 +563,7 @@ class Reaction(object):
             if spco.name in self:
                 spcs_to_condense = [spco.name]
             else:
-                spcs_to_condense = spco.spc_dict.keys()
+                spcs_to_condense = list(spco.spc_dict.keys())
         net_spcs = []
         for spc in spcs_to_condense:
             prd = spc in self._products
@@ -594,7 +597,7 @@ class Reaction(object):
             for spc, role in net_keys:
                 new_val_dict[role].append(kwds.pop((spc, role)))
 
-            for new_role, new_vals in new_val_dict.iteritems():
+            for new_role, new_vals in new_val_dict.items():
                 kwds[new_name, new_role] = reduce(operator.add, new_vals)
 
             return Reaction(kwds, reaction_type = self.reaction_type)
@@ -625,7 +628,7 @@ class ReactionTestCase(unittest.TestCase):
                        'NTRplOH': 'NTR + OH ->[k] HNO3 + HO2 + 0.330*FORM + 0.330*ALD2 + 0.330*ALDX - 0.660*PAR'
                       }
         self.rxns = {}
-        for label, rxn_str in rxn_strings.iteritems():
+        for label, rxn_str in rxn_strings.items():
             self.rxns[label] = Reaction(rxn_str)
         
     def testHasSpc(self):
@@ -668,12 +671,12 @@ class ReactionTestCase(unittest.TestCase):
         
     def testReactants(self):
         r1 = self.rxns['NTRplOH']
-        self.assertEquals(set(r1.reactants()), set(('OH', 'NTR')))
+        self.assertEqual(set(r1.reactants()), set(('OH', 'NTR')))
         
         
     def testProducts(self):
         r1 = self.rxns['NTRplOH']
-        self.assertEquals(set(r1.products()), set(('PAR', 'FORM', 'ALD2', 'HNO3', 'HO2', 'ALDX')))
+        self.assertEqual(set(r1.products()), set(('PAR', 'FORM', 'ALD2', 'HNO3', 'HO2', 'ALDX')))
         
     def testMulScalar(self):
         r1 = self.rxns['NTRplOH']
@@ -737,16 +740,16 @@ if __name__ == '__main__':
     O3 = Species('O3')
     Ox = O3 + NO2
     Ox.name = 'Ox'
-    print r1[NO2]
-    print r1[NO]
-    print r1[O]
+    print(r1[NO2])
+    print(r1[NO])
+    print(r1[O])
     from numpy import arange
     nr = (r1 * arange(9) * 1.1 + r2 * arange(9)[::-1]).net()
-    print nr[:4][O.reactant()]
-    print nr[O]
+    print(nr[:4][O.reactant()])
+    print(nr[O])
     try:
-        print nr[O.reactant()]
+        print(nr[O.reactant()])
     except:
         pass
-    print nr.net()
-    print nr.net().condense(Ox)
+    print(nr.net())
+    print(nr.net().condense(Ox))
