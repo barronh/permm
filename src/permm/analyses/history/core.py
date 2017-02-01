@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pdb import set_trace
 from numpy import zeros, exp, newaxis, rollaxis
 from permm.core.Species import Species

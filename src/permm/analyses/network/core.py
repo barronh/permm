@@ -1,3 +1,4 @@
+from __future__ import print_function
 def MakeMultiDiGraph(mech, traceable = None, slice = slice(None)):
     import networkx as nx
     from numpy import sum

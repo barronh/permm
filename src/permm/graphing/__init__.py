@@ -1,3 +1,4 @@
+from __future__ import print_function
 __all__=['timeseries', 'barplot']
 if __name__ != '__main__':
     from . import timeseries
