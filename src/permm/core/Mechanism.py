@@ -7,13 +7,14 @@ from warnings import warn
 
 from PseudoNetCDF.sci_var import PseudoNetCDFVariable
 
-from Species import Species, species_sum
-from Reaction import Reaction
-from IPRArray import Processes_ProcDelimSpcDict, Process
+from .Species import Species, species_sum
+from .Reaction import Reaction
+from .IPRArray import Processes_ProcDelimSpcDict, Process
 
 from permm.graphing.timeseries import irr_plot, phy_plot, plot as tplot
 from permm.Shell import load_environ
 from permm.netcdf import NetCDFVariable
+from functools import reduce
 
 __all__ = ['Mechanism']
 
@@ -31,6 +32,20 @@ class Mechanism(object):
     
     Reaction data can be augmented with IRR data via set_irr or set_mrg
     """
+    def from_eqn(path):
+        return Mechanism.from_eqns(open(path, 'r').read())
+        
+    def from_eqns(eqnstr):
+        textlines = eqnstr.split('\n')
+        rxnlines = [l.split(':')[0] for l in textlines if l.strip() != '#EQATIONS' and l.strip() != '']
+        rxntxt = '\n'.join(rxnlines)
+        rxntxt = re.compile(r'[ \t]+').sub(' ', rxntxt)
+        rxntxt = re.compile('{(.+?)\.?}').sub(r'    IRR_\1:', rxntxt)
+        rxntxt = 'reaction_list:\n' + rxntxt
+        from io import StringIO
+        rxndict = yaml.load(StringIO(rxntxt))
+        return Mechanism(rxndict)
+        
     def __init__(self, yaml_path):
         """
         Initialization requires a yaml_path or a dictionary.
@@ -48,7 +63,7 @@ class Mechanism(object):
         import os
         if isinstance(yaml_path,str):
             if os.path.exists(yaml_path):
-                yaml_file = yaml.load(file(yaml_path))
+                yaml_file = yaml.load(open(yaml_path))
             else:
                 yaml_file = yaml.load(yaml_path)
         elif isinstance(yaml_path,dict):
@@ -58,17 +73,17 @@ class Mechanism(object):
         self.mechanism_comment = yaml_file.get('comment', '')
         self.species_dict = dict()
 
-        for spc, spc_def in yaml_file.get('species_list', {}).iteritems():
+        for spc, spc_def in yaml_file.get('species_list', {}).items():
             self.species_dict[spc] = Species(spc + ': ' + spc_def)
                         
         self.reaction_dict = dict()
         reaction_species = []
-        for rxn_name, rxn_str in yaml_file.get('reaction_list', {}).iteritems():
+        for rxn_name, rxn_str in yaml_file.get('reaction_list', {}).items():
             rxn = self.reaction_dict[rxn_name] = Reaction(rxn_str)
             reaction_species += rxn.species()
         
         reaction_species = set(reaction_species)
-        for spc in [spc for spc in reaction_species if not self.species_dict.has_key(spc)]:
+        for spc in [spc for spc in reaction_species if spc not in self.species_dict]:
             self.species_dict[spc] = Species(spc + ': IGNORE')
 
         for spc_grp_def in yaml_file.get('species_group_list',[]):
@@ -111,7 +126,7 @@ class Mechanism(object):
         
         For more detail, see ReactionGroup.Reaction.__add__ interface
         """
-        if not self.species_dict.has_key(spc.name):
+        if spc.name not in self.species_dict:
             self.species_dict[spc.name] = spc
             
         for rxn in rxn_list:
@@ -164,7 +179,7 @@ class Mechanism(object):
         spc = self.__ensure_species(spc)
         
         new_rxn_def = {}
-        for rxn_name, rxn in self.reaction_dict.iteritems():
+        for rxn_name, rxn in self.reaction_dict.items():
             if condition(rxn):
                 rxn = rxn + spc
                 new_rxn_def[rxn_name] = rxn
@@ -215,7 +230,7 @@ class Mechanism(object):
         
         
         """
-        result = [(rxn_name, rxn) for rxn_name, rxn in self.reaction_dict.iteritems()]
+        result = [(rxn_name, rxn) for rxn_name, rxn in self.reaction_dict.items()]
         if not reaction_type is None:
             result = [(rn, rx) for rn, rx in result if rx.reaction_type in reaction_type]
         
@@ -247,7 +262,7 @@ class Mechanism(object):
 
         products = [self.__ensure_species(spc) for spc in products]
             
-        result = [(rxn_name, rxn) for rxn_name, rxn in self.reaction_dict.iteritems()]
+        result = [(rxn_name, rxn) for rxn_name, rxn in self.reaction_dict.items()]
         
         if reactants != []:
             reactant_result = [rxn_name for rxn_name, rxn in result if all([rxn.has_rct(rct) for rct in reactants])]
@@ -337,7 +352,7 @@ class Mechanism(object):
             irrs = rxns
             rxns = []
             for irr in irrs:
-                for rxnkey, crxn in self.irr_dict.iteritems():
+                for rxnkey, crxn in self.irr_dict.items():
                     if irr is crxn:
                         rxns.append(rxnkey)
                         break
@@ -399,7 +414,7 @@ class Mechanism(object):
         """
         net_rxn = self.make_net_rxn(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)
         
-        print net_rxn
+        print(net_rxn)
 
     def print_rxns(self, reactants = [], products = [], logical_and = True, reaction_type = None, sortby = None, reverse = False, digits = -1, nspc = 10000):
         """
@@ -422,7 +437,7 @@ class Mechanism(object):
             warn("Not all reactions contain %s; check query and/or explicitly define sortby species" % str(sortby))
 
         for mass, rxn, rxno in rxns:
-            print rxn, rxno.display(nspc = nspc, digits = digits)
+            print(rxn, rxno.display(nspc = nspc, digits = digits))
 
     def plot_rxn_list(self, reactions, plot_spc = None, path = None, show = False, **kwds):
         """
@@ -499,13 +514,13 @@ class Mechanism(object):
         reactions = self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)
         
         if reactions == []:
-            raise ValueError, "Your query didn't match any reactions; check your query and try again (try print_rxns)."
+            raise ValueError("Your query didn't match any reactions; check your query and try again (try print_rxns).")
 
         reactions1 = reactions
         reactions = [ rxn for rxn in reactions if rxn not in reduce(operator.add, combine) ]
         nlines = min(nlines, len(reactions)+1)
         if combine != [()] and reactions != reactions1:
-            reactions = reactions + map(lambda t2: '+'.join(t2), combine)
+            reactions = reactions + ['+'.join(t2) for t2 in combine]
         aslice = kwds.get('slice', slice(None))
         reactions = [ (abs(self('(%s)' % (rxn))[aslice].get_spc(plot_spc, float64(0.))).sum(),rxn) for rxn in reactions]
     
@@ -536,7 +551,7 @@ class Mechanism(object):
         for more information see find_rxns
         """
         if not hasattr(self,'irr_dict'):
-            raise ValueError, "Net reactions are only available when IRR has been loaded"
+            raise ValueError("Net reactions are only available when IRR has been loaded")
             
         rxns = self.find_rxns(reactants = reactants, products = products, logical_and = logical_and, reaction_type = reaction_type)
         irrs = [(rxn, self.irr_dict[rxn][slice].sum()) for rxn in rxns]
@@ -555,7 +570,7 @@ class Mechanism(object):
 
 
         for rxn, irr in irrs:
-            print rxn, (irr * factor).display(nspc = nspc, digits = digits)
+            print(rxn, (irr * factor).display(nspc = nspc, digits = digits))
         
     def set_mrg(self, mrg, use_net_rxns = True, use_irr = True, use_ipr = True):
         """
@@ -591,25 +606,28 @@ class Mechanism(object):
 
     def apply_irr(self):
         self.irr_dict = {}
-        for rxn_name, rxn in self.reaction_dict.iteritems():
+        for rxn_name, rxn in self.reaction_dict.items():
             if hasattr(self, 'irr'):
                 try:
-                    self.irr_dict[rxn_name] = rxn * self.irr[rxn_name]
-                except ValueError, (e):
+                    self.irr_dict[rxn_name] = rxn * self.irr[rxn_name].view(ndarray)
+                except ValueError as xxx_todo_changeme:
+                    (e) = xxx_todo_changeme
                     self.irr_dict[rxn_name] = rxn * zeros(self.irr.shape, 'f')
                     warn("IRR does not contain %s: skipped." % rxn_name)
             else:
                 try:
-                    self.irr_dict[rxn_name] = rxn * self.mrg.variables[rxn_name][:].view(type = PseudoNetCDFVariable)
-                except (KeyError, ValueError), (e):
+                    self.irr_dict[rxn_name] = rxn * self.mrg.variables[rxn_name][:].view(type = PseudoNetCDFVariable).view(ndarray)
+                except (KeyError, ValueError) as xxx_todo_changeme1:
+                    (e) = xxx_todo_changeme1
                     warn("IRR does not contain %s: skipped." % rxn_name)
                 
         if self.__use_net_rxns and len(self.irr_dict)>0:
             self.nreaction_dict = {}
-            for nrxn_name, nrxn in self.net_reaction_dict.iteritems():
+            for nrxn_name, nrxn in self.net_reaction_dict.items():
                 try:
                     self.nreaction_dict[nrxn_name] = eval(nrxn, None, self.irr_dict)
-                except Exception, (e):
+                except Exception as xxx_todo_changeme2:
+                    (e) = xxx_todo_changeme2
                     warn("Predefined net rxn %s is not available; %s" % (nrxn_name, str(e)))
 
         load_environ(self, self.variables)
@@ -633,7 +651,7 @@ class Mechanism(object):
                 return
         elif isinstance(ipr, dict):
             if processes is None:
-                raise ValueError, "When ipr is a dictionary, processes must be provided as a list of process names"
+                raise ValueError("When ipr is a dictionary, processes must be provided as a list of process names")
             self.process_dict = Processes_ProcDelimSpcDict(processes, self.mrg.variables)
         elif isinstance(ipr, (PseudoNetCDFVariable, NetCDFVariable)):
             self.process_dict = {}
@@ -642,18 +660,18 @@ class Mechanism(object):
         else:
             return
 
-        for prc_name, prc in self.__yaml_file.get('process_group_list', {}).iteritems():
+        for prc_name, prc in self.__yaml_file.get('process_group_list', {}).items():
             try:
                 self.set_process(prc_name, eval(prc,{},self.process_dict))
-            except Exception, e:
+            except Exception as e:
                 warn('Could not evaluate %s: %s' % (prc_name, str(e)))
 
             
         # Add extra species for names in IPR
-        spcs = set(reduce(list.__add__, [[spc for spc in proc.keys()] for proc in self.process_dict.values()]))
-        new_spcs = spcs.difference(self.species_dict.keys())
+        spcs = set(reduce(list.__add__, [[spc for spc in list(proc.keys())] for proc in list(self.process_dict.values())]))
+        new_spcs = spcs.difference(list(self.species_dict.keys()))
         for name in new_spcs:
-            if not self.species_dict.has_key(name):
+            if name not in self.species_dict:
                 self.species_dict[name] = Species(name + ': IGNORE')
 
     def add_rxn(self, rxn_key, rxn_str):
