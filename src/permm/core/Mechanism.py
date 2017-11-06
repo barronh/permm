@@ -34,9 +34,15 @@ class Mechanism(object):
     Reaction data can be augmented with IRR data via set_irr or set_mrg
     """
     def from_eqn(path):
+        """
+        Create a mechanism from a KPP-style eqn file
+        """
         return Mechanism.from_eqns(open(path, 'r').read())
         
     def from_eqns(eqnstr):
+        """
+        Create a mechanism from a KPP-style eqn string
+        """
         textlines = eqnstr.split('\n')
         rxnlines = [l.split(':')[0] for l in textlines if l.strip() != '#EQATIONS' and l.strip() != '']
         rxntxt = '\n'.join(rxnlines)

@@ -104,7 +104,7 @@ def ParseReactionString(rxn_str):
     
     reaction_re = re.compile("(?P<reactants>.*)(?:=|->\[(?P<rxn_type>[kjdeu])\])\s*(?P<products>.*)")
 
-    species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d{0,1}(\.(\d{1,3}(E\d{2})?)?)?)\*)?(?P<name>[a-zA-Z]\w*)(?:[ +=]|$)+",re.M)
+    species_re = re.compile("(\s?(?P<sign>[+-])?\s?)?((?P<stoic>\d{0,1}(\.(\d{1,3}(E\d{2})?)?)?)[* ])?(?P<name>[a-zA-Z]\w*)(?:[ +=]|$)+",re.M)
     
     reaction_match = reaction_re.match(rxn_str)
     if reaction_match is None:
@@ -221,6 +221,9 @@ class Reaction(object):
         self._unspecified = tuple(set([spcn for spcn, role in keys if role == 'u']))
         
     def roles(self, spc):
+        """
+        Return the roles that spc plays in reaction
+        """
         roles = set()
         if isinstance(spc, str):
             if spc in self._reactants:
@@ -302,6 +305,9 @@ class Reaction(object):
         return self.__str__()
 
     def display(self, digits = 5, nspc = 3, formatter = 'g'):
+        """
+        Create string representatio nof reaction
+        """
         reactants = []
         products = []
         for (spcn, role), v in self._stoic.items():
@@ -522,42 +528,66 @@ class Reaction(object):
         return Stoic(sum(values, axis = 0), role = role)
     
     def produces(self, item):
+        """
+        Return stoichiometry of item as a product in reaction
+        """
         try:
             return self.get_spc(item.product())
         except KeyError:
             return 0 * self._stoic[list(self._stoic.keys())[0]]
 
     def consumes(self, item):
+        """
+        Return stoichiometry of item as a reactant in reaction
+        """
         try:
             return -self.get_spc(item.reactant())
         except KeyError:
             return 0 * self._stoic[list(self._stoic.keys())[0]]
     
     def has_spc(self,spc_grp):
+        """
+        Return true if species in reaction (respects role of spc_grp)
+        """
         for spc_role in spc_grp.iter_species_roles():
             if spc_role in self._stoic:
                 return True != spc_grp.exclude
         return False != spc_grp.exclude
 
     def has_rct(self,spc_grp):
+        """
+        Return true if species is a reactant in reaction (respects role of spc_grp)
+        """
         for name in spc_grp.names():
             if not spc_grp.contains_species_role(name, 'r'):
                 raise TypeError('Requesting reactant role from species %s with %s that has roles %s' % (spc_grp.name, name, str(list(spc_grp.spc_dict[name]['role']))))
         return self.has_spc(spc_grp.reactant())
         
     def has_prd(self,spc_grp):
+        """
+        Return true if species is a product in reaction (respects role of spc_grp)
+        """
         for name in spc_grp.names():
             if not spc_grp.contains_species_role(name, 'p'):
                 raise TypeError('Requesting product role from species %s with %s that has roles %s' % (spc_grp.name, name, str(list(spc_grp.spc_dict[name]['role']))))
         return self.has_spc(spc_grp.product())
     
     def has_unspc(self,spc_grp):
+        """
+        Return true if species has an unspecified role (reactant or product depending on time).
+        """
         for name in spc_grp.names():
             if not spc_grp.contains_species_role(name, 'u'):
                 raise TypeError('Requesting unspecified role from species %s with %s that has roles %s' % (spc_grp.name, name, str(list(spc_grp.spc_dict[name]['role']))))
         return self.has_spc(spc_grp.unspecified())
     
     def net(self, spco = None):
+        """
+        Return a reaction where species (spco) reactants and products have been net
+        to produce a species that can be a reactant or product depending on the net
+        flow of component reactions
+        """
+
         if spco is None:
             spcs_to_condense = self._species
         else:
@@ -586,6 +616,10 @@ class Reaction(object):
         return Reaction(kwds, reaction_type = self.reaction_type)
 
     def condense(self, spco, name = None):
+        """
+        Return a version of the reaction with all species (spco) subspecies replaced by
+        a lumped species.
+        """
         if not isinstance(spco, Species):
             raise TypeError('condense can only take Species objects')
         if spco in self:
