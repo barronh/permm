@@ -34,9 +34,15 @@ class Mechanism(object):
     Reaction data can be augmented with IRR data via set_irr or set_mrg
     """
     def from_eqn(path):
+        """
+        Create a mechanism from a KPP-style eqn file
+        """
         return Mechanism.from_eqns(open(path, 'r').read())
         
     def from_eqns(eqnstr):
+        """
+        Create a mechanism from a KPP-style eqn string
+        """
         eqnstr = re.compile(r'(?<!;)\s*\n').sub(r'', eqnstr)
         eqnstr = re.compile(r'^//.+?$', re.MULTILINE).sub(r'', eqnstr)
         textlines = eqnstr.split('\n')
@@ -47,7 +53,6 @@ class Mechanism(object):
         rxntxt = re.compile(r'{(.+?)}').sub(r'\1', rxntxt)
         rxntxt = 'reaction_list:\n' + rxntxt
         from io import StringIO
-        print(rxntxt)
         rxndict = yaml.load(StringIO(rxntxt))
         return Mechanism(rxndict)
         

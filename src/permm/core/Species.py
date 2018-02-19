@@ -31,6 +31,10 @@ def atom_guess(spc_name):
     return atom_dict
     
 class Species(object):
+    """
+    Species object has subspecies (e.g., NOx = NO + NO2) with
+    stoichiometries and specified roles
+    """
     def __init__(self, spc_dict, name = None, exclude = False):
         if isinstance(spc_dict, str):
             if not ':' in spc_dict:
@@ -106,6 +110,9 @@ class Species(object):
         #return ndarray.__repr__(self)+'\n      exclude = '+exclude
         
     def names(self):
+        """
+        Return list of subspecies names
+        """
         return [n for n in list(self.spc_dict.keys())]
     
     def __contains__(self, lhs):
@@ -137,6 +144,9 @@ class Species(object):
         return species_sum([self, other_species])
     
     def mass(self):
+        """
+        Return mass from atomic mass additions
+        """
         from permm.mechanisms import atoms as ALL_ATOMS
         from openbabel import OBAtom
         obatom = OBAtom()
@@ -168,6 +178,9 @@ class Species(object):
         return result
 
     def stoic(self, spc = None):
+        """
+        Return stoichiometry for species or subspecies
+        """
         if spc is None:
             spco = self
         else:
@@ -175,11 +188,17 @@ class Species(object):
         return sum(v['stoic'] for v in spco.spc_dict.values())
 
     def iter_species_roles(self):
+        """
+        Iterate of subspecies and roles.
+        """
         for spc, props in self.spc_dict.items():
             for role in props['role']:
                 yield spc, role
                 
     def role(self, spc = None):
+        """
+        Return the roles of this species or one of its subspecies (spc)
+        """
         if spc is None:
             spco = self
         else:
@@ -194,21 +213,33 @@ class Species(object):
             return set('u')
 
     def contains_species_role(self, spc, role):
+        """
+        Return true if this species contains subspecies (spc) as role ('p'=product, 'r'=reactant, 'u'=unknown, or multiple)
+        """
         return role in self.spc_dict[spc]['role']
         
     def reactant(self):
+        """
+        Return a copy of species as a reactant only
+        """
         new_props = deepcopy(self.spc_dict)
         for v in new_props.values():
             v['role'] = set('r')
         return Species(new_props, name = self.name, exclude = self.exclude)
 
     def unspecified(self):
+        """
+        Return a copy of species as an unspecified role
+        """
         new_props = deepcopy(self.spc_dict)
         for v in new_props.values():
             v['role'] = set('u')
         return Species(new_props, name = self.name, exclude = self.exclude)
 
     def product(self):
+        """
+        Return a copy of species as a product
+        """
         new_props = deepcopy(self.spc_dict)
         for v in new_props.values():
             v['role'] = set('p')
