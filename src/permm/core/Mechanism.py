@@ -107,11 +107,17 @@ class Mechanism(object):
         self.variables = {}
         load_environ(self, self.variables)
             
-    def __call__(self, expr, env = globals()):
+    def __call__(self, expr, env = None):
         """
         Evaluate string expression in the context of mechanism
         species, species groups, reactions, net reactions and processes
+        
+        expr - string to evaluate
+        env - optional, global environment that defaults to globals()
         """
+        if env is None:
+            env = globals()
+        
         try:
             return self.variables[expr]
         except:
