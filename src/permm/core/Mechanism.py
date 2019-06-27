@@ -83,12 +83,14 @@ class Mechanism(object):
         """
         Create a mechanism from a KPP-style eqn string
         """
+        eqnstr = re.compile(r'(?<![;}])\s*\n').sub(r'', eqnstr)
+        eqnstr = re.compile(r'^//.+?$', re.MULTILINE).sub(r'', eqnstr)
         textlines = eqnstr.split('\n')
         rxnlines = [l.split(':')[0] for l in textlines if l.strip() != '#EQUATIONS' and l.strip() != '']
         rxntxt = '\n'.join(rxnlines)
         rxntxt = re.compile(r'[ \t]+').sub(' ', rxntxt)
-        rxntxt = re.compile('^{(.+?)\.?\s*}', re.M).sub(r'    IRR_\1: ', rxntxt)
-        rxntxt = re.compile('{(.+?)}', re.M).sub('', rxntxt)
+        rxntxt = re.compile(r'^\s*[<{](.+?)\.?[>}]', re.MULTILINE).sub(r'    IRR_\1: ', rxntxt)
+        rxntxt = re.compile(r'{(.+?)}').sub(r'\1', rxntxt)
         rxntxt = 'reaction_list:\n' + rxntxt
         from io import StringIO
         if verbose > 0:
@@ -151,9 +153,13 @@ class Mechanism(object):
         """
         Evaluate string expression in the context of mechanism
         species, species groups, reactions, net reactions and processes
+        
+        expr - string to evaluate
+        env - optional, global environment that defaults to globals()
         """
         if env is None:
             env = globals()
+
         try:
             return self.variables[expr]
         except:
