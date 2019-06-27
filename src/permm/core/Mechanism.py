@@ -33,25 +33,68 @@ class Mechanism(object):
     
     Reaction data can be augmented with IRR data via set_irr or set_mrg
     """
-    def from_eqn(path):
+    @classmethod
+    def from_mech(cls, path, verbose=0):
+        return cls.from_mechs(open(path, 'r').read(), verbose=verbose)
+
+    @classmethod
+    def from_mechs(cls, mechstr, verbose=0):
+        mechstr = mechstr + '\n#'
+        varre = re.compile('^#DEFVAR.+?(?:^#)', re.M + re.S)
+        fixre = re.compile('^#DEFFIX.+?(?:^#)', re.M + re.S)
+        eqnre = re.compile('^#EQUATIONS.+?(?:^#)', re.M + re.S)
+        varm = varre.findall(mechstr)
+        fixm = fixre.findall(mechstr)
+        eqnm = eqnre.findall(mechstr)
+        varmech = cls.from_spcs(varm[0][:-1], verbose=verbose)
+        fixmech = cls.from_spcs(fixm[0][:-1], verbose=verbose)
+        eqnmech = cls.from_eqns(eqnm[0][:-1], verbose=verbose)
+        varmech.species_dict.update(fixmech.species_dict)
+        varmech.reaction_dict.update(eqnmech.reaction_dict)
+        return varmech
+
+    @classmethod
+    def from_spc(cls, path, verbose=0):
+        return cls.from_spcs(open(path, 'r').read(), verbose=verbose)
+
+    @classmethod
+    def from_spcs(cls, spcstr, verbose=0):
+        textlines = spcstr.split('\n')
+        spclines = [l.split(':')[0] for l in textlines if l.strip() != '#DEFVAR' and l.strip() != '']
+        spctxt = '\n'.join(spclines)
+        spctxt = re.compile(r'[ \t]+').sub(' ', spctxt)
+        spctxt = re.compile(r'[ \t]*(.+?)[ \t]*=[ \t]*(.+)[ \t]*;[ \t]*(?:{.+?})?[ \t]*').sub(r"    '\1': '\2'", spctxt)
+        spctxt = 'species_list:\n' + spctxt
+        from io import StringIO
+        if verbose > 0:
+            print(spctxt)
+        spcdict = yaml.load(StringIO(spctxt))
+        return cls(spcdict)
+
+    @classmethod
+    def from_eqn(cls, path, verbose=0):
         """
         Create a mechanism from a KPP-style eqn file
         """
-        return Mechanism.from_eqns(open(path, 'r').read())
+        return cls.from_eqns(open(path, 'r').read(), verbose=verbose)
         
-    def from_eqns(eqnstr):
+    @classmethod
+    def from_eqns(cls, eqnstr, verbose=0):
         """
         Create a mechanism from a KPP-style eqn string
         """
         textlines = eqnstr.split('\n')
-        rxnlines = [l.split(':')[0] for l in textlines if l.strip() != '#EQATIONS' and l.strip() != '']
+        rxnlines = [l.split(':')[0] for l in textlines if l.strip() != '#EQUATIONS' and l.strip() != '']
         rxntxt = '\n'.join(rxnlines)
         rxntxt = re.compile(r'[ \t]+').sub(' ', rxntxt)
-        rxntxt = re.compile('{(.+?)\.?}').sub(r'    IRR_\1:', rxntxt)
+        rxntxt = re.compile('^{(.+?)\.?\s*}', re.M).sub(r'    IRR_\1: ', rxntxt)
+        rxntxt = re.compile('{(.+?)}', re.M).sub('', rxntxt)
         rxntxt = 'reaction_list:\n' + rxntxt
         from io import StringIO
+        if verbose > 0:
+            print(rxntxt)
         rxndict = yaml.load(StringIO(rxntxt))
-        return Mechanism(rxndict)
+        return cls(rxndict)
         
     def __init__(self, yaml_path):
         """
@@ -81,7 +124,7 @@ class Mechanism(object):
         self.species_dict = dict()
 
         for spc, spc_def in yaml_file.get('species_list', {}).items():
-            self.species_dict[spc] = Species(spc + ': ' + spc_def)
+            self.species_dict[spc] = Species("'" + spc + "': " + spc_def)
                         
         self.reaction_dict = dict()
         reaction_species = []
@@ -104,11 +147,13 @@ class Mechanism(object):
         self.variables = {}
         load_environ(self, self.variables)
             
-    def __call__(self, expr, env = globals()):
+    def __call__(self, expr, env = None):
         """
         Evaluate string expression in the context of mechanism
         species, species groups, reactions, net reactions and processes
         """
+        if env is None:
+            env = globals()
         try:
             return self.variables[expr]
         except:

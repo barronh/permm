@@ -3,11 +3,15 @@ import re
 import yaml
 from numpy import float32, float64, int8, int16, int32, int64
 
-_spc_def_re = re.compile(r'(?P<stoic>[-+]?[0-9]*\.?[0-9]+)(?P<atom>\S+)(?=\s*\+\s*)?')
+_spc_def_re = re.compile(r'(?P<stoic>[-+]?[0-9]*\.?[0-9]+)?(?P<atom>\S+)\b(?=\s*\+\s*)?')
 
 def atom_parse(spc_def):
+    global _spc_def_re
+    from ..mechanisms import atoms as ALL_ATOMS
     atomdict = {}
     for stoic, atom in _spc_def_re.findall(spc_def):
+        if stoic == '':
+            stoic = '1'
         if atom not in atomdict:
             atomdict[atom] = eval(stoic)
         else:
@@ -16,18 +20,26 @@ def atom_parse(spc_def):
     return atomdict
 
 def atom_guess(spc_name):
-    from permm.mechanisms import atoms as ALL_ATOMS
-    if '+' in spc_name or spc_name[:1].isdigit(): return atom_parse(spc_name)
+    from ..mechanisms import atoms as ALL_ATOMS
+    if '+' in spc_name or spc_name[:1].isdigit():
+        return atom_parse(spc_name)
     lastl = ''
     atom_dict = {}
-    for l in spc_name:
-        if l.isdigit():
-            atom_dict[lastl] += int(l) - 1
-        elif l in ALL_ATOMS:
-            atom_dict.setdefault(l, 0)
-            atom_dict[l] += 1
-            
-        lastl = l
+    atre = re.compile(
+        '(' + '|'.join(sorted(ALL_ATOMS, key=lambda x: -len(x))) + ')\s*(\d{1,10})'
+    )
+    for at, mul in atre.findall(spc_name):
+        if mul == '':
+            mul = '1'
+        atom_dict.setdefault(at, 0)
+        atom_dict[at] += int(mul)
+        # if l.isdigit():
+        #     atom_dict[lastl] += int(l) - 1
+        # elif l in ALL_ATOMS:
+        #     atom_dict.setdefault(l, 0)
+        #     atom_dict[l] += 1
+        #     
+        # lastl = l
     return atom_dict
     
 class Species(object):
@@ -147,8 +159,8 @@ class Species(object):
         """
         Return mass from atomic mass additions
         """
-        from permm.mechanisms import atoms as ALL_ATOMS
         from openbabel import OBAtom
+        from ..mechanisms import atoms as ALL_ATOMS
         obatom = OBAtom()
         mass = 0.
         for spc, props in list(self.spc_dict.items()):
@@ -157,8 +169,20 @@ class Species(object):
                 mass += obatom.GetAtomicMass() * count
         return mass*self
         
+    def has_atom(self, atom):
+        from ..mechanisms import atoms as ALL_ATOMS
+        if atom in ALL_ATOMS:
+            for spc, props in self.spc_dict.items():
+                mul = props['atoms'].get(atom, 0)
+                if mul != 0:
+                    return True
+            else:
+                return False
+        else:
+            raise KeyError("Atom provided (%s) is not an atom" % atom)
+
     def atoms(self, atom):
-        from permm.mechanisms import atoms as ALL_ATOMS
+        from ..mechanisms import atoms as ALL_ATOMS
         if atom in ALL_ATOMS:
             out_props = {}
             for spc, props in self.spc_dict.items():
